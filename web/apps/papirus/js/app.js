@@ -1558,6 +1558,15 @@ $('#importAppend').addEventListener('click', () => doImport(false));
 $('#importCancel').addEventListener('click', () => importDlg.close());
 $$('[data-import]').forEach(b => b.addEventListener('click', () => openImport()));
 
+// В Пульте другое приложение (Терминал Брига) присылает готовый код бумаги — открываем его в окне импорта,
+// а заменить документ, добавить в конец или сохранить шаблоном решает пользователь
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'pult-import' || typeof e.data.code !== 'string') return;
+  if (importDlg.open) importDlg.close();
+  showTab('home');
+  openImport(e.data.code, String(e.data.title || ''));
+});
+
 $('#importOpenTxt').addEventListener('click', () => pickFile(async files => {
   importText.value = await readTextFile(files[0]);
   importName = baseName(files[0]);

@@ -164,6 +164,9 @@ main{padding-top:18px}
 .paperbar .seg{margin:0;padding:2px}
 .paperbar .seg button{padding:4px 10px;font-size:12.5px}
 .paperbar .btn{margin-left:auto}
+.topapirus{display:none}
+.pult-embedded .topapirus{display:inline-block;margin-left:auto}
+.pult-embedded .topapirus+.btn{margin-left:0}
 .paperinfo{padding:7px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;gap:6px 12px;flex-wrap:wrap}
 .paperinfo b{color:var(--fg);font-weight:500}
 .paperinfo .over{color:var(--bad);font-weight:600}
@@ -384,6 +387,7 @@ td.y{color:var(--ok);font-weight:600} td.n{color:var(--bad);font-weight:600} td.
     <div class="panel paper">
       <div class="paperbar">
         <div class="seg" id="fmt"><button type="button" data-f="txt" aria-pressed="true">Текст</button><button type="button" data-f="md" aria-pressed="false">Markdown</button><button type="button" data-f="ss13" aria-pressed="false" title="Теги бумаги SS13 по правилам активного профиля Папируса">SS13</button></div>
+        <button class="btn topapirus" id="topapirus" type="button" title="Открыть документ в Папирусе для оформления (код SS13 по профилю Папируса)">В Папирус</button>
         <button class="btn pri" id="copydoc" type="button">Копировать</button>
       </div>
       <div class="paperinfo" id="paperinfo" hidden></div>
@@ -738,8 +742,9 @@ function paperFmt(f,p){
   return{b:s=>md?'**'+s+'**':s,i:s=>md?'_'+s+'_':s,h:s=>md?'### '+s:s.toUpperCase(),head:s=>md?s:s.toUpperCase(),hr:null,
     list:t=>t.map(x=>'  — '+x).join('\n'),sign:'______________',end:s=>s}
 }
-function renderPaper(){
-  const P=papirusProfile(), F=paperFmt(D.fmt,P.p), B=F.b, H=F.h, v=k=>(D[k]||'').trim()||'—', L=[];
+// Документ в нужном формате: {code, title, P} — для экрана и для передачи в Папирус
+function buildPaper(fmt){
+  const P=papirusProfile(), F=paperFmt(fmt,P.p), B=F.b, H=F.h, v=k=>(D[k]||'').trim()||'—', L=[];
   const line=(a,b)=>L.push(B(a+':')+' '+b);
   const list=(k)=>{const t=(D[k]||'').split(/;\s*|\n/).map(x=>x.trim()).filter(Boolean);return t.length?F.list(t):'  —'};
   L.push(F.head('NanoTrasen · Служба Безопасности'));
@@ -785,7 +790,10 @@ function renderPaper(){
     L.push('');L.push('Подпись допрашивающего: '+F.sign);
     L.push('Подпись допрашиваемого: '+F.sign);
   }
-  const code=F.end(L.join('\n'));$('#paper').textContent=code;
+  return{code:F.end(L.join('\n')),title:T+' № '+v('num'),P};
+}
+function renderPaper(){
+  const{code,P}=buildPaper(D.fmt);$('#paper').textContent=code;
   const info=$('#paperinfo');info.hidden=D.fmt!=='ss13';
   if(D.fmt==='ss13'){const lim=+P.p.limit||0,over=lim&&code.length>lim;
     info.innerHTML=`<span>Правила Папируса: <b>${esc(P.p.name||'профиль')}</b>${P.own?'':' (по умолчанию)'}</span><span class="${over?'over':''}">${code.length}${lim?' / '+lim:''} символов</span>`}
@@ -801,6 +809,8 @@ $('#form').addEventListener('click',e=>{
   if(e.target.id==='docclear'){const keep={tpl:D.tpl,fmt:D.fmt,officer:''};D=Object.assign({},keep,{num:'СБ-'+String(Math.floor(1000+Math.random()*9000)),code:'Зелёный'});renderForm();renderPaper();save()}
 });
 $('#copydoc').addEventListener('click',()=>copy($('#paper').textContent,'Документ скопирован'));
+// В Пульте: документ уходит в Папирус кодом SS13 по его активному профилю (кнопка видна только внутри Пульта)
+$('#topapirus').addEventListener('click',()=>{const p=buildPaper('ss13');parent.postMessage({type:'pult-send',to:'papirus',code:p.code,title:p.title},location.origin)});
 
 /* ===================== СПРАВОЧНИК: ДАННЫЕ ===================== */
 const CONTRA=[

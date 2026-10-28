@@ -188,6 +188,7 @@ function focusApp() {
 function prepare(app, frame) {
   let doc;
   try { doc = frame.contentDocument; } catch (e) { doc = null; }
+  frame.dataset.loaded = '1';
   if (!doc || !doc.head) { frame.classList.add('ready'); return; }
   doc.documentElement.classList.add('pult-embedded');
   doc.documentElement.classList.toggle('pult-compact', compact);
@@ -271,6 +272,19 @@ function onKey(e) {
   if (handled) { e.preventDefault(); e.stopPropagation(); }
 }
 document.addEventListener('keydown', onKey, true);
+
+// ---------- Передача между приложениями ----------
+// Приложение просит отправить данные другому: {type: 'pult-send', to, code, title}. Открываем получателя
+// и, когда он загрузится, отдаём ему {type: 'pult-import', code, title} (Бриг → Папирус: документ в окно импорта).
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (e.origin !== location.origin || !d || d.type !== 'pult-send' || !byId[d.to] || typeof d.code !== 'string') return;
+  open(d.to);
+  const f = frames[d.to];
+  const go = () => f.contentWindow.postMessage({ type: 'pult-import', code: d.code, title: d.title || '' }, location.origin);
+  if (f.dataset.loaded) go();
+  else f.addEventListener('load', () => setTimeout(go, 50), { once: true });
+});
 
 // ---------- Хоткеи Инженера ----------
 function toEngineer(msg) {
