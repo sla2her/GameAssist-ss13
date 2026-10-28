@@ -1,0 +1,213 @@
+/* ---------- Цвета ---------- */
+:root {
+  color-scheme: dark;
+  --bg: #12151b;
+  --bg2: #191d25;
+  --surface: #20252f;
+  --surface2: #2a303c;
+  --line: #333a47;
+  --text: #e6e9ef;
+  --muted: #98a1b3;
+  --faint: #677084;
+  --focus: #8eb4ff;
+  --shadow: 0 18px 50px rgba(0, 0, 0, .45);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --font: "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #e9ecf1;
+    --bg2: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #eef1f5;
+    --line: #d3d9e2;
+    --text: #1a1f29;
+    --muted: #5a6377;
+    --faint: #8a93a5;
+    --focus: #2f6fdc;
+    --shadow: 0 18px 50px rgba(20, 30, 50, .18);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 13px/1.4 var(--font);
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+[hidden] { display: none !important; }
+kbd {
+  font: 11px Consolas, monospace; padding: 0 4px; border-radius: 3px;
+  border: 1px solid var(--line); background: var(--surface);
+}
+
+#win { position: relative; height: 100%; display: flex; flex-direction: column; }
+
+/* В браузере компактный режим показываем узкой колонкой — как будет выглядеть окно */
+html.nohost.compact:not(.mobile) body { background: color-mix(in srgb, var(--bg) 70%, #000); }
+html.nohost.compact:not(.mobile) #win {
+  width: 440px; max-width: 100%; height: min(800px, calc(100% - 32px)); margin: 16px auto;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Панель приложения ---------- */
+.bar {
+  flex: none; display: flex; align-items: center; gap: 4px;
+  height: 34px; padding: 0 6px;
+  background: var(--bg2); border-bottom: 2px solid var(--app, var(--line));
+  transition: border-color .25s;
+}
+.compact .bar { height: 30px; padding: 0 4px; gap: 2px; }
+.bar .grow { flex: 1; }
+.hubbtn, .ibtn, .switch button {
+  display: grid; place-items: center; flex: none;
+  width: 28px; height: 26px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted);
+  transition: background-color .12s, color .12s;
+}
+.compact .hubbtn, .compact .ibtn, .compact .switch button { width: 26px; height: 24px; }
+.hubbtn:hover, .ibtn:hover, .switch button:hover { background: var(--surface2); color: var(--text); }
+.hubbtn svg { width: 20px; height: 20px; }
+.ibtn svg, .switch svg { width: 16px; height: 16px; }
+.ibtn[aria-pressed="true"] { color: var(--text); background: var(--surface2); }
+.ibtn[aria-pressed="true"] svg { transform: rotate(-45deg); }
+.ibtn svg { transition: transform .15s; }
+.switch { display: flex; gap: 1px; padding-left: 4px; margin-left: 2px; border-left: 1px solid var(--line); }
+.switch button[aria-current="true"] { color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+.switch button { position: relative; }
+.switch button.alive::after {
+  content: ""; position: absolute; bottom: 2px; left: 50%; width: 4px; height: 4px; margin-left: -2px;
+  border-radius: 50%; background: var(--c); opacity: .7;
+}
+.apptitle { margin-left: 8px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.apptitle small { font-weight: 400; color: var(--muted); margin-left: 6px; }
+.compact .apptitle { margin-left: 6px; font-size: 12px; }
+.compact .apptitle small { display: none; }
+
+/* ---------- Приложения ---------- */
+.stage { position: relative; flex: 1; min-height: 0; }
+.stage iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--bg);
+  visibility: hidden; opacity: 0; transition: opacity .2s;
+}
+.stage iframe.on { visibility: visible; }
+.stage iframe.on.ready { opacity: 1; }
+
+/* ---------- Стартовый экран / меню ---------- */
+.home {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  padding: 16px;
+  background:
+    radial-gradient(closest-side, color-mix(in srgb, var(--surface) 60%, transparent), transparent) center / min(900px, 140vmin) min(900px, 140vmin) no-repeat,
+    var(--bg);
+  transition: opacity .2s, visibility .2s;
+}
+.home.overlay { background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(6px); }
+.home.closed { opacity: 0; visibility: hidden; pointer-events: none; }
+.home.closed .radial { transform: scale(.92); }
+.homefoot {
+  margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px;
+  color: var(--faint); font-size: 12px; text-align: center;
+}
+.homefoot .credit { font-style: italic; }
+.compact .homefoot .keys { display: none; }
+.home.overlay .homefoot .credit { display: none; }
+
+/* Радиальное меню */
+.radial {
+  --d: min(600px, 84vmin, calc(100vw - 32px));
+  position: relative; width: var(--d); height: var(--d); flex: none;
+  transition: transform .25s var(--ease);
+}
+.compact .radial { --d: min(350px, calc(100vw - 24px), calc(100vh - 110px)); }
+.radial svg.ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ring .track { fill: none; stroke: var(--line); stroke-width: .6; stroke-dasharray: 1.5 2.5; }
+.ring .sec { cursor: pointer; transition: transform .22s var(--ease); }
+.ring .sec .fill {
+  fill: color-mix(in srgb, var(--c) 14%, var(--surface));
+  stroke: color-mix(in srgb, var(--c) 40%, var(--line)); stroke-width: .5;
+  transition: fill .18s, stroke .18s;
+}
+.ring .sec .edge { fill: none; stroke: var(--c); stroke-width: 2.2; stroke-linecap: round; opacity: .55; transition: opacity .18s, stroke-width .18s; }
+.ring .sec.hot { transform: translate(var(--dx), var(--dy)); }
+.ring .sec.hot .fill { fill: color-mix(in srgb, var(--c) 30%, var(--surface)); stroke: var(--c); }
+.ring .sec.hot .edge { opacity: 1; stroke-width: 3; }
+.ring .sec.cur .fill { stroke: var(--c); stroke-width: 1; }
+
+.lab {
+  position: absolute; transform: translate(-50%, -50%);
+  width: calc(var(--d) * .25); padding: 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
+  border: 0; background: none; border-radius: 10px;
+  transition: transform .22s var(--ease);
+}
+.lab.hot { transform: translate(calc(-50% + var(--px)), calc(-50% + var(--py))); }
+.lab .ico {
+  display: grid; place-items: center; width: calc(var(--d) * .085); height: calc(var(--d) * .085);
+  min-width: 30px; min-height: 30px; border-radius: 50%;
+  color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent);
+  transition: background-color .18s, color .18s, transform .22s var(--ease);
+}
+.lab.hot .ico { background: var(--c); color: #fff; transform: scale(1.08); }
+.lab .ico svg { width: 58%; height: 58%; }
+.lab b { font-size: max(13px, calc(var(--d) * .033)); font-weight: 600; line-height: 1.15; margin-top: 2px; }
+.lab .sub { font-size: 11.5px; color: var(--muted); line-height: 1.2; }
+.lab .desc { font-size: 11px; color: var(--faint); line-height: 1.25; max-width: 100%; }
+.lab .short { display: none; }
+.compact .lab b { font-size: 12.5px; }
+.compact .lab .full, .compact .lab .desc, .compact .lab .sub { display: none; }
+.compact .lab .short { display: inline; }
+.lab .alive {
+  display: none; font-size: 10px; color: var(--c); letter-spacing: .02em;
+}
+.lab.alive .alive { display: block; }
+.compact .lab.alive .alive { display: none; }
+
+/* Центр меню */
+.hub {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: calc(var(--d) * .4); height: calc(var(--d) * .4);
+  border-radius: 50%; background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  text-align: center;
+}
+.hub .logo { width: 28%; height: 28%; }
+.hub h1 { margin: 0; font-size: calc(var(--d) * .042); font-weight: 650; letter-spacing: .02em; line-height: 1; }
+.compact .hub h1 { font-size: 14px; }
+.compact .hub { gap: 4px; }
+.modepill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface2);
+  font-size: 11.5px; color: var(--muted);
+  transition: border-color .15s, color .15s;
+}
+.modepill:hover { border-color: var(--focus); color: var(--text); }
+.modepill svg { width: 13px; height: 13px; }
+.compact .modepill { font-size: 10.5px; padding: 2px 7px; }
+
+/* Появление меню */
+.radial.intro .sec, .radial.intro .lab, .radial.intro .hub { animation: pop .45s var(--ease) both; }
+.radial.intro [data-i="1"] { animation-delay: .06s; }
+.radial.intro [data-i="2"] { animation-delay: .12s; }
+@keyframes pop { from { opacity: 0; scale: .8; } }
+.ring .sec { transform-origin: 0 0; }
+
+/* ---------- Телефон и планшет (Пульт.apk) ---------- */
+.mobile { -webkit-tap-highlight-color: transparent; }
+.mobile .bar { height: 40px; padding: 0 4px; }
+.mobile .hubbtn, .mobile .ibtn, .mobile .switch button { width: 36px; height: 34px; }
+.mobile .switch { overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.mobile .homefoot .keys { display: none; }
+.phone #modeBtn, .phone .modepill { display: none; }
+.phone .radial { --d: min(390px, calc(100vw - 20px), calc(100vh - 90px)); }
+.mobile .lab .ico { min-width: 36px; min-height: 36px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

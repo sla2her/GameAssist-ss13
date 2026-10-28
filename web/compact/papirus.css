@@ -1,0 +1,85 @@
+/* Папирус внутри Пульта: компактный режим. Три колонки (блоки, лист, код) становятся вкладками —
+   переключатель добавляет papirus.js. */
+.pult-panes { display: none; }
+
+.pult-compact body { font-size: 12.5px; }
+
+/* Заголовок и лента */
+.pult-compact .titlebar { height: 30px; padding: 0 6px; gap: 6px; }
+.pult-compact .titlebar .logo { margin-right: 2px; font-size: 14px; }
+.pult-compact .titlebar button { width: 26px; height: 24px; font-size: 15px; }
+.pult-compact .tb-right .sub { display: none; }
+.pult-compact .titlebar .title { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pult-compact #docTitle { width: 150px; max-width: 100%; }
+.pult-compact .tabs { padding: 0 4px; overflow-x: auto; scrollbar-width: none; }
+.pult-compact .tab { padding: 5px 9px 4px; white-space: nowrap; flex: none; }
+.pult-compact .rpanel { min-height: 0; padding: 4px 4px 2px; scrollbar-width: thin; }
+.pult-compact .rgroup { padding: 0 6px; flex: none; }
+.pult-compact .rgroup.grow { flex: 1 0 auto; }
+.pult-compact .rrow { flex-wrap: nowrap; }
+.pult-compact .rlabel { font-size: 10px; padding: 1px 0 2px; }
+.pult-compact .rb { min-width: 28px; height: 28px; padding: 0 6px; }
+.pult-compact .rb.big { height: 48px; min-width: 52px; font-size: 11px; padding: 2px 6px; }
+.pult-compact .rb.big .ico { font-size: 17px; margin-bottom: 1px; }
+.pult-compact .stylebtn { width: 64px; height: 46px; font-size: 10px; }
+.pult-compact .stylebtn span { margin-bottom: 1px; }
+.pult-compact .insgroup .rb { height: 46px; min-width: 54px; font-size: 10.5px; }
+.pult-compact .insgroup .rb .ico { font-size: 16px; margin-bottom: 1px; }
+.pult-compact .tplcard { width: 92px; height: 48px; font-size: 11px; }
+.pult-compact .tplcard .ico { font-size: 16px; }
+.pult-compact .ribbon-grip { height: 6px; }
+
+/* Переключатель колонок */
+.pult-compact .pult-panes {
+  display: flex; gap: 2px; padding: 3px 4px; flex: none;
+  background: var(--ribbon); border-bottom: 1px solid var(--border);
+}
+.pult-compact .pult-panes[hidden] { display: none; }
+.pult-panes button {
+  flex: 1; border: 1px solid transparent; border-radius: 4px; background: transparent; padding: 4px 6px;
+  font-size: 12px; color: var(--muted); white-space: nowrap;
+  transition: background-color .12s, color .12s, border-color .12s;
+}
+.pult-panes button:hover { background: var(--hover); color: var(--text); }
+.pult-panes button[aria-pressed="true"] { background: var(--surface); border-color: var(--border); color: var(--accent-text); font-weight: 600; }
+.pult-panes .n { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: 11px; }
+.pult-panes .n.over { color: var(--danger); font-weight: 600; }
+
+/* Рабочая область: видна одна колонка */
+.pult-compact .splitter { display: none; }
+.pult-compact #palette, .pult-compact #codepanel { width: 100% !important; flex: 1; }
+.pult-compact[data-pane="page"] #palette,
+.pult-compact[data-pane="page"] #codepanel,
+.pult-compact[data-pane="palette"] #canvas,
+.pult-compact[data-pane="palette"] #codepanel,
+.pult-compact[data-pane="code"] #canvas,
+.pult-compact[data-pane="code"] #palette { display: none; }
+.pult-compact .palette { padding: 8px 10px; }
+.pult-compact .palette .pitem { padding: 7px 9px; }
+.pult-compact #code { margin: 0 8px; }
+.pult-compact .cp-head, .pult-compact .cp-foot { padding: 8px; }
+
+/* Лист во всю ширину; поля оставлены под ручки блоков */
+.pult-compact .canvas { padding: 8px 4px 30px; }
+.pult-compact .page { width: auto; min-height: 70vh; padding: 26px 36px 40px; }
+.pult-compact .blk .handle { left: -30px; }
+.pult-compact .blk .del { right: -30px; }
+.pult-compact .blk .tag { display: none !important; }
+
+/* Строка состояния */
+.pult-compact .status { gap: 10px; height: 24px; padding: 0 8px; font-size: 11px; }
+.pult-compact .status .hint, .pult-compact .status .credit, .pult-compact #stProfile { display: none; }
+.pult-compact .zoom input { width: 64px; }
+
+/* Настройки и диалоги */
+.pult-compact .set-wrap { padding: 12px 10px 40px; }
+.pult-compact .set-wrap h1 { font-size: 22px; margin-bottom: 12px; }
+.pult-compact .card { padding: 12px; margin-bottom: 12px; }
+.pult-compact .row select { min-width: 0; max-width: 100%; }
+.pult-compact .seg { flex-wrap: wrap; }
+.pult-compact .seg button { padding: 5px 10px; }
+.pult-compact .cmds td:first-child { width: 42%; }
+.pult-compact .snip { grid-template-columns: 1fr auto; }
+.pult-compact .snip > :nth-child(2) { grid-column: 1; }
+.pult-compact .dlg { width: 96vw; padding: 12px 14px; }
+.pult-compact #importText { height: 40vh; }

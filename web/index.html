@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пульт</title>
+<link rel="stylesheet" href="shell.css">
+<script>
+  // Режим прошлого запуска ставим до отрисовки, чтобы меню не прыгало
+  try { if (localStorage.getItem('pult.mode') === 'compact') document.documentElement.classList.add('compact'); } catch (e) {}
+  if (!(window.chrome && window.chrome.webview)) document.documentElement.classList.add('nohost');
+  // Android-приложение: на телефоне всегда компактный режим, на планшете можно переключать
+  if (window.PultAndroid) {
+    document.documentElement.classList.add('mobile');
+    if (Math.min(screen.width, screen.height) < 600) document.documentElement.classList.add('compact', 'phone');
+  }
+</script>
+</head>
+<body>
+<div id="win">
+  <header class="bar" id="bar" hidden>
+    <button class="hubbtn" id="hubBtn" title="Меню приложений (Alt+0)" aria-label="Меню приложений"></button>
+    <nav class="switch" id="switch" aria-label="Приложения"></nav>
+    <div class="apptitle" id="appTitle"></div>
+    <span class="grow"></span>
+    <button class="ibtn" id="pinBtn" hidden aria-pressed="false"></button>
+    <button class="ibtn" id="modeBtn"></button>
+  </header>
+
+  <div class="stage" id="stage"></div>
+
+  <section class="home" id="home" aria-label="Выбор приложения">
+    <div class="radial" id="radial"></div>
+    <p class="homefoot">
+      <span class="keys"><kbd>Alt</kbd>+<kbd>1</kbd>…<kbd>6</kbd> — приложения · <kbd>Alt</kbd>+<kbd>0</kbd> — меню · <kbd>Alt</kbd>+<kbd>M</kbd> — режим</span>
+      <span class="credit">made by: Sla2her for BlueMoon</span>
+    </p>
+  </section>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

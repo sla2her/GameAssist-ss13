@@ -1,0 +1,27 @@
+/* Кухня и бар внутри Пульта: компактный режим. Узкая вёрстка (список сверху, рецепт снизу)
+   у страницы своя, здесь только уплотнение. */
+.pult-compact body { font-size: 13px; }
+.pult-compact header { gap: 6px 8px; padding: 6px 8px; }
+.pult-compact header h1 { font-size: 14px; }
+.pult-compact header h1 span, .pult-compact header .spacer { display: none; }
+.pult-compact .meta { order: 3; width: 100%; font-size: 11px; }
+.pult-compact .tabs { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; }
+.pult-compact .tab { padding: 4px 9px; white-space: nowrap; flex: none; }
+.pult-compact .iconbtn { padding: 2px 8px; }
+
+.pult-compact main, .pult-compact .view.on { flex-direction: column; }
+.pult-compact .controls .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+.pult-compact .controls .chips .chip { flex: none; white-space: nowrap; }
+.pult-compact .side { width: auto; min-width: 0; height: 48vh; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); }
+.pult-compact .side .controls { padding: 6px 8px; gap: 5px; }
+.pult-compact .search { padding: 5px 8px; }
+.pult-compact .subtabs { overflow-x: auto; scrollbar-width: none; }
+.pult-compact .subtabs .chip { padding: 3px 10px; white-space: nowrap; }
+.pult-compact .row { padding: 5px 10px; }
+.pult-compact .detail { padding: 10px 12px 40px; }
+.pult-compact .detail h2 { font-size: 18px; }
+.pult-compact .detail h3 { margin: 14px 0 6px; }
+.pult-compact .card { padding: 9px 10px; }
+.pult-compact .bar-meter { width: 140px; }
+.pult-compact .kv { gap: 3px 10px; }
+.pult-compact table.t td, .pult-compact table.t th { padding: 4px 5px; }

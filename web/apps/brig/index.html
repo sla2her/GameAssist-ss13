@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style>
+<title>Терминал Брига</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+/* Layout: sticky header with tabs; sentence tab = quick-input bar on top, KZ grid left, verdict panel right; stacks on phones */
+:root{
+  --bg:#e8ebf0; --panel:#ffffff; --panel2:#f3f5f8; --fg:#151a23; --muted:#596377; --faint:#8a93a4; --line:#d2d8e1; --line2:#b9c1cd;
+  --accent:#b3202a; --accent-fg:#ffffff; --navy:#1d3766;
+  --t1:#2e8a4b; --t2:#a77c00; --t3:#cc6410; --t4:#c0262d; --t5:#6c2fa3;
+  --ok:#2e8a4b; --warn:#a77c00; --bad:#c0262d;
+  --font-d:"Russo One","Arial Narrow",system-ui,sans-serif;
+  --font-b:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-m:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1117; --panel:#171b23; --panel2:#1e232d; --fg:#e3e7ee; --muted:#9aa3b4; --faint:#6d7688; --line:#2a303b; --line2:#3a4250;
+  --accent:#ec4d55; --accent-fg:#160406; --navy:#8eafee;
+  --t1:#52c47a; --t2:#e0b43a; --t3:#f08a3a; --t4:#ef5560; --t5:#ad83e6;
+  --ok:#52c47a; --warn:#e0b43a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --panel:#171b23; --panel2:#1e232d; --fg:#e3e7ee; --muted:#9aa3b4; --faint:#6d7688; --line:#2a303b; --line2:#3a4250;
+  --accent:#ec4d55; --accent-fg:#160406; --navy:#8eafee;
+  --t1:#52c47a; --t2:#e0b43a; --t3:#f08a3a; --t4:#ef5560; --t5:#ad83e6;
+  --ok:#52c47a; --warn:#e0b43a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1240px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.mono{font-family:var(--font-m)}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:30px;height:34px;background:var(--accent);clip-path:polygon(50% 0,100% 18%,100% 62%,50% 100%,0 62%,0 18%);display:grid;place-items:center;color:var(--accent-fg);font:12px var(--font-d)}
+.brand h1{font:20px/1 var(--font-d);margin:0;letter-spacing:.02em}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+main{padding-top:18px}
+.lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+
+/* quick input */
+.cmd{display:flex;align-items:center;gap:10px;background:var(--panel);border:1.5px solid var(--line2);border-radius:12px;padding:4px 6px 4px 14px}
+.cmd:focus-within{border-color:var(--navy)}
+.cmd .pr{font-family:var(--font-m);color:var(--accent);font-weight:500}
+.cmd input{flex:1;min-width:0;border:0;background:none;outline:none;font-family:var(--font-m);font-size:17px;padding:10px 0}
+.cmd button{border:0;background:none;color:var(--muted);cursor:pointer;padding:8px 10px;border-radius:8px;font-size:13px}
+.cmd button:hover{background:var(--panel2);color:var(--fg)}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 2px 0;min-height:19px}
+.hint code{font-family:var(--font-m);background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--fg)}
+.hint .err{color:var(--bad)}
+
+.calc{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;margin-top:14px;align-items:start}
+@media (max-width:980px){.calc{grid-template-columns:minmax(0,1fr)}}
+
+/* grid */
+.gridbox{padding:14px;overflow:hidden}
+.gscroll{overflow-x:auto;margin:0 -14px;padding:0 14px}
+.kz{display:grid;grid-template-columns:44px repeat(5,minmax(104px,1fr));gap:5px;min-width:600px}
+.kz .th{padding:4px 6px 8px;font-size:12px;line-height:1.25}
+.kz .th b{display:block;font:15px var(--font-d);letter-spacing:.03em}
+.kz .th span{color:var(--muted)}
+.kz .th.t1 b{color:var(--t1)} .kz .th.t2 b{color:var(--t2)} .kz .th.t3 b{color:var(--t3)} .kz .th.t4 b{color:var(--t4)} .kz .th.t5 b{color:var(--t5)}
+.kz .rh{font:12px var(--font-m);color:var(--faint);display:flex;align-items:center}
+.cell{position:relative;text-align:left;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 8px 7px;cursor:pointer;min-height:54px;font-size:12.5px;line-height:1.25;transition:background .12s,border-color .12s}
+.cell .cd{display:block;font:11px var(--font-m);color:var(--faint);margin-bottom:2px}
+.cell:hover{border-color:var(--line2);background:var(--panel)}
+.cell.empty{background:none;border:1px dashed var(--line);cursor:default;min-height:54px}
+.cell.on{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 16%,var(--panel));font-weight:500}
+.cell.on .cd{color:var(--tc)}
+.cell.on::after{content:"✓";position:absolute;top:5px;right:7px;font-size:12px;color:var(--tc)}
+.cell.abs{opacity:.55;text-decoration:line-through}
+.t1{--tc:var(--t1)} .t2{--tc:var(--t2)} .t3{--tc:var(--t3)} .t4{--tc:var(--t4)} .t5{--tc:var(--t5)}
+
+.insp{margin-top:12px;border-top:1px solid var(--line);padding-top:12px;font-size:13.5px;min-height:76px}
+.insp h3{margin:0 0 4px;font-size:15px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.insp h3 .cd{font:13px var(--font-m);color:var(--tc)}
+.insp p{margin:0 0 6px;color:var(--muted);max-width:75ch}
+.insp ul{margin:4px 0 0;padding-left:18px;max-width:80ch}
+.insp li{margin:2px 0}
+.insp details summary{cursor:pointer;color:var(--navy);font-size:13px}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line2);border-radius:20px;padding:0 8px;color:var(--muted);font-weight:400}
+
+/* verdict panel */
+.side{position:sticky;top:76px;display:grid;gap:14px}
+@media (max-width:980px){.side{position:static}}
+.mods{padding:14px;display:grid;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:4px 10px;font-size:12.5px;cursor:pointer;display:flex;gap:6px;align-items:baseline}
+.chip .k{font-family:var(--font-m);font-size:11.5px;color:var(--muted)}
+.chip .v{font-family:var(--font-m);font-size:11.5px}
+.chip.p[aria-pressed="true"]{background:color-mix(in srgb,var(--ok) 16%,var(--panel));border-color:var(--ok)}
+.chip.o[aria-pressed="true"]{background:color-mix(in srgb,var(--bad) 14%,var(--panel));border-color:var(--bad)}
+
+.rows{padding:6px 0}
+.row{padding:10px 14px;border-top:1px solid var(--line);display:grid;gap:7px}
+.row:first-child{border-top:0}
+.row .top{display:flex;align-items:baseline;gap:8px}
+.row .top .cd{font:13px var(--font-m);color:var(--tc);font-weight:500}
+.row .top .nm{flex:1;min-width:0;font-weight:500;font-size:14px}
+.row .x{border:0;background:none;color:var(--faint);cursor:pointer;font-size:18px;line-height:1;padding:0 4px}
+.row .x:hover{color:var(--bad)}
+.row select{width:100%;border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:5px 8px;font-size:13px}
+.sl{display:grid;grid-template-columns:62px minmax(0,1fr) 78px;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.sl input[type=range]{width:100%;accent-color:var(--tc)}
+.sl output{font-family:var(--font-m);color:var(--fg);text-align:right;font-variant-numeric:tabular-nums}
+.flags{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.flags label{display:flex;gap:5px;align-items:center;cursor:pointer}
+.row.abs{opacity:.6}
+.row .absn{font-size:12px;color:var(--warn)}
+.emptyrows{padding:16px 14px;color:var(--muted);font-size:13.5px}
+
+.verdict{padding:16px;display:grid;gap:12px;border-color:var(--line2)}
+.nums{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.num{background:var(--panel2);border-radius:9px;padding:10px 12px}
+.num b{display:block;font:26px/1.1 var(--font-d);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.num span{font-size:12px;color:var(--muted)}
+.place{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+.place i{width:10px;height:10px;border-radius:50%;background:var(--pc,var(--ok));flex:none}
+.fl{display:flex;flex-wrap:wrap;gap:6px}
+.fl span{font-size:12px;border-radius:6px;padding:2px 8px;background:color-mix(in srgb,var(--bad) 14%,var(--panel));color:var(--fg);border:1px solid color-mix(in srgb,var(--bad) 40%,var(--panel))}
+.notes{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:13px}
+.notes li{padding-left:16px;position:relative;color:var(--muted)}
+.notes li::before{content:"";position:absolute;left:2px;top:.6em;width:6px;height:6px;border-radius:2px;background:var(--line2)}
+.notes li.w{color:var(--fg)} .notes li.w::before{background:var(--warn)}
+.notes li.b{color:var(--fg)} .notes li.b::before{background:var(--bad)}
+.calcl{font:12px/1.6 var(--font-m);color:var(--muted);border-top:1px dashed var(--line);padding-top:8px;white-space:pre-wrap}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:13.5px}
+.btn:hover{border-color:var(--fg)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.pri:hover{filter:brightness(1.08)}
+.ex{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted);background:color-mix(in srgb,var(--warn) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--warn) 35%,var(--panel));border-radius:8px;padding:6px 10px;margin-top:10px}
+.ex button{margin-left:auto;border:0;background:none;color:var(--navy);cursor:pointer;font-weight:500}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:13.5px;z-index:20}
+
+/* docs */
+.docs{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.docs{grid-template-columns:minmax(0,1fr)}}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:14px}
+.seg button{flex:1 1 auto;border:0;background:none;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13.5px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.form{padding:16px;display:grid;gap:12px}
+.f{display:grid;gap:4px}
+.f label{font-size:12.5px;color:var(--muted);font-weight:500}
+.f input,.f select,.f textarea{width:100%;border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:7px 10px;font-size:14px}
+.f textarea{resize:vertical;min-height:62px;line-height:1.45}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f .side-btn{justify-self:start;border:0;background:none;color:var(--navy);font-size:12.5px;cursor:pointer;padding:0;font-weight:500}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px}
+.paper{padding:0;overflow:hidden;position:sticky;top:76px}
+@media (max-width:900px){.paper{position:static}}
+.paperbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.paperbar .seg{margin:0;padding:2px}
+.paperbar .seg button{padding:4px 10px;font-size:12.5px}
+.paperbar .btn{margin-left:auto}
+.paperinfo{padding:7px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;gap:6px 12px;flex-wrap:wrap}
+.paperinfo b{color:var(--fg);font-weight:500}
+.paperinfo .over{color:var(--bad);font-weight:600}
+.paper pre{margin:0;padding:18px 20px;font:13.5px/1.6 var(--font-m);white-space:pre-wrap;word-break:break-word;background:var(--panel);max-height:72vh;overflow:auto}
+
+/* reference */
+.refbar{display:grid;gap:10px;margin-bottom:16px}
+.search{display:flex;align-items:center;gap:8px;background:var(--panel);border:1.5px solid var(--line2);border-radius:12px;padding:0 14px}
+.search:focus-within{border-color:var(--navy)}
+.search input{flex:1;min-width:0;border:0;outline:none;background:none;padding:11px 0;font-size:15px}
+.refnav{display:flex;flex-wrap:wrap;gap:6px}
+.refnav button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+.refnav button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.ref{display:grid;gap:14px}
+.card{padding:16px 18px}
+.card h3{margin:0 0 8px;font-size:16px}
+.card h4{margin:14px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.card p{margin:0 0 8px;max-width:80ch}
+.card ul{margin:0;padding-left:18px;max-width:85ch}
+.card li{margin:3px 0}
+.art{border-left:3px solid var(--tc);border-radius:0;padding:12px 16px;background:var(--panel);border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.art h3{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 4px;font-size:15.5px}
+.art h3 .cd{font:14px var(--font-m);color:var(--tc)}
+.art p{margin:0 0 6px;color:var(--muted);max-width:80ch}
+.art ul{margin:0;padding-left:18px;max-width:85ch;font-size:14px}
+.art .add{margin-left:auto;font-size:12.5px;border:1px solid var(--line2);background:none;border-radius:6px;padding:2px 8px;cursor:pointer;color:var(--navy)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600}
+td.y{color:var(--ok);font-weight:600} td.n{color:var(--bad);font-weight:600} td.e{color:var(--warn);font-weight:600}
+.alerts{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.alert{border-top:5px solid var(--ac)}
+.alert h3{display:flex;align-items:center;gap:8px}
+.alert .sanc{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.list-tight{columns:2 240px;column-gap:24px;font-size:13.5px}
+.list-tight li{break-inside:avoid}
+.hit{background:color-mix(in srgb,var(--warn) 35%,transparent);border-radius:2px}
+.res-k{font-size:12px;border-radius:6px;padding:1px 7px;border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
+.foot{margin-top:28px;font-size:12.5px;color:var(--faint);max-width:90ch}
+
+/* article tooltip */
+.tip{position:fixed;z-index:30;width:min(360px,calc(100vw - 24px));background:var(--panel);border:1px solid var(--line2);border-left:4px solid var(--tc);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.12);padding:12px 14px;pointer-events:none;font-size:13px;line-height:1.45;animation:tipin .12s ease-out}
+@keyframes tipin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.tip .th{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
+.tip .th b{font:18px/1 var(--font-d);color:var(--tc)}
+.tip .th strong{font-size:14.5px;line-height:1.25}
+.tip .tt{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.tip .tp{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:baseline;background:color-mix(in srgb,var(--tc) 10%,var(--panel));border-radius:7px;padding:6px 8px;margin-bottom:8px}
+.tip .tp span{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--tc);font-weight:600}
+.tip p{margin:0 0 6px;color:var(--fg)}
+.tip ul{margin:0;padding-left:16px;color:var(--muted)}
+.tip li{margin:2px 0}
+.tip .tf{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.tip .tf .tag.on{border-color:var(--tc);color:var(--tc)}
+@media (prefers-reduced-motion:reduce){.tip{animation:none}}
+
+/* pin */
+.pin{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--panel);border-radius:10px;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:500;font-size:13px;transition:background .12s,color .12s}
+.pin:hover{color:var(--fg);border-color:var(--fg)}
+.pin[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.pin[aria-pressed="true"] svg{transform:rotate(-45deg)}
+.pin svg{transition:transform .15s}
+
+/* reference v2 */
+.refnav{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,124px),1fr));gap:8px}
+.refnav button{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 12px;cursor:pointer;color:var(--fg);font-size:13.5px;font-weight:500;line-height:1.2}
+.refnav button i{width:6px;align-self:stretch;min-height:26px;border-radius:3px;background:var(--kc);flex:none}
+.refnav button small{display:block;color:var(--muted);font-weight:400;font-size:11.5px;margin-top:2px;font-family:var(--font-m)}
+.refnav button:hover{border-color:var(--kc)}
+.refnav button[aria-pressed="true"]{border-color:var(--kc);background:color-mix(in srgb,var(--kc) 13%,var(--panel));color:var(--fg);box-shadow:inset 0 0 0 1px var(--kc)}
+.refhead{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;border-bottom:3px solid var(--kc);padding-bottom:12px}
+.refhead h2{margin:0;font:28px/1.1 var(--font-d);letter-spacing:.01em;text-wrap:balance}
+.refhead p{margin:6px 0 0;color:var(--muted);max-width:70ch}
+.refhead .big{font:44px/1 var(--font-d);color:var(--kc);font-variant-numeric:tabular-nums}
+.refhead .big small{display:block;font:11px var(--font-b);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:right;margin-top:4px}
+.tierband{display:flex;align-items:center;gap:16px;padding:14px 18px;border-radius:12px;background:color-mix(in srgb,var(--tc) 11%,var(--panel));border:1px solid color-mix(in srgb,var(--tc) 35%,var(--panel));margin-top:8px}
+.tierband .tcode{font:36px/1 var(--font-d);color:var(--tc)}
+.tierband b{display:block;font-size:16px}
+.tierband span{color:var(--muted);font-size:13px}
+.tierband .tcount{margin-left:auto;font:12px var(--font-m);color:var(--tc);white-space:nowrap}
+.artgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:12px;align-items:start}
+.acard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px 14px 20px;display:grid;gap:8px;position:relative;overflow:hidden;transition:border-color .12s}
+.acard:hover{border-color:color-mix(in srgb,var(--tc) 50%,var(--line))}
+.acard::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--tc)}
+.ahead{display:flex;gap:12px;align-items:flex-start}
+.acode{font:22px/1 var(--font-d);color:var(--tc);background:color-mix(in srgb,var(--tc) 12%,var(--panel));border-radius:8px;padding:9px 8px 7px;min-width:60px;text-align:center;flex:none}
+.aname{flex:1;min-width:0}
+.aname h3{margin:0 0 5px;font-size:15.5px;line-height:1.25;text-wrap:balance}
+.atags{display:flex;gap:4px;flex-wrap:wrap}
+.acard .add{flex:none;font-size:12px;border:1px solid var(--line2);background:none;border-radius:6px;padding:3px 8px;cursor:pointer;color:var(--navy);font-weight:500}
+.acard .add:hover{border-color:var(--navy);background:color-mix(in srgb,var(--navy) 8%,var(--panel))}
+.adesc{margin:0;color:var(--muted);font-size:14px}
+.acard details summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--tc);list-style:none;user-select:none}
+.acard details summary::-webkit-details-marker{display:none}
+.acard details summary::before{content:"▸ "}
+.acard details[open] summary::before{content:"▾ "}
+.ticks{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:5px;font-size:13.5px}
+.ticks li{position:relative;padding-left:16px}
+.ticks li::before{content:"";position:absolute;left:2px;top:.55em;width:6px;height:6px;border-radius:2px;background:var(--kc,var(--tc,var(--line2)))}
+.anote{margin:6px 0 0;font-size:12.5px;color:var(--muted);background:var(--panel2);border-radius:6px;padding:6px 9px}
+.blk{overflow:hidden;display:flex;flex-direction:column}
+.band{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:13px 16px;background:var(--kc);color:#fff}
+.band b{display:block;font:16px/1.2 var(--font-d);letter-spacing:.02em}
+.band span{display:block;font-size:12.5px;opacity:.88;margin-top:2px}
+.bchip{font:12px var(--font-m);background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:2px 8px;white-space:nowrap;color:#fff}
+.blkbody{padding:14px 16px 16px;display:grid;gap:8px}
+.blkbody h4{margin:6px 0 0;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;gap:6px;align-items:center}
+.cnt{font:11px var(--font-m);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted);letter-spacing:0}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-size:12.5px;padding:3px 9px;border-radius:6px;background:color-mix(in srgb,var(--kc) 9%,var(--panel));border:1px solid color-mix(in srgb,var(--kc) 30%,var(--panel));line-height:1.35}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px;align-items:start}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:14px;align-items:stretch}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px;align-items:stretch}
+.placard{overflow:hidden;display:flex;flex-direction:column}
+.placard .ph{background:var(--ac);color:#fff;padding:16px 16px 14px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.placard .ph b{font:24px/1 var(--font-d);letter-spacing:.04em;display:block;text-transform:uppercase}
+.placard .ph span{font-size:12px;opacity:.85;display:block;margin-top:6px}
+.placard .ph em{font:11px var(--font-m);font-style:normal;border:1px solid rgba(255,255,255,.45);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.placard .pb{padding:12px 16px 14px;display:grid;gap:8px;flex:1;align-content:start;--kc:var(--ac)}
+.placard .pd{margin:0;font-size:14px;font-weight:500}
+.placard .pz{margin-top:4px;font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+.yn{display:inline-block;font-size:12px;font-weight:600;border-radius:5px;padding:1px 8px;white-space:nowrap}
+.yn.y{background:color-mix(in srgb,var(--ok) 15%,var(--panel));color:var(--ok)}
+.yn.n{background:color-mix(in srgb,var(--bad) 13%,var(--panel));color:var(--bad)}
+.yn.e{background:color-mix(in srgb,var(--warn) 16%,var(--panel));color:var(--warn)}
+.ptbl th{white-space:nowrap}
+.ptbl th i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ac);margin-right:5px}
+.ladder{display:grid;gap:6px}
+.lrow{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;font-size:14px}
+.lrow .z{font:13px var(--font-m);color:#fff;background:var(--zc);border-radius:6px;text-align:center;padding:4px 0}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:7px}
+.steps li{counter-increment:s;display:flex;gap:10px;align-items:center;font-size:14px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--kc) 40%,var(--panel));flex:none}
+.dl{display:grid;gap:10px}
+.dl div{display:grid;gap:2px;padding-left:10px;border-left:2px solid var(--line2)}
+.dl b{font-size:13.5px}
+.dl span{font-size:13px;color:var(--muted)}
+.gas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.gas div{border-radius:8px;padding:8px 9px;background:color-mix(in srgb,var(--kc) 13%,var(--panel));border:1px solid color-mix(in srgb,var(--kc) 38%,var(--panel));font-size:12.5px;line-height:1.4}
+.gas b{display:block;font-size:11.5px;color:var(--kc);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.policy{display:grid;gap:9px}
+.prow{display:grid;grid-template-columns:100px minmax(0,1fr);gap:10px;font-size:13.5px;align-items:start}
+.prow b{display:flex;gap:7px;align-items:center}
+.prow b i{width:10px;height:10px;border-radius:50%;background:var(--ac);flex:none}
+.after{font-size:13px;background:var(--panel2);border-radius:8px;padding:9px 11px;color:var(--muted)}
+.after b{color:var(--fg);display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.resrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.resrow:first-child{border-top:0}
+.resrow .res-k{border-color:color-mix(in srgb,var(--kc) 40%,var(--panel));color:var(--kc)}
+.resrow .add{font-size:12px;border:1px solid var(--line2);background:none;border-radius:6px;padding:3px 8px;cursor:pointer;color:var(--navy);font-weight:500}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.empty b{display:block;font:20px var(--font-d);color:var(--fg);margin-bottom:6px}
+@media (max-width:560px){.gas{grid-template-columns:1fr 1fr}.prow{grid-template-columns:1fr}.refhead .big{display:none}.resrow{grid-template-columns:minmax(0,1fr) auto}.resrow .res-k{display:none}}
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%} nav button{flex:1;padding:7px 6px}
+  .nums{grid-template-columns:1fr 1fr} .f2{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">СБ</div><div><h1>Терминал Брига</h1><small>Космический Закон ред. 30.05.2565 · НРП ред. 26.12.2565</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-calc" data-tab="calc" aria-selected="true">Приговор</button>
+    <button role="tab" id="tab-docs" data-tab="docs" aria-selected="false">Документы</button>
+    <button role="tab" id="tab-ref" data-tab="ref" aria-selected="false">Справочник</button>
+  </nav>
+  <button type="button" class="pin" id="pin" aria-pressed="false" title="Закрепить поверх всех окон (Ctrl+Shift+T)" hidden>
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5 19.5 9l-3 3-1 4.5-7-7 4.5-1z"/><path d="M8.5 15.5 4 20"/></svg>
+    <span id="pinlbl">Поверх окон</span>
+  </button>
+</header>
+
+<main>
+<!-- ============ ПРИГОВОР ============ -->
+<section id="v-calc">
+  <div class="cmd">
+    <span class="pr">&gt;</span>
+    <input id="q" autocomplete="off" spellcheck="false" placeholder="202 206 о5 — коды статей и модификаторов через пробел" aria-label="Быстрый ввод статей и модификаторов">
+    <button id="qclear" type="button">Очистить</button>
+  </div>
+  <div class="hint" id="qhint"></div>
+
+  <div class="calc">
+    <div class="panel gridbox">
+      <div class="gscroll"><div class="kz" id="kz"></div></div>
+      <div class="insp" id="insp"></div>
+    </div>
+
+    <div class="side">
+      <div class="panel verdict" id="verdict"></div>
+      <div class="panel">
+        <div style="padding:12px 14px 0" class="lbl">Статьи</div>
+        <div class="rows" id="rows"></div>
+      </div>
+      <div class="panel mods">
+        <div class="lbl">Смягчающие</div>
+        <div class="chips" id="modsP"></div>
+        <div class="lbl">Отягчающие</div>
+        <div class="chips" id="modsO"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ДОКУМЕНТЫ ============ -->
+<section id="v-docs" hidden>
+  <div class="docs">
+    <div>
+      <div class="seg" id="tpls"></div>
+      <div class="panel form" id="form"></div>
+    </div>
+    <div class="panel paper">
+      <div class="paperbar">
+        <div class="seg" id="fmt"><button type="button" data-f="txt" aria-pressed="true">Текст</button><button type="button" data-f="md" aria-pressed="false">Markdown</button><button type="button" data-f="ss13" aria-pressed="false" title="Теги бумаги SS13 по правилам активного профиля Папируса">SS13</button></div>
+        <button class="btn pri" id="copydoc" type="button">Копировать</button>
+      </div>
+      <div class="paperinfo" id="paperinfo" hidden></div>
+      <pre id="paper"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============ СПРАВОЧНИК ============ -->
+<section id="v-ref" hidden>
+  <div class="refbar">
+    <div class="search"><span class="mono" style="color:var(--muted)">⌕</span><input id="rq" placeholder="Поиск: статья, предмет, химикат, имплант… например «sleepy» или «кража»" aria-label="Поиск по справочнику"></div>
+    <div class="refnav" id="refnav"></div>
+  </div>
+  <div class="ref" id="ref"></div>
+</section>
+
+<p class="foot">Неофициальный помощник по документам «БМ Космический Закон» и «Нормы рабочих процедур». Спорный момент: в КЗ и в «Процедурах назначения наказания» срок больше 35 минут означает пермабриг, больше 60 минут — пожизненный до конца смены. В разделе «Виды наказаний» НРП указаны пороги 60 и 90 минут. Калькулятор считает по 35/60. Окончательное решение всегда за уполномоченным лицом.</p>
+</main>
+</div>
+
+<script>
+/* ===================== ДАННЫЕ: Космический Закон ===================== */
+const TIERS={
+ 1:{n:'Незначительные',jail:[1,5],fine:[250,500]},
+ 2:{n:'Средней тяжести',jail:[5,10],fine:[500,1000]},
+ 3:{n:'Тяжкие',jail:[15,30],fine:[1500,3000]},
+ 4:{n:'Сверх-тяжкие',jail:[30,60],fine:[5000,10000]},
+ 5:{n:'Корпоративные',jail:null,fine:null}
+};
+const ZOD='Мостик, арсенал, хранилище, спутник ИИ, комната смены законов, серверная, телекоммуникационная, комнаты Юридического отдела, комнаты командующего персонала, комната Синего Щита, объекты Синдиката, исходные области со структурами генерации энергии.';
+const SEXEX='Исключение: акты сексуального характера в отведённых местах (дормитории, бордели, секс-стол при его изначальном наличии) или незаметно для окружающих.';
+const ANIMEX='Исключение для животных: работа кухни на рабочем месте, уборщика в техтоннелях, мед. и научного персонала в своём отделе; очеловеченное животное — с одобрения Главврача, в закрытом помещении.';
+const A=[
+{c:100,n:'Ущерб станции',d:'Нанесение ущерба чужому имуществу или имуществу корпорации, когда его ещё можно восстановить ремонтом.',t:'exact',i:['Порча чужого имущества без согласия владельца: одежда, маски, украшения, аксессуары, предметы искусства, безделушки, купленные на личные средства товары.','Повреждение перекрытия или окна, обесточивание или повреждение шлюза, чрезмерная покраска или рисунки на них.','Вандализм: повреждение плитки, деструктивное использование баллончиков с краской и мелков.']},
+{c:101,n:'Неподобающее поведение',d:'Нарушение общественного порядка или комфорта других лиц, бессмысленные или оскорбительные высказывания.',t:'example',i:['При жалобе пострадавшего: прямое оскорбление; засорение чужого КПК однотипными сообщениями; многократное тыканье или избиение предметом без повреждений; забрасывание предметами без повреждений.','При жалобе тех, чей комфорт нарушен: спам в радиоканал; захламление коридора или общего отсека.','Без жалобы: нанесение повреждений животному или питомцу.'],note:ANIMEX+' '+SEXEX},
+{c:102,n:'Рукоприкладство',d:'Незначительное применение силы к другому лицу.',t:'exact',complaint:1,i:['Успешное оглушение, обезоруживание или выведение из равновесия; краткосрочное повреждение органов чувств.','Грубые или ожоговые повреждения до 20% суммарно на медсканере.','Агрессивный захват.']},
+{c:105,n:'Преследование',d:'Нежеланный физический, психологический или просто постоянный контакт с членом экипажа.',t:'example',complaint:1,i:['Нежелаемые прикосновения к голове или прикрытым интимным частям.','Психологическое давление, целенаправленная травля.','Постоянный контакт без необходимости.'],note:'Только для неуставных отношений на территории станции.'},
+{c:107,n:'Незаконное пребывание в отсеке',d:'Неавторизованное нахождение в отсеке.',t:'exact',i:['Отказ покинуть отсек после просьбы или приказа сотрудника, командования или СБ.']},
+{c:200,n:'Мелкий саботаж',d:'Намеренный ущерб станции, нарушение работы оборудования и шлюзов, высвобождение угроз, халатность, повлёкшая вред станции.',t:'exact',i:['Незаконная перестройка помещений отдела без разрешения главы или сотрудника отдела.','Порча имущества станции: битьё окон, взлом оборудования стандартными инструментами.','Высвобождение фауны из зоны содержания из-за пренебрежения мерами защиты.','Выпуск газа 1-й категории, нарушивший работу отсека или отдела.','Уничтожение чужого имущества, в т. ч. ID-карты или КПК.','Полная разборка или уничтожение шлюза, перекрытия, окна, мебели или общего оборудования вне своего рабочего места.','Взлом, электризация, заваривание шлюзов или отключение их от ИИ.','Отключение питания в общем помещении: коридор, зона отдыха, прибытия, отбытия, сцена, техпомещение.','Повреждение станционных юнитов или ботов.']},
+{c:201,n:'Антисоциальное поведение',d:'Поведение, направленное против общества, сотрудников станции и её имущества.',t:'example',i:['Тунеядство (час работы к часу отдыха).','Убийство питомцев или талисманов станции; убийство животного.','Аморальные действия с телами погибших или необоснованные оскорбления в их адрес.','Угрозы причинения любого вреда сотрудникам.','Ношение экипировки, одежды, флагов вражеской корпорации (например, флаг InteQ).'],note:ANIMEX+' '+SEXEX},
+{c:202,n:'Драка',d:'Применение силы с незначительным вредом здоровью, в т. ч. обезвреживающие спецсредства без законных оснований.',t:'exact',i:['Повреждения от 20% до 50% суммарно на медсканере.']},
+{c:203,n:'Невыполнение законного приказа',d:'Игнорирование или неповиновение законному приказу прямого руководителя, ГП, Капитана, Офицера Мостика, ЦК или СБ.',t:'exact',i:['Пренебрежение запретами НРП, отказ от своих обязанностей (медик не лечит из личной неприязни).','Игнорирование законного приказа прямого руководителя, ГП, Капитана, Представителя, Офицера Мостика, ЦК или СБ.']},
+{c:204,n:'Ограниченные предметы/химикаты',d:'Ношение, использование, хранение, передача или продажа ограниченной контрабанды (1-я категория) и ограниченных веществ.',t:'exact',i:['Пилотирование гражданских экзокостюмов и МОДов без разрешения или должности.','Изготовление, хранение, использование, распространение ограниченных наркотиков и химикатов.','Неавторизованный ключ шифрования малой значимости (ассистент с гарнитурой инженеров).','Контрабанда 1-й категории. Исключение: целевой заказ ЦК.'],note:'Оружие без лицензии само по себе — только конфискация, без срока (Боевая политика).'},
+{c:205,n:'Сексуальное домогательство',d:'Нежелательный физический контакт, домогательства до интимных мест.',t:'exact',complaint:1,i:['Домогательства в общественных и рабочих местах при явном нежелании или прямом отказе жертвы.']},
+{c:206,n:'Кража имущества отдела',d:'Присвоение предметов отдела или личных вещей члена экипажа, вымогательство.',t:'exact',i:['Хищение рабочих инструментов отдела (в т. ч. из крио): улучшенные инструменты, снаряжение СБ.','Кража ценного личного имущества: одежда, транспорт, ТТС, коляска, драгоценности, ПИИ, питомец и т. п.','Кража с личного счёта до 1000 кр.','Услуги за блага с использованием служебного положения до 1000 кр.','Производство или перевозка чужих печатных плат без разрешения.']},
+{c:207,n:'Незаконное пребывание в ЗОД',d:'Неавторизованное нахождение в зоне ограниченного доступа.',t:'exact',i:['Нахождение в ЗОД без доступа или разрешения сотрудника с доступом.','Отказ покинуть ЗОД после просьбы или приказа.'],note:'ЗОД: '+ZOD},
+{c:300,n:'Саботаж',d:'Злонамеренное препятствие работе отдела или станции, халатность, повлёкшая вред здоровью или серьёзный ущерб.',t:'exact',i:['Нарушение герметичности отсека.','Выпуск газа 2-й категории.','Выпуск агрессивной фауны или её доставка на станцию (ответственность за её действия на нарушителе).','Отключение питания на рабочем месте или в отделе.','Неавторизованная смена законов синтетика (кроме письменного одобрения главы, СИ или Капитана; ЧП).','Заваривание шлюзов без инженерной необходимости.','Уничтожение или разбор юнитов без причины; станционной машинерии отделов.','Временное нарушение работы: телекоммуникаций, генератора гравитации, газовой турбины, солнечных панелей, подачи дыхательной смеси, целей смены от ЦК, Сило.']},
+{c:301,n:'Суицид',d:'Доведение члена персонала до суицида.',t:'exact',i:['Доведение до суицида.','Суицид.']},
+{c:302,n:'Нанесение увечий',d:'Намеренный вред с целью побоев или убийства, в т. ч. оперируемые и неоперируемые травмы.',t:'exact',i:['Переломы, потеря конечностей, разрывы сухожилий, ожоги 2-й степени и выше.','Помеха персоналу при операции пострадавшему.','Повреждения от 50% до 90% на медсканере.','Операции во вред или против воли (ампутация и пересадка чужой конечности).']},
+{c:303,n:'Сопротивление законной власти',d:'Просрочка штрафа, сокрытие от наказания, незаконное снятие статуса ареста.',t:'exact',i:['Просрочка штрафа более чем на 10 минут.','Сокрытие от наказания за меньшие преступления.','Незаконное изменение или снятие статуса ареста.','Неподчинение законной власти при Красном коде и выше.']},
+{c:304,n:'Запрещённая контрабанда/химикаты',d:'Ношение, использование, хранение, передача или продажа запрещённой контрабанды (2-я категория) и веществ.',t:'exact',i:['Контрабанда 2-й категории: использование, производство, ношение, перевозка, продажа.','Пилотирование боевых экзокостюмов и МОДов неуполномоченными лицами (хранить в робототехнике или СБ).','Запрещённые наркотики и химикаты.','Присвоение или передача руды, слитков и ресурсов для печи; перемещение плавильной печи.','Специализированное оборудование (шахтёрское, артефакты Лаваленда) вне рабочих нужд.','Неавторизованный ключ шифрования средней значимости (гарнитура СБ или Капитана).'],note:'Исключение по производству и сбыту: целевой заказ ЦК.'},
+{c:306,n:'Кража имущества станции, вещей глав',d:'Обман ради выгоды, разграбление счетов и ресурсов станции, хищение вещей глав.',t:'exact',i:['Разграбление хранилища или склада ресурсов.','Присвоение ID-карте неразрешённого уровня доступа (касается всех карт у человека).','Изъятие со счёта персонала от 1000 до 10 000 кр махинацией, запугиванием, аферой.','Хранение оборудования и экипировки глав без разрешения командования.','Услуги за блага с использованием служебного положения от 1000 до 10 000 кр; для командования — в любом размере.','Мошенничество: аферы, шантаж, фальшивые деньги, Криптомайн-машина Синдиката, фальшивые печати глав или ЦК.','Эксплуатация или установка чужой машинерии без разрешения.']},
+{c:307,n:'Вторжение в отсек',d:'Вторжение в отсек.',t:'exact',i:['Вторжение со взломом, уничтожением или повреждением шлюзов и структур.','Неустановленные лица — сначала по политике взаимодействия; при отказе — наказание за вторжение.'],note:'«Отсек» — не ЗОД: занятая другими общедоступная территория, закрытая на болты, территории отделов.'},
+{c:400,n:'Грандиозный саботаж',d:'Значительная угроза экипажу или ущерб станции; злонамеренное препятствие Цели Смены.',t:'exact',i:['Газ 3-й категории, приведший к взрыву или обширному пожару.','Биологическая угроза: смертельный вирус, мозговые черви.','Уничтожение или подрыв юнитов через консоль Директора ОИР.','Уничтожение критического оборудования: гравген, турбина, солнечные панели, подача дыхательной смеси в атмосе, цели смены, консоль телекоммов, консоль модулей ИИ, консоль Врат, факс, Сило.','Разгерметизация множества отсеков или порча крупных помещений.','Разрушение зоны или средства эвакуации.','Обесточивание большей части объекта.','Полная блокировка прохода (в т. ч. для ботов и МУЛов).','Неавторизованная смена законов ИИ.']},
+{c:401,n:'Похищение',d:'Захват и удержание члена экипажа против воли.',t:'exact',i:['Захват и удержание, в т. ч. лишение воли внушением, химией, операцией или имплантацией.','Незаконный арест и удержание сотрудниками СБ.','Обоснованная угроза убийством или тяжким вредом.']},
+{c:402,n:'Нанесение тяжких увечий',d:'Косвенное причинение смерти или доведение до критического состояния.',t:'exact',i:['Помеха выводу пострадавшего из крита.','Доведение до критического состояния.','Помеха или прерывание операции.','Повреждения от 90% до 110% на медсканере.']},
+{c:403,n:'Мятеж',d:'Групповое восстание против законной власти, забастовка, бойкот, отказ от сотрудничества.',t:'exact',i:['Групповое восстание против законной власти.','Групповая приостановка работы и отказ от сотрудничества.','Противодействие решениям командования, в т. ч. ЦК.','Попытка незаконного свержения власти.']},
+{c:404,n:'Контрабанда вражеской корпорации',d:'Ношение, использование, хранение, передача или продажа контрабанды вражеской корпорации (3-я категория).',t:'exact',i:['Любые действия с контрабандой вражеской корпорации.','Неавторизованный ключ шифрования высокой значимости (наушник InteQ).']},
+{c:405,n:'Изнасилование',d:'Насильственный половой акт или действия сексуального характера.',t:'exact',complaint:1,i:['С применением насилия или угрозой его применения без согласия жертвы.']},
+{c:406,n:'Крупная кража',d:'Колоссальная выгода обманом или кража предметов критической важности.',t:'exact',i:['Кража со счёта станции или отделов от 10 000 до 100 000 кр.','Кража особо важных предметов (см. справочник).','Присвоение ID-карте доступа уровня Капитана, ГП или других глав.','Мошенничество от 10 000 до 100 000 кр.']},
+{c:407,n:'Вторжение в ЗОД',d:'Вторжение в зону ограниченного доступа.',t:'exact',i:['Вторжение в ЗОД со взломом, уничтожением или повреждением шлюзов и структур.'],note:'ЗОД: '+ZOD},
+{c:500,n:'Вопиющий саботаж',d:'Критический урон, нарушающий работу всей станции; множество опасных для жизни зон.',t:'exact',i:['Критическое количество разгерметизаций.','Структурные повреждения размером с отдел.','Взлом станционного ИИ.','Неконтролируемый пожар почти на весь отдел.','Нарушение содержания двигателя: сингулярность, Тесла, Суперматерия, Антиматерия, РБМК.']},
+{c:501,n:'Взятие заложников',d:'Захват или удержание лиц в качестве заложников для шантажа.',t:'exact',i:['Взятие одного или нескольких членов экипажа в заложники.','Принуждение под угрозой убийства другого члена экипажа.']},
+{c:502,n:'Убийство',d:'Причинение смерти или выведение из строя оболочки члена экипажа. Смерти во время реанимации не учитываются.',t:'exact',i:['Повреждения от 110% на медсканере.','Для небиологических форм (Undead Anthropomorph, синтетики и т. п.) смерть — уничтожение ядра или оболочки, прекращение функционирования.','Помеха реанимации.','Насильственное или обманное превращение гуманоида в иную форму.','Неправомерный приказ на казнь или уничтожение на месте.']},
+{c:503,n:'Нарушение трудового контракта',d:'Добровольный переход на сторону не принадлежащих Корпорации объектов.',t:'exact',i:['Добровольный переход на чужую сторону.'],note:'Исключение: переход одобрен ЦК.'},
+{c:506,n:'Кража критических объектов',d:'Хищение критически важных станционных объектов без разрешения ЦК.',t:'exact',i:['Станционный ИИ в любой форме.','Чёрный ящик телекоммуникаций.','Диск ядерной аутентификации.','Заряд ядерной боеголовки.','Осколок Суперматерии.','Средства свыше 100 000 кр.']}
+];
+const ART={};A.forEach(a=>{a.tier=Math.floor(a.c/100);a.sfx=a.c%100;ART[a.c]=a});
+const ROWS=[0,1,2,3,4,5,6,7];
+
+const OPTS={
+ 1:[{id:'fine',l:'Штраф',fine:1},{id:'jail',l:'ИВС',jail:1},{id:'warn',l:'Устное предупреждение (Z1)'}],
+ 2:[{id:'jail',l:'ИВС',jail:1},{id:'fine',l:'Штраф',fine:1},{id:'finejail',l:'Штраф + ИВС',fine:1,jail:1},{id:'fired',l:'Увольнение (Z4)',fl:['fired']}],
+ 3:[{id:'jail',l:'Заключение',jail:1},{id:'fine',l:'Штраф',fine:1},{id:'finejail',l:'Штраф + заключение',fine:1,jail:1},{id:'fired',l:'Увольнение (Z4)',fl:['fired']},{id:'katorga',l:'Каторга (Z5)',jail:1,fl:['katorga']}],
+ 4:[{id:'jail',l:'Заключение',jail:1},{id:'firedjail',l:'Увольнение + заключение',jail:1,fl:['fired']},{id:'fired',l:'Увольнение (Z4)',fl:['fired']},{id:'katorgafine',l:'Каторга + штраф (Z5 + Z2)',jail:1,fine:1,fl:['katorga']},{id:'perma',l:'Вечный пермабриг (Z6)',fl:['perma']}],
+ 5:[{id:'perma',l:'Вечный пермабриг (Z6)',fl:['perma']},{id:'permaimpl',l:'Пермабриг + имплантация (Z6 + Z7)',fl:['perma','implant']},{id:'pacify',l:'Принудительная пацификация (Z8)',fl:['pacify']},{id:'exec',l:'Казнь (Z9)',fl:['exec']}]
+};
+const FLAGN={fired:'Увольнение',katorga:'Каторга',perma:'Вечный пермабриг',implant:'Принудительная имплантация',pacify:'Пацификация',exec:'Казнь'};
+
+const MODS=[
+ {k:'П1',g:'p',n:'Сотрудничество / явка с повинной',v:'−50%',d:'Содействие приговору, полезная информация, признание вины, сдача соучастников; добровольный приход в бриг.'},
+ {k:'П3',g:'p',n:'Критическая необходимость',v:'снять всё',d:'Действия вопреки КЗ в экстренной ситуации: вторжение в ядро для уничтожения сбойного ИИ, самооборона от агента InteQ.'},
+ {k:'П4',g:'p',n:'Вражеская конвертация',v:'снять всё',d:'Доказанная конвертация: революция, культ, промывка мозгов. Незаконные вещи конфискуются.'},
+ {k:'О1',g:'o',n:'Рецидив',v:'+10 мин',d:'Повторное нарушение тех же статей за смену. Не складывается с критическим рецидивом.'},
+ {k:'О2',g:'o',n:'Должностное преступление',v:'+15 мин',d:'Преступник — должностное лицо: командование, Представитель, АВД, Синий Щит, весь персонал СБ.'},
+ {k:'О3',g:'o',n:'Против должностного лица',v:'+50%',d:'Преступление совершено против должностного лица.'},
+ {k:'О4',g:'o',n:'Помеха расследованию',v:'+50%',d:'Попытки вырваться, оскорбления властей, затягивание, ложные показания.'},
+ {k:'О5',g:'o',n:'Сопротивление аресту',v:'+50%',d:'Физическое сопротивление при законном аресте или попытка побега.'},
+ {k:'О7',g:'o',n:'Пособничество',v:'+100%',d:'Помощь нарушителю: статьи преступника дублируются на пособника, срок удваивается.'}
+];
+/* П-2 (без умысла) и О-6 (критический рецидив) — по каждой статье отдельно */
+
+/* ===================== СОСТОЯНИЕ ===================== */
+const EXAMPLE={sel:[{c:202,o:'jail',j:7,f:500,x2:0,ni:0},{c:206,o:'jail',j:5,f:500,x2:0,ni:0}],mods:['О5'],example:1};
+let S={sel:[],mods:[],example:0,focus:202};
+function load(){try{const s=JSON.parse(localStorage.getItem('brig.calc')||'null');if(s&&Array.isArray(s.sel))return s}catch(e){}return null}
+function save(){try{localStorage.setItem('brig.calc',JSON.stringify(S));localStorage.setItem('brig.doc',JSON.stringify(D))}catch(e){}}
+S=Object.assign(S,load()||JSON.parse(JSON.stringify(EXAMPLE)));
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const rub=n=>Math.round(n).toLocaleString('ru-RU');
+const effTier=r=>{const t=ART[r.c].tier;return r.ni?Math.max(1,t-1):t};
+function defaults(c,ni){const a=ART[c];let t=ni?Math.max(1,a.tier-1):a.tier;const T=TIERS[t];
+  let o=OPTS[t][0].id; if(ni&&a.tier===1)o='warn';
+  return {o,j:T.jail?T.jail[0]:0,f:T.fine?T.fine[0]:0}}
+function addArt(c){if(S.sel.some(r=>r.c===c))return;S.sel.push(Object.assign({c,x2:0,ni:0},defaults(c,0)))}
+function clearExample(){S.example=0}
+
+/* ===================== РАСЧЁТ ===================== */
+function compute(){
+  const R={rows:[],jail:0,fine:0,flags:new Set(),notes:[],steps:[],place:null,maxT:0,cleared:false};
+  const bySfx={};
+  S.sel.forEach(r=>{(bySfx[ART[r.c].sfx]=bySfx[ART[r.c].sfx]||[]).push(r)});
+  const winners=new Set(), absorbed={};
+  Object.values(bySfx).forEach(g=>{g.sort((a,b)=>b.c-a.c);winners.add(g[0].c);g.slice(1).forEach(r=>absorbed[r.c]=g[0].c)});
+  R.absorbed=absorbed;
+  let anyX2=false,base=[];
+  S.sel.forEach(r=>{
+    if(!winners.has(r.c))return;
+    const t=effTier(r), opt=(OPTS[t].find(o=>o.id===r.o)||OPTS[t][0]);
+    const m=r.x2?2:1; if(r.x2)anyX2=true;
+    const j=opt.jail?r.j*m:0, f=opt.fine?r.f*m:0;
+    R.jail+=j;R.fine+=f;(opt.fl||[]).forEach(x=>R.flags.add(x));
+    R.maxT=Math.max(R.maxT,t);
+    const parts=[];if(j)parts.push(j+' мин');if(f)parts.push(rub(f)+' кр');if(opt.fl)parts.push(opt.fl.map(x=>FLAGN[x]).join(', '));if(opt.id==='warn')parts.push('предупреждение');
+    base.push(r.c+(r.x2?'×2':'')+(r.ni?' (без умысла)':'')+': '+(parts.join(' + ')||'—'));
+  });
+  if(!S.sel.length)return R;
+  R.steps.push('База  '+base.join(' · '));
+  const M=k=>S.mods.includes(k);
+  if(M('П3')||M('П4')){R.cleared=true;R.jail=0;R.fine=0;R.flags.clear();R.steps.push('П-'+(M('П3')?3:4)+': все обвинения сняты');
+    R.place={t:'Обвинения сняты',c:'var(--ok)'};
+    if(M('П4'))R.notes.push({c:'w',t:'Вражеская конвертация: конфисковать «оккультные» и незаконные вещи, освободить после чистки разума.'});
+    return R}
+  let pct=0;['О3','О4','О5'].forEach(k=>{if(M(k))pct+=50});if(M('О7'))pct+=100;
+  if(pct){R.jail*=1+pct/100;R.fine*=1+pct/100;R.steps.push('Отягчающие  +'+pct+'%  → '+fmtJF(R))}
+  let flat=0;
+  if(M('О1')){if(anyX2)R.notes.push({c:'w',t:'Рецидив (О-1) не складывается с критическим рецидивом (×2), поэтому не учтён.'});else flat+=10}
+  if(M('О2'))flat+=15;
+  if(flat){
+    if(R.jail>0||!R.fine){R.jail+=flat;R.steps.push('Надбавка  +'+flat+' мин  → '+fmtJF(R))}
+    else{R.fine+=flat*100;R.steps.push('Надбавка  +'+flat+' мин = +'+rub(flat*100)+' кр (1 мин = 100 кр)')}
+  }
+  if(M('П1')){R.jail/=2;R.fine/=2;R.steps.push('Сотрудничество  −50%  → '+fmtJF(R))}
+  R.jail=Math.round(R.jail);R.fine=Math.round(R.fine);
+
+  const F=R.flags, j=R.jail;
+  if(F.has('exec'))R.place={t:'Казнь',c:'var(--bad)'};
+  else if(F.has('perma'))R.place={t:'Вечный пермабриг',c:'var(--t5)'};
+  else if(j>60)R.place={t:'Пожизненно в пермабриге (до конца смены)',c:'var(--t5)'};
+  else if(j>35)R.place={t:'Пермабриг до истечения срока',c:'var(--bad)'};
+  else if(j>0)R.place={t:F.has('katorga')?'Каторга':'ИВС (одиночная камера)',c:'var(--warn)'};
+  else if(R.fine>0)R.place={t:'Только штраф',c:'var(--ok)'};
+  else R.place={t:F.size?'Без заключения':'Устное предупреждение',c:'var(--ok)'};
+
+  if(F.has('katorga')&&j)R.notes.push({c:'',t:'Каторга: '+rub(j*100)+' очков добычи руды (100 за минуту).'});
+  else if(j>=11&&j<=60)R.notes.push({c:'',t:'Можно заменить каторгой: '+rub(j*100)+' очков добычи (100 за минуту).'});
+  if(j>0&&j<=20&&!F.has('katorga'))R.notes.push({c:'',t:'Можно заменить штрафом: '+rub(j*100)+' кр (1 мин = 100 кр).'});
+  if(R.fine>0)R.notes.push({c:'',t:'Штраф оплатить в течение 10 минут, деньги идут на счёт СБ. Просрочка — статья 303.'});
+  if(R.maxT>=4)R.notes.push({c:'b',t:'Офицер СБ выносит приговор только до 3XX включительно. Нужен ГСБ, Смотритель, Капитан или другое уполномоченное лицо.'});
+  if(F.has('exec'))R.notes.push({c:'b',t:'Казнь: письменное разрешение Капитана и ГСБ (или большинства глав), решение суда Представителя или решение ЦК. Тело в морг с пометкой «Казнён. Не возрождать».'});
+  if(F.has('pacify'))R.notes.push({c:'b',t:'Пацификация: только с письменного разрешения Представителя или Капитана; в их отсутствие ответственность берёт ГСБ.'});
+  if(F.has('fired'))R.notes.push({c:'w',t:'Увольнение проводится по политике увольнения/понижения через Главу Персонала или Капитана.'});
+  const n5=S.sel.filter(r=>ART[r.c].tier===5&&!absorbed[r.c]).length;
+  if(n5>2)R.notes.push({c:'b',t:'Больше двух статей 5XX: преступник считается Врагом Корпорации.'});
+  if(Object.keys(absorbed).length)R.notes.push({c:'',t:'Статьи одной строки не складываются: берётся самая тяжёлая.'});
+  return R;
+}
+function fmtJF(R){const p=[];p.push(Math.round(R.jail)+' мин');if(R.fine)p.push(rub(R.fine)+' кр');return p.join(', ')}
+
+/* ===================== СЕТКА ===================== */
+function renderGrid(){
+  const R=compute();let h='<div></div>';
+  for(let t=1;t<=5;t++)h+=`<div class="th t${t}"><b>${t}XX</b><span>${TIERS[t].n}</span></div>`;
+  ROWS.forEach(s=>{
+    h+=`<div class="rh">X0${s}</div>`;
+    for(let t=1;t<=5;t++){const a=ART[t*100+s];
+      if(!a){h+='<div class="cell empty" aria-hidden="true"></div>';continue}
+      const on=S.sel.some(r=>r.c===a.c), ab=R.absorbed&&R.absorbed[a.c];
+      h+=`<button type="button" class="cell t${t}${on?' on':''}${ab?' abs':''}" data-c="${a.c}" data-tip="${a.c}" aria-pressed="${on}"><span class="cd">${a.c}</span>${esc(a.n)}</button>`}
+  });
+  $('#kz').innerHTML=h;
+}
+function renderInsp(){
+  const a=ART[S.focus];if(!a){$('#insp').innerHTML='';return}
+  const on=S.sel.some(r=>r.c===a.c);
+  $('#insp').innerHTML=`<div class="t${a.tier}"><h3><span class="cd">${a.c}</span>${esc(a.n)} <span class="tag">${a.t==='exact'?'только перечисленное':'примерный список'}</span>${a.complaint?'<span class="tag">нужна жалоба</span>':''}</h3>
+  <p>${esc(a.d)}</p>
+  <details${on?' open':''}><summary>Что считается нарушением (${a.i.length})</summary><ul>${a.i.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${a.note?`<p style="margin-top:6px">${esc(a.note)}</p>`:''}</details></div>`;
+}
+
+/* ===================== СТРОКИ И ВЕРДИКТ ===================== */
+function renderRows(){
+  const R=compute();
+  if(!S.sel.length){$('#rows').innerHTML='<div class="emptyrows">Отметь статьи в сетке или набери коды в строке сверху.</div>';return}
+  $('#rows').innerHTML=S.sel.map((r,i)=>{
+    const a=ART[r.c],t=effTier(r),T=TIERS[t],opt=OPTS[t].find(o=>o.id===r.o)||OPTS[t][0],ab=R.absorbed[r.c];
+    const sl=(kind,rng,val,unit,step)=>rng?`<div class="sl"><span>${kind}</span><input type="range" min="${rng[0]}" max="${rng[1]}" step="${step}" value="${val}" data-i="${i}" data-k="${kind==='Срок'?'j':'f'}" aria-label="${kind} по статье ${r.c}"><output id="o${i}${kind==='Срок'?'j':'f'}">${kind==='Срок'?val+' мин':rub(val)+' кр'}</output></div>`:'';
+    return `<div class="row t${a.tier}${ab?' abs':''}">
+      <div class="top"><span class="cd" data-tip="${r.c}">${r.c}</span><span class="nm" data-tip="${r.c}">${esc(a.n)}</span><button class="x" data-del="${r.c}" aria-label="Убрать статью ${r.c}">×</button></div>
+      ${ab?`<div class="absn">Поглощена статьёй ${ab}: одна строка КЗ, считается только самая тяжёлая.</div>`:`
+      <select data-i="${i}" data-k="o" aria-label="Наказание по статье ${r.c}">${OPTS[t].map(o=>`<option value="${o.id}"${o.id===opt.id?' selected':''}>${o.l}${o.jail&&T.jail?' · '+T.jail[0]+'–'+T.jail[1]+' мин':''}${o.fine&&T.fine?' · '+rub(T.fine[0])+'–'+rub(T.fine[1])+' кр':''}</option>`).join('')}</select>
+      ${opt.jail?sl('Срок',T.jail,r.j,'мин',1):''}${opt.fine?sl('Штраф',T.fine,r.f,'кр',50):''}
+      <div class="flags"><label><input type="checkbox" data-i="${i}" data-k="x2"${r.x2?' checked':''}> ×2 трёхкратное (О-6)</label><label><input type="checkbox" data-i="${i}" data-k="ni"${r.ni?' checked':''}> Без умысла (П-2)</label></div>`}
+    </div>`}).join('');
+}
+function renderVerdict(){
+  const R=compute();
+  if(!S.sel.length){$('#verdict').innerHTML='<div class="lbl">Приговор</div><div style="color:var(--muted);font-size:14px">Пока пусто. Выбери статьи, и здесь появится срок, штраф и место отбывания.</div>';return}
+  const fl=[...R.flags].filter(f=>f!=='katorga'||!R.jail).map(f=>`<span>${FLAGN[f]}</span>`).join('');
+  $('#verdict').innerHTML=`<div class="lbl">Приговор</div>
+   <div class="nums"><div class="num"><b>${R.jail}</b><span>минут</span></div><div class="num"><b>${rub(R.fine)}</b><span>кредитов штрафа</span></div></div>
+   <div class="place" style="--pc:${R.place.c}"><i></i>${R.place.t}</div>
+   ${fl?`<div class="fl">${fl}</div>`:''}
+   ${R.notes.length?`<ul class="notes">${R.notes.map(n=>`<li class="${n.c}">${esc(n.t)}</li>`).join('')}</ul>`:''}
+   <div class="calcl">${esc(R.steps.join('\n'))}</div>
+   <div class="acts"><button class="btn pri" id="todoc" type="button">В рапорт →</button><button class="btn" id="copyv" type="button">Копировать приговор</button></div>
+   ${S.example?'<div class="ex">Это пример расчёта.<button type="button" id="exclear">Очистить</button></div>':''}`;
+}
+function renderMods(){
+  const chip=m=>`<button type="button" class="chip ${m.g}" data-m="${m.k}" aria-pressed="${S.mods.includes(m.k)}" title="${esc(m.d)}"><span class="k">${m.k[0]}-${m.k[1]}</span>${m.n}<span class="v">${m.v}</span></button>`;
+  $('#modsP').innerHTML=MODS.filter(m=>m.g==='p').map(chip).join('')+'<span class="chip" style="cursor:default;border-style:dashed"><span class="k">П-2</span>Без умысла — галочка у статьи</span>';
+  $('#modsO').innerHTML=MODS.filter(m=>m.g==='o').map(chip).join('')+'<span class="chip" style="cursor:default;border-style:dashed"><span class="k">О-6</span>Крит. рецидив ×2 — у статьи</span>';
+}
+function renderAll(syncInput){renderGrid();renderInsp();renderRows();renderVerdict();renderMods();if(syncInput)$('#q').value=serialize();renderHint();save()}
+
+/* ===================== СТРОКА ВВОДА ===================== */
+function serialize(){return S.sel.map(r=>r.c+(r.x2?'x2':'')+(r.ni?'-':'')).concat(S.mods.map(m=>(m[0]==='П'?'п':'о')+m[1])).join(' ')+(S.sel.length||S.mods.length?' ':'')}
+let badTok=[];
+function parse(txt){
+  const toks=txt.toLowerCase().split(/[\s,;]+/).filter(Boolean);
+  const sel=[],mods=[];badTok=[];
+  toks.forEach((tk,idx)=>{
+    let m=tk.match(/^(\d{3})([x×х*]2)?(-)?$/);
+    if(m&&ART[+m[1]]){const c=+m[1];if(sel.some(r=>r.c===c))return;
+      const old=S.sel.find(r=>r.c===c);const ni=m[3]?1:0;
+      let r=old?Object.assign({},old):Object.assign({c,x2:0,ni:0},defaults(c,0));
+      if(r.ni!==ni)Object.assign(r,defaults(c,ni),{ni});
+      r.x2=m[2]?1:0;sel.push(r);S.focus=c;return}
+    m=tk.match(/^([оopп])-?([1-7])$/);
+    if(m){const k=(/[оo]/.test(m[1])?'О':'П')+m[2];
+      if(k==='П2'||k==='О6'){badTok.push({t:tk,why:k==='П2'?'П-2 ставится у статьи: допиши минус, например 202-':'О-6 ставится у статьи: допиши x2, например 206x2'});return}
+      if(MODS.some(x=>x.k===k)&&!mods.includes(k))mods.push(k);else if(!MODS.some(x=>x.k===k))badTok.push({t:tk});return}
+    const last=idx===toks.length-1&&!/\s$/.test(txt);
+    if(!(last&&/^\d{1,2}$|^[оopп]-?$/.test(tk)))badTok.push({t:tk});
+  });
+  S.sel=sel;S.mods=mods;S.example=0;
+}
+function renderHint(){
+  const h=$('#qhint');
+  if(badTok.length){h.innerHTML=badTok.map(b=>`<span class="err">Не понял «${esc(b.t)}»</span>${b.why?' — '+esc(b.why):''}`).join(' · ');return}
+  h.innerHTML='<code>202</code> статья · <code>206x2</code> трёхкратное (×2) · <code>302-</code> без умысла · <code>о5</code> отягчающее · <code>п1</code> смягчающее';
+}
+
+/* ===================== СОБЫТИЯ: ПРИГОВОР ===================== */
+$('#q').addEventListener('input',e=>{parse(e.target.value);renderGrid();renderInsp();renderRows();renderVerdict();renderMods();renderHint();save()});
+$('#qclear').addEventListener('click',()=>{S.sel=[];S.mods=[];S.example=0;badTok=[];renderAll(true);$('#q').focus()});
+$('#kz').addEventListener('click',e=>{const b=e.target.closest('.cell[data-c]');if(!b)return;const c=+b.dataset.c;
+  clearExample();S.focus=c;if(S.sel.some(r=>r.c===c))S.sel=S.sel.filter(r=>r.c!==c);else addArt(c);badTok=[];renderAll(true)});
+$('#kz').addEventListener('mouseover',e=>{const b=e.target.closest('.cell[data-c]');if(b&&+b.dataset.c!==S.focus){S.focus=+b.dataset.c;renderInsp()}});
+$('#kz').addEventListener('focusin',e=>{const b=e.target.closest('.cell[data-c]');if(b){S.focus=+b.dataset.c;renderInsp()}});
+$('#rows').addEventListener('input',e=>{const el=e.target,i=+el.dataset.i,k=el.dataset.k,r=S.sel[i];if(!r)return;clearExample();
+  if(k==='j'||k==='f'){r[k]=+el.value;$('#o'+i+k).textContent=k==='j'?el.value+' мин':rub(+el.value)+' кр';renderVerdict();save();return}
+});
+$('#rows').addEventListener('change',e=>{const el=e.target,i=+el.dataset.i,k=el.dataset.k,r=S.sel[i];if(!r)return;clearExample();
+  if(k==='o')r.o=el.value;
+  if(k==='x2')r.x2=el.checked?1:0;
+  if(k==='ni'){r.ni=el.checked?1:0;Object.assign(r,defaults(r.c,r.ni))}
+  if(k==='o'||k==='x2'||k==='ni')renderAll(true)});
+$('#rows').addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(!d)return;S.sel=S.sel.filter(r=>r.c!==+d.dataset.del);clearExample();renderAll(true)});
+document.querySelector('.mods').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;clearExample();
+  S.mods=S.mods.includes(k)?S.mods.filter(x=>x!==k):S.mods.concat(k);renderAll(true)});
+$('#verdict').addEventListener('click',e=>{
+  if(e.target.id==='exclear'){S.sel=[];S.mods=[];S.example=0;renderAll(true)}
+  if(e.target.id==='copyv')copy(sentenceText(),'Приговор скопирован');
+  if(e.target.id==='todoc'){pullFromCalc();go('docs')}
+});
+
+function articlesText(){const R=compute();return S.sel.filter(r=>!R.absorbed[r.c]).map(r=>r.c+' «'+ART[r.c].n+'»'+(r.x2?' ×2':'')+(r.ni?' (без умысла)':'')).join('; ')}
+function modsText(){const a=S.mods.map(k=>{const m=MODS.find(x=>x.k===k);return k[0]+'-'+k[1]+' '+m.n});
+  S.sel.forEach(r=>{if(r.x2)a.push('О-6 Критический рецидив ('+r.c+')');if(r.ni)a.push('П-2 Отсутствие умысла ('+r.c+')')});return a.join('; ')}
+function verdictText(){const R=compute();if(!S.sel.length)return'';const p=[];
+  if(R.cleared)return'Обвинения сняты';
+  if(R.jail)p.push(R.jail+' мин');if(R.fine)p.push('штраф '+rub(R.fine)+' кр');
+  [...R.flags].forEach(f=>{if(f!=='katorga'||!R.jail)p.push(FLAGN[f].toLowerCase())});
+  return (p.join(', ')||'устное предупреждение')+' — '+R.place.t}
+function sentenceText(){return 'Статьи: '+(articlesText()||'—')+'\nМодификаторы: '+(modsText()||'нет')+'\nПриговор: '+verdictText()}
+
+/* ===================== ДОКУМЕНТЫ ===================== */
+const ALERTS_SHORT=['Зелёный','Синий','Янтарный','Красный','Оранжевый','Фиолетовый','Лямбда','Дельта','Эпсилон'];
+const TPLS=[
+ {id:'aw',n:'Ордер на арест'},{id:'sw',n:'Ордер на обыск'},{id:'ar',n:'Рапорт об аресте'},{id:'iq',n:'Протокол допроса'}
+];
+const FIELDS=[
+ {k:'num',l:'Номер',t:'text',in:'aw sw ar iq',half:1},
+ {k:'time',l:'Станционное время',t:'text',in:'aw sw ar iq',half:1,ph:'12:47'},
+ {k:'code',l:'Код тревоги',t:'select',opts:ALERTS_SHORT,in:'aw sw ar iq',half:1},
+ {k:'place',l:'Место',t:'text',in:'ar iq',half:1,ph:'Бар'},
+ {k:'officer',l:'Офицер (имя, должность)',t:'text',in:'aw sw ar iq'},
+ {k:'suspect',l:'Задержанный / подозреваемый',t:'text',in:'aw sw ar iq',half:1},
+ {k:'job',l:'Его должность',t:'text',in:'aw sw ar iq',half:1},
+ {k:'role',l:'Статус допрашиваемого',t:'select',opts:['Подозреваемый','Свидетель','Потерпевший'],in:'iq',half:1},
+ {k:'rec',l:'Запись на диктофон',t:'select',opts:['Велась','Не велась'],in:'iq',half:1},
+ {k:'qstart',l:'Начало допроса',t:'text',in:'iq',half:1,ph:'12:55'},
+ {k:'qend',l:'Окончание',t:'text',in:'iq',half:1,ph:'13:04'},
+ {k:'present',l:'Присутствовали',t:'text',in:'iq',ph:'Смотритель, АВД'},
+ {k:'places',l:'Места для обыска',t:'textarea',in:'sw',ph:'Личный шкафчик в дормиториях, рабочее место в баре'},
+ {k:'arts',l:'Статьи',t:'textarea',in:'aw ar iq',pull:1},
+ {k:'evidence',l:'Доказательства и основания',t:'textarea',in:'aw sw ar iq',ph:'Показания свидетелей, запись камеры, медицинский скан…'},
+ {k:'desc',l:'Обстоятельства',t:'textarea',in:'ar'},
+ {k:'force',l:'Применение силы',t:'select',opts:['Не применялась','Нелетальное задержание','Летальное задержание (ПМП оказана)','Добивание на месте'],in:'ar'},
+ {k:'mods',l:'Модификаторы',t:'text',in:'ar',pull:1},
+ {k:'qa',l:'Ход допроса',t:'textarea',in:'iq',rows:6,ph:'В: Где вы были в 12:40?\nО: В баре.'},
+ {k:'witn',l:'Свидетели',t:'text',in:'ar'},
+ {k:'verdict',l:'Приговор',t:'text',in:'ar iq',pull:1},
+ {k:'seized',l:'Изъятые предметы',t:'textarea',in:'ar sw'},
+ {k:'dbstatus',l:'Статус в базе СБ',t:'select',opts:['Отбывает срок','Арестован','Штраф','Освобождён','Parole (УДО)'],in:'ar',half:1},
+ {k:'auth',l:'Авторизовал',t:'select',opts:['Глава Службы Безопасности','Смотритель','Детектив','Капитан','Лидер ОБР','Представитель корпорации','Агент Внутренних Дел','Офицер СБ (все уполномоченные отсутствуют)'],in:'aw sw',half:1},
+ {k:'authname',l:'Имя авторизовавшего',t:'text',in:'aw sw',half:1}
+];
+const DOC_EXAMPLE={tpl:'ar',fmt:'txt',num:'СБ-0427',time:'12:47',code:'Зелёный',place:'Бар',officer:'Офицер СБ Рекс Хардинг',suspect:'Мика Вэнс',job:'Ассистент',role:'Подозреваемый',rec:'Велась',qstart:'12:55',qend:'13:04',present:'Смотритель',places:'',arts:'',evidence:'Показания бармена; запись камеры бара; медицинский скан пострадавшего (34% урона).',desc:'Задержанный устроил драку с посетителем бара и вынес из бара шейкер. При задержании пытался вырваться.',force:'Нелетальное задержание',mods:'',qa:'',witn:'Бармен Ола Ли',verdict:'',seized:'Шейкер бара (возвращён в бар).',dbstatus:'Отбывает срок',auth:'Глава Службы Безопасности',authname:'',example:1};
+let D=(()=>{try{const d=JSON.parse(localStorage.getItem('brig.doc')||'null');if(d&&d.tpl)return d}catch(e){}return Object.assign({},DOC_EXAMPLE)})();
+
+function pullFromCalc(){D.arts=articlesText();D.mods=modsText();D.verdict=verdictText();renderForm();renderPaper();save()}
+function renderTpls(){$('#tpls').innerHTML=TPLS.map(t=>`<button type="button" data-t="${t.id}" aria-pressed="${D.tpl===t.id}">${t.n}</button>`).join('')}
+function renderForm(){
+  const fs=FIELDS.filter(f=>f.in.split(' ').includes(D.tpl));let h='',buf=[];
+  const one=f=>{const v=D[f.k]??'';const id='fld-'+f.k;let ctl;
+    if(f.t==='select')ctl=`<select id="${id}" data-k="${f.k}">${f.opts.map(o=>`<option${o===v?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    else if(f.t==='textarea')ctl=`<textarea id="${id}" data-k="${f.k}" rows="${f.rows||3}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
+    else ctl=`<input id="${id}" data-k="${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}">`;
+    return `<div class="f"><label for="${id}">${f.l}</label>${ctl}${f.pull?'<button type="button" class="side-btn" data-pull="1">Подтянуть из калькулятора</button>':''}</div>`};
+  fs.forEach(f=>{if(f.half){buf.push(one(f));if(buf.length===2){h+=`<div class="f2">${buf.join('')}</div>`;buf=[]}}else{if(buf.length){h+=`<div class="f2">${buf.join('')}</div>`;buf=[]}h+=one(f)}});
+  if(buf.length)h+=`<div class="f2">${buf.join('')}</div>`;
+  if(D.example)h+='<div class="ex" style="margin:0">Форма заполнена примером.<button type="button" id="docclear">Очистить</button></div>';
+  $('#form').innerHTML=h;
+}
+// Правила оформления бумаги SS13 — активный профиль Папируса (в Пульте у них общее хранилище);
+// без Папируса — его встроенный профиль «Классика»
+const PAPIRUS_CLASSIC={name:'Классика (Paradise, Bay и форки)',useBr:false,limit:3072,cmds:{bold:['[b]','[/b]'],italic:['[i]','[/i]'],underline:['[u]','[/u]'],large:['[large]','[/large]'],small:['[small]','[/small]'],center:['[center]','[/center]'],right:['',''],h1:['[h1]','[/h1]'],h2:['[h2]','[/h2]'],h3:['[h3]','[/h3]'],list:['[list]','[/list]'],item:['[*]',''],hr:['[hr]',''],br:['[br]',''],field:['[field]',''],sign:['[sign]',''],date:['[date]',''],time:['[time]','']}};
+function papirusProfile(){try{const s=JSON.parse(localStorage.getItem('papirus.settings')||'null');const p=s&&s.profiles&&(s.profiles[s.active]||Object.values(s.profiles)[0]);if(p&&p.cmds)return{p,own:true}}catch(e){}return{p:PAPIRUS_CLASSIC,own:false}}
+// Разметка документа: текст, Markdown или теги SS13 по профилю (пустая команда — те же замены, что в Папирусе)
+function paperFmt(f,p){
+  if(f==='ss13'){const c=k=>p.cmds[k]||['',''],has=k=>!!(c(k)[0]||c(k)[1]),w=(k,s)=>s&&has(k)?c(k)[0]+s+c(k)[1]:s;
+    return{b:s=>w('bold',s),i:s=>w('italic',s),h:s=>w('center',has('h1')?w('h1',s.toUpperCase()):w('bold',w('large',s.toUpperCase()))),
+      head:s=>w('center',w('small',s.toUpperCase())),hr:c('hr')[0]||'------------------------------',
+      list:t=>{const m=c('item')[0]||'• ';return has('list')?w('list',t.map(x=>m+x).join('')):t.map(x=>m+x).join('\n')},
+      sign:c('sign')[0]||'______________',end:s=>p.useBr?s.replace(/\n/g,c('br')[0]||'\n'):s}}
+  const md=f==='md';
+  return{b:s=>md?'**'+s+'**':s,i:s=>md?'_'+s+'_':s,h:s=>md?'### '+s:s.toUpperCase(),head:s=>md?s:s.toUpperCase(),hr:null,
+    list:t=>t.map(x=>'  — '+x).join('\n'),sign:'______________',end:s=>s}
+}
+function renderPaper(){
+  const P=papirusProfile(), F=paperFmt(D.fmt,P.p), B=F.b, H=F.h, v=k=>(D[k]||'').trim()||'—', L=[];
+  const line=(a,b)=>L.push(B(a+':')+' '+b);
+  const list=(k)=>{const t=(D[k]||'').split(/;\s*|\n/).map(x=>x.trim()).filter(Boolean);return t.length?F.list(t):'  —'};
+  L.push(F.head('NanoTrasen · Служба Безопасности'));
+  const T=TPLS.find(t=>t.id===D.tpl).n;
+  L.push(H(T+' № '+v('num')));if(F.hr)L.push(F.hr);L.push('');
+  line('Станционное время',v('time'));line('Код тревоги',v('code'));
+  if(D.tpl==='aw'){
+    line('Подлежит аресту',v('suspect')+', '+v('job'));
+    L.push(B('Обвинения:'));L.push(list('arts'));
+    line('Основания',v('evidence'));
+    line('Запросил',v('officer'));
+    L.push('');line('Авторизовал',v('auth')+(D.authname?' '+D.authname:''));L.push('Подпись: '+F.sign);
+    L.push('');L.push(F.i('Действителен только с подписью уполномоченного лица. Если арестуемый сам уполномоченное лицо, подписывает старший по иерархии.'));
+  }
+  if(D.tpl==='sw'){
+    line('Подлежит обыску',v('suspect')+', '+v('job'));
+    L.push(B('Места:'));L.push(list('places'));
+    line('Основания',v('evidence'));
+    line('Запросил',v('officer'));
+    if((D.seized||'').trim()){L.push(B('Изъято:'));L.push(list('seized'))}
+    L.push('');line('Авторизовал',v('auth')+(D.authname?' '+D.authname:''));L.push('Подпись: '+F.sign);
+  }
+  if(D.tpl==='ar'){
+    line('Место',v('place'));line('Составил',v('officer'));
+    line('Задержанный',v('suspect')+', '+v('job'));
+    L.push('');L.push(B('Обстоятельства:'));L.push(v('desc'));
+    line('Применение силы',v('force'));
+    line('Доказательства',v('evidence'));line('Свидетели',v('witn'));
+    L.push('');L.push(B('Статьи:'));L.push(list('arts'));
+    line('Модификаторы',v('mods'));line('Приговор',v('verdict'));
+    L.push(B('Изъято:'));L.push(list('seized'));
+    line('Статус в базе СБ',v('dbstatus'));
+    L.push('');L.push('Подпись офицера: '+F.sign);
+  }
+  if(D.tpl==='iq'){
+    line('Место',v('place'));line('Время допроса',v('qstart')+' – '+v('qend'));
+    line('Допрашивающий',v('officer'));line('Допрашиваемый',v('suspect')+', '+v('job')+' ('+v('role').toLowerCase()+')');
+    line('Присутствовали',v('present'));line('Запись на диктофон',v('rec').toLowerCase());
+    if((D.arts||'').trim()){L.push(B('Подозревается по статьям:'));L.push(list('arts'))}
+    line('Доказательства',v('evidence'));
+    L.push('');L.push(B('Ход допроса:'));L.push(v('qa'));
+    L.push('');line('Итог',v('verdict'));
+    L.push('');L.push('Подпись допрашивающего: '+F.sign);
+    L.push('Подпись допрашиваемого: '+F.sign);
+  }
+  const code=F.end(L.join('\n'));$('#paper').textContent=code;
+  const info=$('#paperinfo');info.hidden=D.fmt!=='ss13';
+  if(D.fmt==='ss13'){const lim=+P.p.limit||0,over=lim&&code.length>lim;
+    info.innerHTML=`<span>Правила Папируса: <b>${esc(P.p.name||'профиль')}</b>${P.own?'':' (по умолчанию)'}</span><span class="${over?'over':''}">${code.length}${lim?' / '+lim:''} символов</span>`}
+}
+$('#tpls').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;D.tpl=b.dataset.t;renderTpls();renderForm();renderPaper();save()});
+const syncFmt=()=>[...$('#fmt').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===(D.fmt||'txt')));syncFmt();
+$('#fmt').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;D.fmt=b.dataset.f;syncFmt();renderPaper();save()});
+// Правила поменяли в Папирусе (в Пульте он рядом) — бумага сразу пересобирается
+addEventListener('storage',e=>{if(e.key==='papirus.settings'&&D.fmt==='ss13')renderPaper()});
+$('#form').addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;D[k]=e.target.value;renderPaper();save()});
+$('#form').addEventListener('click',e=>{
+  if(e.target.dataset.pull){pullFromCalc();toast('Статьи и приговор подтянуты')}
+  if(e.target.id==='docclear'){const keep={tpl:D.tpl,fmt:D.fmt,officer:''};D=Object.assign({},keep,{num:'СБ-'+String(Math.floor(1000+Math.random()*9000)),code:'Зелёный'});renderForm();renderPaper();save()}
+});
+$('#copydoc').addEventListener('click',()=>copy($('#paper').textContent,'Документ скопирован'));
+
+/* ===================== СПРАВОЧНИК: ДАННЫЕ ===================== */
+const CONTRA=[
+ {k:'1',n:'Ограниченная (1-я категория) → статья 204',a:204,g:{
+  'Оружие':['Реверсивный капкан','Dart Pistol','Teleprod','Телескопические биты','Nutcracker','Plastitanium Rapier','Plastitanium toolbox','Stechkin','Makarov','Rapid banana pie canon','Самодельное стрелковое оружие','Самодельное оружие ближнего боя','Кинетический бластер','Proto-kinetic accelerator','Специализированный рабочий инструмент (тесак повара, нож шахтёра, капканы, пожарный топор)','Самодельные взрывные устройства','Luger P08'],
+  'Утилитарное':['Additional arm','Agent ID-card','Mind batterier','Radioactive health analyzer','Radio jammer','Binary translation key','Camera bug','Chameleon projector','Chameleon stamp','BS compression kit','Decoy nuke disk','Electromagnetic Charging Device','Боевое искусство Крав-мага','Бола любого вида','Сюрикены любого вида','Нелегальные плакаты','Без одобрения: Security HUD implant, Slave implant, Exile implant','Briefcase launchpad','Stimpack','Glue'],
+  'Одежда и броня':['Thieving gloves','Headset upgrader','Mechanical Eyepatch','Adrenaline Mask','Набор снаряжения Insidious','Chameleon Suit','Chameleon Shoes','Chameleon Vest','Chameleon Cap','Chameleon Goggles','Chameleon Satchel','Chameleon gloves','Syndicate Hardsuits','Syndicate MODs','Colored Space Suits','Zil-Squad Armorsuit']}},
+ {k:'2',n:'Запрещённая (2-я категория) → статья 304',a:304,g:{
+  'Оружие':['CR-20','L6 SAW','Все типы AR (AK, M16 и т. д.)','Desert Eagle .50','Peacebreaker shotgun','Optical thermal eyepatch','Accelerator laser cannon','FRAG grenade','Sniper rifle','Hypereutectic Blade','Northstar gauntlets','Mini-energy crossbow','Energy Dagger','Револьверы .357','Револьверы .45','Компактный деррингер','Canceller','Karakurt','ACR-5m26','Cutlass','Energy cutlass','Energy sword','Double-energy sword','Hoshi Modular Laser Carbine','Hyeseong Modular Laser Rifle','Zealstar Rifle'],
+  'Утилитарное':['Sentry gun','Sleepy’pen','Взрывчатка','ЭМИ','Ape cubes','Buzzkill grenade','Detomatix PDA cartridge','Syndicate teleporter','Brainwashing surgery disk','Memorizer','Артефакты Лаваленда/Айсленда (кроме Rod of Asclepius)','Боевые импланты (кроме СБ по НРП)'],
+  'Одежда и броня':['Thermal glasses','Бронированные подкладки','Wall Walking Boots','Iron Tombstone armor','Quite Kid armor kit']}},
+ {k:'3',n:'Вражеской корпорации (3-я категория) → статья 404',a:404,g:{
+  'Оружие':['Energy shield','Инструменты, листы металла, оружие, броня, предметы культов Нар’Си и Ратвара','Любые вещи Еретика','Снаряжение клана паука','УШМ InteQ','Melter','Набор Death angel','Копьё Grey Tide','Помада Kiss of Death','Backstabber knife','KS-23','Револьвер 45-70 Passing Bel','Револьверы Condemnation и Salvation','Advanced Mimery','InteQ Sledgehammer','Боевые искусства (CQC, Bass, Carp)','«His grace»','High-powered chainsaw','Bioterror ammo / grenade','Romerol','Plasma Sword','Plasma Axe'],
+  'Утилитарное':['TeleCredits (ТС)','Контейнер для осколка СМ/плутония','Скальпель для СМ','EMAG (cryptographic sequencer)','Rules of Engagement','Riflery primer','InteQ Encryption Key','Clown car','Uplink InteQ','Contractor equipment','Модуль взлома ИИ','Нелегальный модуль для борга','Power sink','Голопаразит','Магия и артефакты Магической Федерации (кроме Staff/Wand of Healing)','Импланты скрытого типа: Adrenaline, EMP, Hijack, storage, uplink, stealth, micro/macro-bomb, illegal radio, mind slave, freedom, auto-surgeon type S, warp'],
+  'Одежда и броня':['SpecOPS set','Contractor Hardsuit','InteQ Hardsuits','InteQ MODs','Любая боевая одежда с символикой InteQ','Magic suits','Пояс buscaredo']}}
+];
+const CHEM={
+ 'Ограниченные наркотики → 204':['Космодурь (Space Drugs)','ЛСД (LAD)','Морфин (Morphine)','Соль для ванн (Bath Salts)','Тетрагидроканнабинол (THC)','Гексокроцин (Hexacrocin)','Звёздочка','Пендосовка (Pendosovka)','Модафинил (Modafinil)','Счастье (Happiness)','Скума (Skooma)','Mindbreaker Toxin','Astrogen'],
+ 'Ограниченные химикаты → 204':['Атразин (Atrazine)','Галоперидол (Haloperidol)','Глифосат (Glyphosate)','Дихлофос (Pest Killer)','Карпотоксин (Carpotoxin)','Космическая смазка (Space Lube)','Напалм (Napalm)','Сгущённый капсаицин','Серная кислота (Sulphuric acid)','Термит (Thermite)','Токсин (Toxin)','Формальдегид (Formaldehyde)','Цианид (Cyanide)','Шутостерон (Jestosterone)','Флогистон (Phlogiston)','Жизнь (Life (Friendly))','Chlorine Trifluoride','Zombie Powder','Ghoul Powder','Synthetic-Derived Growth Factor','Furranium','Hat growth serum','Хлоралгидрат (Chloral Hydrate)'],
+ 'Запрещённые наркотики → 304':['Лабебиум','МДМА','Героин','Аранесп (Aranesp)','Всплеск (Surge)','Дженкем (Jenkem)','Крокодил (Krokodil)','Крэнк (Crank)','Метамфетамин (Methamphetamine)','Impedrezene','MKUltra','Стимулянты'],
+ 'Запрещённые химикаты → 304':['Гистамин (Histamine)','Зарин (Sarin)','Зудящий порошок (Itching Powder)','Инитропидрил (Initropidril)','Концентрированный инитропидрил','Капулеттий (Capulettium)','Кетамин (Ketamine)','Кониин (Coniine)','Лексорин (Lexorin)','Мятный токсин (Mint Toxin)','Наномашины (Nanomachines)','Нейротоксин (Neurotoxin)','Панкуроний (Pancuronium)','Паучьи яйца (Spider eggs)','Полоний (Polonium)','Прионы Куру (Space Kuru)','Сальный жир (Pure Bacon Grease)','Сердечные черви (Heartworms)','Сульфонал (Sulfonal)','Тиопентал натрия (Sodium Thiopental)','Тиризин (Tirizene)','Токсичная суспензия (Toxic Slurry)','Фторсерная кислота (Fluorosulfuric Acid)','Энтропийный полипний (Entropic Polypnium)','Яд (Venom)','Жизнь (Life)','Meth Explosion','Взрыв пчёл (Beesplosion)','Fentanyl','Аманитин (Amanitin)','Ультрасмазка (Ultra Lube)','Mulligan Toxin','Synthetic-Derived Apoptosis Factor','Synthetic-Derived Zombie Factor','Yamer oh no','Plushmium']
+};
+const IMPL={
+ 'Гражданские':['Tracking implant case','Chemical implant case','Genital fluid implant case','Nutriment pump implant','Breathing tube implant','Sad Trombone implant case','Storage Concealment implant case','Nutriment pump implant PLUS','ECC System Guard implant','Nutriment pump implant EXTREME','Radio implant case','Deathrattle implant case','Welding shield implant','Thrusters set implant','Claws implant','Neural AI link implant'],
+ 'Специализированные':['Slave implant case','Service arm implant','Medical HUD implant','Security HUD implant','Diagnostic HUD implant','Toolset arm implant','Surgical arm implant','Janitor arm implant','External Healing implant','Internal Healing implant','Revitalizing Cortex implant','Advanced Toolset arm implant','Advanced Surgical arm implant','Exile implant','Hexacrocin pump case'],
+ 'Боевые':['Reviver implant','Anti-drop implant','CNS Rebooter implant','Riot Shield arm implant','Mantis Blade implant'],
+ 'Нелегальные':['Freedom implant','Hijack implant','Internal illegal radio implant','Microbomb implant','Macrobomb implant','Stealth implant','Storage implant','X-ray vision implant','Warp implant','Uplink implant','Thermal vision implant (eyes)','Adrenaline implant','EMP implant','Gorlex Mantis blade implant'],
+ 'Органы':['Alien eyes','Alien tongue','Hive node','Resin spinner','Plasma vessel','Acid gland','Egg sac','Neurotoxin gland','Divine vocal cords','Ash lungs','Burning red eyes','Biomorphed Heart','Biomorphed Liver','Biomorphed Lungs']
+};
+const VIP=['Ручной телепорт','ID-карта капитана и глав','Джетпак капитана','Рапира капитана','Антикварный лазерный пистолет','Любые медали','Чертежи станции','Улучшенные магнитные ботинки','Реактивная телепортационная броня','Продвинутый гипоспрей','X-O1 Мультифазный энерго-пистолет','Перчатки крав-мага'];
+const ZODLIST=['Спутник ИИ','Загрузочная ИИ','Арсенал','Мостик','Врата','Комнаты Юридического отдела','Комнаты командующего персонала','Комната Синего Щита','Склад ВКД','Комната телепортации','Хранилище (Vault)','Гравитационный генератор','Инженерный укреплённый склад','Телекоммуникационная','Атмосферный отсек инженерного отдела','Области генерации энергии','Хранилище плат','Серверная','Объекты Синдиката'];
+
+const ALERTS=[
+ {n:'Зелёный',c:'#2e8a4b',s:'Капитан, ГСБ, ЦК',d:'Угроз нет, все процедуры в полном объёме.',sb:['Оружие убрано в рюкзак или слот костюма. Нелетальное энергооружие — допустимо в погоне.','Огнестрел только с нелетальными патронами, кроме крайней необходимости.','Выборочные обыски запрещены без письменного разрешения ГСБ, Капитана или Представителя.','Арест только с предъявлением ордера (кроме исключений НРП КЗ).','Конфиденциальность КПК сохраняется.'],z:'ЗОД можно закрыть на болты при обоснованной причине.'},
+ {n:'Синий',c:'#2b62c4',s:'Капитан, ГСБ, ЦК',d:'Надёжные данные о враждебной активности.',sb:['ГСБ сам решает, нужны ли ордера на арест и обыск. Без ГСБ — работают ордера.','Оружие можно держать в боевой готовности.','Обыск при косвенных доказательствах (показания свидетелей).','Арсенал закрыт для всех, кроме Смотрителя и ГСБ. Смотритель выдаёт оружие под учёт.','Вторичное оружие — с разрешения ГСБ (иначе Смотритель или Капитан).','Сдать расширенный доступ, полученный на более высоком коде.'],z:'ЗОД рекомендуется заболтировать. Врата только для спасения.'},
+ {n:'Янтарный',c:'#d08a0c',s:'Капитан, ГСБ, ЦК',d:'Значительная угроза. Экипаж обязан выполнять указания СБ.',sb:['Арест и обыск без документов.','Оружие обязано быть в боевой готовности.','Выборочные обыски разрешены и рекомендуются; сопротивляющихся — в бриг.','Конфиденциальность не сохраняется.','Кооперация с ОБР и представителями ЦК.','Арсенал открыт для всего отдела.','Через 10 минут без угроз — понизить до Синего.'],z:'Все ЗОД заболтированы (кроме атмоса для работы). Врата закрыты.'},
+ {n:'Красный',c:'#c0262d',s:'Капитан, ГСБ, ЦК',d:'Военная операция, применение летальной силы. Подчинение СБ беспрекословно.',sb:['Всё, что на Янтарном.','Сопротивляющихся судить по X03 по уровню угрозы.','Разрешена контрабанда любой категории.','Можно формировать ополчение (с разрешения Капитана или ГСБ).','Неподчинение экипажа — «Сопротивление законной власти».'],z:'Все ЗОД заболтированы. Врата закрыты.'},
+ {n:'Оранжевый',c:'#e0661b',s:'Капитан, СИ, АСОС, ЦК',d:'Серьёзная инженерная угроза. Экипаж слушается инженеров.',sb:['Для СБ действуют пункты Синего кода.'],z:'Заболтировать неиспользуемые ЗОД.'},
+ {n:'Фиолетовый',c:'#7a3fb5',s:'Капитан, Главврач, ЦК',d:'Эпидемия, карантин. Экипаж слушается медиков.',sb:['Для СБ действуют пункты Синего кода.','Медики могут задерживать заражённых и помещать в карантин.'],z:'Заболтировать неиспользуемые ЗОД. Врата закрыты.'},
+ {n:'Лямбда',c:'#4b5468',s:'Только ЦК',d:'Станция может быть потеряна, эвакуация и ОБР недоступны.',sb:['Оружие всегда наготове, отклонение от НРП допустимо ради ликвидации угрозы.','Выборочные обыски крайне поощряются; сопротивление — X03.','Доп. арсенал с шаттла ЦК, никаких ограничений на оружие и контрабанду.','Ополчение формируется обязательно.'],z:'Все ЗОД заблокированы. Врата закрыты.'},
+ {n:'Дельта',c:'#7a1414',s:'Система самоликвидации',d:'Активирован механизм самоуничтожения.',sb:['Оружие наготове.','Ядерные оперативники: обезвреживать боеголовку не рекомендуется, но можно; обеспечить эвакуацию.','Боеголовку запустило ЦК: держать порядок, не выпускать угрозу со станции.','Сбойный ИИ: весь экипаж обязан помогать СБ.'],z:'Процедуры ЗОД не действуют.'},
+ {n:'Эпсилон',c:'#5a6070',s:'Только ЦК',d:'Военное положение. Неподчинение карается уничтожением на месте.',sb:['Любые меры применения оружия для восстановления порядка.','Рекомендована массовая имплантация МЩ.','При утрате лояльности СБ — уничтожить таких сотрудников на месте.','Сдающиеся: громко объявить, разоружиться, выбросить контрабанду, лечь лицом в пол.'],z:'Процедуры ЗОД не действуют.'}
+];
+const PROC={cols:['Зелёный','Синий','Янтарный','Красный','Оранжевый','Фиолетовый','Гамма / Эпсилон / Дельта'],rows:[
+ ['Проверка ID-карты','e','y','y','y','y','y','y'],['Обыск','e','e','y','y','e','e','y'],['Арест','e','e','y','y','e','e','y'],
+ ['Летальная сила без предупреждения','n','n','y','y','n','n','y'],['Проверка имплантов','n','e','y','y','e','e','y'],['Обыск отдела','n','e','y','y','e','e','y'],['Проверка КПК и серверов телекоммов','e','e','y','y','e','e','y']]};
+const FORCE={
+ non:['Нарушитель не вооружён дальнобойным оружием','Не совершал преступлений выше 4XX','Пытается сбежать от СБ','В критическом состоянии и больше не угрожает'],
+ let:['Мастер боевого искусства','Совершил преступление 5XX','Использует мгновенную телепортацию','Вооружён огнестрелом и активно сопротивляется','Вооружён контрабандой 2-й или 3-й категории','Жизнь офицера под смертельной угрозой','Посягательство на жизнь экипажа','Находится в экзокостюме','Опасная обстановка: разгерметизация','Невосприимчив или устойчив к оглушению','Подтверждены средства освобождения из наручников'],
+ kill:['Генокрад (с уничтожением), космический ниндзя, маг или ученик, возвысившийся культист или еретик (с уничтожением), тенелинг, войдволкер, абдуктор, одинокий оперативник, враждебный пират','Использует магические артефакты','Код Красный или выше','Взломанный станционный юнит','Опасная обстановка: открытый космос, пожар','Подтверждённая возможность телепортироваться в крите']};
+const ENEMY={
+ 'Конвертированные (лечить, не судить)':['Культист','Раб вампира','Жертва промывки мозгов','Жертва Mind-slave импланта','Член революции','Члены «Семьи» (ресоциализация + штраф за асоциальное поведение)'],
+ 'Вечный пермабриг':['Агент InteQ','Враждебные воксы (не экипаж)','Рейдеры InteQ','Работорговцы','Еретик','Воксы-пираты'],
+ 'Казнь / изгнание':['Истинный вампир','Глава революции (МЩ невозможен)','Агент-культист (отвязка невозможна)','Сбежавший из пермабрига или перма-каторги 2+ раза','Еретик (возвысившийся)'],
+ 'Ликвидация на месте':['Генокрад','Космический ниндзя','Маг и ученик','Неразумные агрессивные существа','Одинокий оперативник InteQ','Абдукторы','Ударный ядерный отряд InteQ','Нарушившие более двух статей 5XX','Космические пираты','Ксеноморф','Блоб','Паук террора','Заражённый зомби-вирусом','Хедкрабы','Морф']
+};
+
+/* ===================== СПРАВОЧНИК: РЕНДЕР ===================== */
+/* Плотные цвета плашек: на них белый текст в обеих темах */
+const K={green:'#2e7a45',amber:'#9a6f00',orange:'#bf560b',red:'#b3202a',crimson:'#7a1414',purple:'#6c2fa3',navy:'#24467f',blue:'#2b62c4',slate:'#4b5468'};
+const SECTIONS=[
+ {id:'arts',n:'Статьи КЗ',d:'Все статьи от 1XX до 5XX с составом нарушения, плюс S-статьи для СБ и командования.',k:K.red,cnt:()=>A.length,u:'статей'},
+ {id:'contra',n:'Контрабанда',d:'Три категории контрабанды и Боевая политика: кому и что можно носить на каждом коде.',k:K.orange,cnt:()=>CONTRA.reduce((s,c)=>s+Object.values(c.g).flat().length,0),u:'предметов'},
+ {id:'chem',n:'Химикаты',d:'Ограниченные вещества идут по 204, запрещённые — по 304.',k:K.purple,cnt:()=>Object.values(CHEM).flat().length,u:'веществ'},
+ {id:'codes',n:'Коды тревоги',d:'Что разрешено СБ и что обязан делать экипаж на каждом уровне угрозы.',k:K.blue,cnt:()=>ALERTS.length,u:'кодов'},
+ {id:'force',n:'Применение силы',d:'Когда задерживать нелетально, когда можно летально и когда добивать на месте.',k:K.crimson,cnt:()=>FORCE.non.length+FORCE.let.length+FORCE.kill.length,u:'условий'},
+ {id:'proc',n:'Арест и ордера',d:'Порядок ареста, обыска, удержания, ордеров, посадки и УДО.',k:K.navy,cnt:()=>6,u:'процедур'},
+ {id:'pun',n:'Наказания',d:'Санкции Z1–Z9, диапазоны по тяжести, правила сложения и полномочия.',k:K.amber,cnt:()=>9,u:'санкций'},
+ {id:'enemy',n:'Враги корпорации',d:'Кого лечить, кого сажать навсегда, кого казнить и кого ликвидировать на месте.',k:K.slate,cnt:()=>Object.values(ENEMY).flat().length,u:'типов'},
+ {id:'misc',n:'Импланты, газы, ЗОД',d:'Регулируемые импланты, категории газов, мехи, зоны ограниченного доступа и особо важные предметы.',k:K.green,cnt:()=>Object.values(IMPL).flat().length+ZODLIST.length+VIP.length,u:'позиций'}
+];
+let refSec='arts';
+const ticks=(l,hl=esc)=>'<ul class="ticks">'+l.map(x=>`<li>${hl(x)}</li>`).join('')+'</ul>';
+const pills=(l,k,hl=esc)=>`<div class="pills" style="--kc:${k}">${l.map(x=>`<span class="pill">${hl(x)}</span>`).join('')}</div>`;
+const band=(t,sub,k,right='')=>`<div class="band" style="--kc:${k}"><div><b>${t}</b>${sub?`<span>${sub}</span>`:''}</div>${right}</div>`;
+const blk=(t,sub,k,body,right='')=>`<section class="panel blk" style="--kc:${k}">${band(t,sub,k,right)}<div class="blkbody">${body}</div></section>`;
+const yn=x=>`<span class="yn ${x}">${x==='y'?'Да':x==='n'?'Нет':'По улике'}</span>`;
+
+function artCard(a,hl,open){return `<article class="acard t${a.tier}">
+  <div class="ahead"><span class="acode">${a.c}</span><div class="aname"><h3>${hl(a.n)}</h3><div class="atags"><span class="tag">${a.t==='exact'?'только перечисленное':'примерный список'}</span>${a.complaint?'<span class="tag">нужна жалоба</span>':''}</div></div><button class="add" type="button" data-addart="${a.c}">+ в приговор</button></div>
+  <p class="adesc">${hl(a.d)}</p>
+  <details${open?' open':''}><summary>Состав нарушения · ${a.i.length}</summary>${ticks(a.i,hl)}${a.note?`<p class="anote">${hl(a.note)}</p>`:''}</details>
+</article>`}
+
+const SEC={
+ arts(){let h='';
+  for(let t=1;t<=5;t++){const l=A.filter(a=>a.tier===t);
+   h+=`<div class="tierband t${t}"><span class="tcode">${t}XX</span><div><b>${TIERS[t].n}</b><span>${tierRule(t)}</span></div><span class="tcount">${l.length} ст.</span></div><div class="artgrid">${l.map(a=>artCard(a,esc,false)).join('')}</div>`}
+  h+=`<div class="grid2" style="margin-top:8px">${blk('S-1 · Халатность','Для СБ и командования',K.slate,`<p style="margin:0">Игнорирование вызовов, нарушение своего НРП или НРП отдела, отсутствие юридической работы в Зелёный и Синий код, бездействие при преступлении на глазах.</p>`)}${blk('S-2 · Превышение полномочий','Для СБ и командования',K.slate,`<p style="margin:0">Неоправданная сила, преступный приказ с прямым вредом станции или гибелью экипажа, лишний сопутствующий ущерб при задержании.</p>`)}</div>
+   <p class="anote" style="margin:0">Обычно крупный штраф, 30 минут и/или увольнение. S-1 и S-2 складываются, модификаторы КЗ к ним не применяются.</p>`;
+  return h},
+ contra(){
+  const meta=[['Ограниченная','1-я категория',K.amber],['Запрещённая','2-я категория',K.orange],['Вражеской корпорации','3-я категория',K.red]];
+  const cards=CONTRA.map((c,i)=>blk(meta[i][0],meta[i][1],meta[i][2],Object.entries(c.g).map(([g,l])=>`<h4>${g} <span class="cnt">${l.length}</span></h4>${pills(l,meta[i][2])}`).join(''),`<span class="bchip">ст. ${c.a}</span>`)).join('');
+  const pol=[['Зелёный','#2e8a4b','До двух единиц: огнестрел и энерго. Огнестрел только с нелетальными патронами и письменным разрешением.'],['Синий','#2b62c4','Доп. оружие из арсенала по решению ГСБ или Смотрителя. Только с летальным и нелетальным режимом, без автоматического огнестрела.'],['Янтарный','#d08a0c','Лицензиат сам берёт снаряжение из арсенала по НРП.'],['Красный','#c0262d','Любое оружие, включая контрабанду любого класса.']];
+  return `<div class="grid3">${cards}</div>`+blk('Боевая политика','Лицензии и ношение оружия',K.navy,
+   `<p style="margin:0">Оружие без лицензии само по себе — только конфискация в пользу СБ, без срока. Преступление с лицензионным оружием — конфискация, отзыв лицензии и статья КЗ. Лицензию выдают письменно Смотритель, ГСБ или Капитан, именно в таком порядке приоритета.</p>
+   <div class="policy" style="margin-top:6px">${pol.map(p=>`<div class="prow"><b style="--ac:${p[1]}"><i></i>${p[0]}</b><span>${p[2]}</span></div>`).join('')}</div>`)},
+ chem(){const e=Object.entries(CHEM);
+  return `<div class="grid2">${blk('Ограниченные','Наркотики и химикаты',K.amber,`<h4>Наркотики <span class="cnt">${e[0][1].length}</span></h4>${pills(e[0][1],K.amber)}<h4>Химикаты <span class="cnt">${e[1][1].length}</span></h4>${pills(e[1][1],K.amber)}`,'<span class="bchip">ст. 204</span>')}
+   ${blk('Запрещённые','Наркотики и химикаты',K.red,`<h4>Наркотики <span class="cnt">${e[2][1].length}</span></h4>${pills(e[2][1],K.red)}<h4>Химикаты <span class="cnt">${e[3][1].length}</span></h4>${pills(e[3][1],K.red)}`,'<span class="bchip">ст. 304</span>')}</div>
+   <p class="anote" style="margin:0">Схожие нарушения не складываются: сонная ручка — это и контейнер с запрещённым веществом, и контрабанда, поэтому берётся одна статья с наибольшим наказанием.</p>`},
+ codes(){return `<div class="grid3">${ALERTS.map(a=>`<section class="panel placard" style="--ac:${a.c}"><div class="ph"><div><b>${a.n}</b><span>Санкция: ${a.s}</span></div></div><div class="pb"><p class="pd">${esc(a.d)}</p>${ticks(a.sb)}<div class="pz"><b style="color:var(--fg)">ЗОД.</b> ${esc(a.z)}</div></div></section>`).join('')}</div>`+procTable()},
+ force(){const col=(t,sub,k,l,after)=>`<section class="panel blk" style="--kc:${k}">${band(t,sub,k)}<div class="blkbody">${ticks(l)}<div class="after"><b>После</b>${after}</div></div></section>`;
+  return `<div class="grid3">${col('Нелетальное','Ступень 1 · по умолчанию',K.green,FORCE.non,'Обездвижить и доставить в бриг без вреда здоровью.')}
+   ${col('Летальное','Ступень 2 · если выполнено условие',K.orange,FORCE.let,'Довести до крита, надеть наручники, оказать ПМП, доставить в медотсек или лазарет брига и сопровождать до конца процедур.')}
+   ${col('Добивание на месте','Ступень 3 · крайняя мера',K.crimson,FORCE.kill,'Наручники, вызов врача (в канал СБ, если есть Бриг Медик), доставка в медотсек. Юнита — лично в РНД с объяснением причин.')}</div>`+procTable()},
+ proc(){const c=(t,sub,body)=>blk(t,sub,K.navy,body);
+  return `<div class="grid3">
+  ${c('Арест','Порядок задержания',`<h4>Зелёный и Синий</h4>${ticks(['Устно назвать причину ареста с безопасной дистанции.','Предъявить авторизованный ордер на месте. В бриге — если пришёл сам или был нейтрализован третьими лицами.','Добровольное сопровождение — без наручников.','Видел преступление сам — потребовать остановиться и пройти в бриг, дальше по таблице силы.'])}<h4>Янтарный и выше</h4>${ticks(['Приказать пройти в бриг, бумаги не нужны.','При вооружённом сопротивлении — летальная сила.','Конвой в наручниках.','Обязательно сменить статус в базе, ордер желателен.'])}`)}
+  ${c('Обыск','Личный досмотр',`<h4>Зелёный и Синий</h4>${ticks(['Изложить требования. Документ обязателен только на Зелёном.','Место — ближайшее КПП.','Сумка, карманы, пояс, форма, украшения, наушник, очки, шея.','Нашёл незаконное — арест без дополнительных бумаг.'])}<h4>Янтарный и выше</h4>${ticks(['Приказать выложить на пол любую одежду.','При пассивном сопротивлении — нелетальная сила.','Обыск в любом удобном месте.'])}`)}
+  ${c('Ордера','Кто и когда подписывает',ticks(['Нужны прямые или косвенные улики, без них ордер не оформляется.','Авторизуют: Лидер ОБР, Капитан, ГСБ, Смотритель, Детектив.','Представитель и АВД — для своих расследований. Ордер Представителя не обсуждается.','Нет уполномоченных — любой офицер СБ, с последующим подтверждением.','Старший может отозвать ордер младшего. Цель — уполномоченное лицо: подписывает старший по иерархии.','Ордер после задержания: преступление на глазах СБ, ситуация для летальной силы, Янтарный и выше.']))}
+  ${c('Удержание и штраф','Сроки в бриге',ticks(['Без доказательств держать можно до 5 минут. Потом снять наручники, вернуть вещи, отпустить, записать в базу.','Обвинение и доказательства озвучены в первые 5 минут: с 10-й минуты каждая лишняя минута ожидания уменьшает срок.','Штраф: задержать, консоль записей, статья и детали, сумма.','Не оплачен за 10 минут — ордер на арест или арест по коду.']))}
+  ${c('Посадка','ИВС и пермабриг',ticks(['Можно изъять все вещи в шкаф. Обувь и униформу можно оставить.','Можно переодеть в робу или юбку и оранжевые ботинки, кроме тех, кому без снаряжения грозит смерть.','Выдать семейную реликвию.','Статус «Отбывает срок», таймер на шкафчике по приговору.','Вещи пермабриговца, кроме контрабанды, — в именной ящик. Присвоение — статья 206.']))}
+  ${c('Заключённые и УДО','Содержание и освобождение',ticks(['Обход парой офицеров не чаще двух раз в 30 минут.','Карцер — не более 10 минут.','Два и более побега из пермабрига — возможна казнь.','УДО: статус «Parole». За 3XX и выше или врагу корпорации — Tracking implant.','УДО за 5XX или казнимое — только для помощи при ЧС, с разрешения Представителя, Капитана или Лидера ОБР.','Нарушил УДО — пересуд за старое и новое, без права на повторное УДО.']))}</div>`},
+ pun(){const Z=[['Z1','Устное предупреждение','#2e8a4b'],['Z2','Штраф','#4d8a2e'],['Z3','Заключение','#9a6f00'],['Z4','Увольнение','#bf560b'],['Z5','Каторга','#c0400f'],['Z6','Вечное заключение в пермабриге','#b3202a'],['Z7','Принудительная имплантация','#8c1a3a'],['Z8','Принудительная пацификация','#6c2fa3'],['Z9','Казнь','#20242c']];
+  const R=[[1,'Z1, или штраф 250–500 кр, или ИВС до 5 мин'],[2,'Штраф 500–1000 кр и/или ИВС 5–10 мин, или Z4'],[3,'Штраф 1500–3000 кр и/или 15–30 мин, или Z4, или Z5'],[4,'Z4 и/или 30–60 мин, или Z5 + штраф 5000–10 000 кр, или Z6'],[5,'Z6 и/или Z7 и/или Z8, или Z9']];
+  const who=[['Представитель, Капитан, ОБР','Все наказания и УДО любому.'],['ГСБ и Смотритель','Предупреждение, штраф, заключение, каторга, вечная каторга, пожизненное, изгнание. УДО — кроме врагов корпорации и 5XX.'],['АВД','Предупреждение, штраф, заключение, каторга. УДО — кроме врагов корпорации и 5XX.'],['Детектив','Предупреждение, штраф, заключение, каторга. Без УДО.'],['Офицер СБ','До 3XX включительно; расширяют ГСБ, Капитан или Лидер ОБР. Без УДО.'],['Кадет','Только под наблюдением своего офицера и в его рамках.']];
+  return `<div class="grid3">
+   ${blk('Санкции','Шкала Z1–Z9',K.amber,`<div class="ladder">${Z.map(z=>`<div class="lrow" style="--zc:${z[2]}"><span class="z">${z[0]}</span><span>${z[1]}</span></div>`).join('')}</div>`)}
+   ${blk('Диапазоны','По тяжести статьи',K.amber,`<div class="ladder">${R.map(r=>`<div class="lrow t${r[0]}"><span class="z" style="background:var(--tc)">${r[0]}XX</span><span>${r[1]}</span></div>`).join('')}</div>`)}
+   ${blk('Правила сложения','Как считать срок',K.amber,ticks(['Разные строки КЗ (101 и 107) складываются.','Одна строка (101 и 501) не складывается: берётся самая тяжёлая.','Схожие нарушения за один предмет — одна статья с наибольшим наказанием.','1 минута = 100 кр штрафа = 100 очков добычи.','Больше 35 минут — пермабриг, больше 60 — пожизненно до конца смены.','ИВС до 20 минут можно заменить штрафом, 11–60 минут — каторгой.','Трёхкратное повторение — наказание ×2. С рецидивом не складывается.']))}
+   ${blk('Кто что назначает','Полномочия',K.navy,`<div class="dl">${who.map(w=>`<div><b>${w[0]}</b><span>${w[1]}</span></div>`).join('')}</div><p class="anote">Админзапрет до 30 минут и реабилитацию у психиатра назначает любое уполномоченное лицо, кроме Детектива.</p>`)}
+   ${blk('Высшие меры','Особые разрешения',K.crimson,ticks(['Казнь: письменное разрешение Капитана и ГСБ и/или большинства глав, суд Представителя или ЦК.','Пацификация: письменное разрешение Представителя или Капитана, без них — ГСБ.','Изгнание: костюм ЕВА, еда, инструменты, имплант изгнания, отправка во Врата.','Тело казнённого — в морг с пометкой «Казнён. Не возрождать» и/или боргификация.']))}
+   ${blk('Иерархия','Уполномоченные лица',K.navy,`<ol class="steps" style="--kc:${K.navy}">${['Офицер ЦК','Представитель корпорации / Командующий ОБР','Капитан','Глава Службы Безопасности','Смотритель','Агент Внутренних Дел','Детектив'].map(x=>`<li>${x}</li>`).join('')}</ol><h4>Должностные лица (О-2, О-3)</h4><p style="margin:0;font-size:14px">Всё командование и офицеры мостика, Представитель, АВД, Синий Щит, весь персонал СБ.</p>`)}</div>`},
+ enemy(){const cols=[K.purple,K.orange,K.red,K.crimson],subs=['Снять конверсию и отпустить','Содержать до конца смены','Казнь или изгнание','Без ареста'];
+  return `<div class="grid4">${Object.entries(ENEMY).map(([g,l],i)=>blk(g.replace(/ \(.*\)/,''),subs[i],cols[i],ticks(l)+(i===0?'<p class="anote">«Семья»: ресоциализация силами АВД, должностных лиц или психолога плюс штраф за асоциальное поведение.</p>':''),`<span class="bchip">${i+1}/4</span>`)).join('')}</div>
+   <p class="anote" style="margin:0">Таблица не действует в режиме раунда Extended. Задача СБ — подавить угрозу с минимальным ущербом, а не уничтожить любой ценой.</p>`},
+ misc(){const ik={'Гражданские':K.green,'Специализированные':K.navy,'Боевые':K.orange,'Нелегальные':K.red,'Органы':K.purple};
+  return `<div class="grid2">
+   ${blk('Импланты и органы','Регулируемые',K.green,Object.entries(IMPL).map(([g,l])=>`<h4>${g} <span class="cnt">${l.length}</span></h4>${pills(l,ik[g])}`).join(''))}
+   <div style="display:grid;gap:14px">
+    ${blk('Газы','Категория определяет статью',K.blue,`<div class="gas"><div style="--kc:#2e8a4b"><b>Безопасные</b>H2O</div><div style="--kc:#9a6f00"><b>1-я · 200</b>O2, N2, CO2, BZ, Pluxiom</div><div style="--kc:#bf560b"><b>2-я · 300</b>Plasma, N2O, NO, NO2, CH4, Miasma, H2</div><div style="--kc:#b3202a"><b>3-я · 400</b>Tritium, Hyper-Nobelium</div></div>`)}
+    ${blk('Мехи','Боевые считаются боевыми даже без оружия',K.slate,`<h4>Боевые · 304</h4>${pills(['Gygax','Durand','Savannah-Ivanov','Phazon','Dark Gygax','Mauler','Marauder','Seraph','TU-802 Solntsepyok','Neovgre','Zeus'],K.red)}<h4>Не боевые · 204</h4>${pills(['H.O.N.K.','Reticence','Medical Gygax','Ripley и вариации','Odyseus','Clark'],K.green)}`)}
+    ${blk('Особо важные предметы','Кража — статья 406',K.crimson,pills(VIP,K.crimson))}
+   </div></div>`+blk('Зоны ограниченного доступа','Пребывание — 207, вторжение — 407',K.navy,pills(ZODLIST,K.navy))}
+};
+function tierRule(t){return {1:'Z1, или штраф 250–500 кр, или ИВС до 5 минут.',2:'Штраф 500–1000 кр и/или ИВС 5–10 минут, или увольнение.',3:'Штраф 1500–3000 кр и/или 15–30 минут, или увольнение, или каторга.',4:'Увольнение и/или 30–60 минут, или каторга + штраф 5000–10 000 кр, или вечный пермабриг.',5:'Вечный пермабриг, имплантация, пацификация или казнь.'}[t]}
+function procTable(){return blk('Что можно по коду','Памятка НРП СБ',K.navy,`<div class="tbl"><table class="ptbl"><thead><tr><th>Процедура</th>${PROC.cols.map((c,i)=>`<th><i style="--ac:${['#2e8a4b','#2b62c4','#d08a0c','#c0262d','#e0661b','#7a3fb5','#4b5468'][i]}"></i>${c}</th>`).join('')}</tr></thead><tbody>${PROC.rows.map(r=>`<tr><td>${r[0]}</td>${r.slice(1).map(x=>`<td>${yn(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`)}
+
+function renderRefNav(){const q=$('#rq').value.trim();$('#refnav').innerHTML=SECTIONS.map(s=>`<button type="button" data-s="${s.id}" style="--kc:${s.k}" aria-pressed="${!q&&refSec===s.id}"><i></i><span>${s.n}<small>${s.cnt()} ${s.u}</small></span></button>`).join('')}
+function renderRef(){
+  const q=$('#rq').value.trim().toLowerCase();renderRefNav();
+  if(!q){const s=SECTIONS.find(x=>x.id===refSec);
+    $('#ref').innerHTML=`<div class="refhead" style="--kc:${s.k}"><div><h2>${s.n}</h2><p>${s.d}</p></div><div class="big">${s.cnt()}<small>${s.u}</small></div></div>`+SEC[refSec]();return}
+  const rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  const hl=s=>esc(s).replace(rx,'<mark class="hit">$1</mark>');
+  const has=s=>s.toLowerCase().includes(q);
+  const arts=A.filter(a=>String(a.c).includes(q)||has(a.n)||has(a.d)||a.i.some(has)||(a.note&&has(a.note)));
+  const items=[];
+  const cm=[K.amber,K.orange,K.red];
+  CONTRA.forEach((c,i)=>Object.values(c.g).forEach(l=>l.forEach(x=>{if(has(x))items.push([x,'Контрабанда '+c.k+'-й кат.',c.a,cm[i]])})));
+  Object.entries(CHEM).forEach(([g,l])=>l.forEach(x=>{if(has(x))items.push([x,g.split(' →')[0],+g.slice(-3),g.startsWith('Огр')?K.amber:K.red])}));
+  Object.entries(IMPL).forEach(([g,l])=>l.forEach(x=>{if(has(x))items.push([x,'Имплант: '+g.toLowerCase(),null,K.green])}));
+  VIP.forEach(x=>{if(has(x))items.push([x,'Особо важный предмет',406,K.crimson])});
+  ZODLIST.forEach(x=>{if(has(x))items.push([x,'ЗОД',null,K.navy])});
+  ALERTS.forEach(a=>{if(has(a.n)||has(a.d)||a.sb.some(has))items.push(['Код '+a.n+': '+a.d,'Код тревоги',null,a.c])});
+  let out=`<div class="refhead" style="--kc:${K.navy}"><div><h2>Поиск: «${esc(q)}»</h2><p>Найдено предметов и кодов: ${items.length}, статей: ${arts.length}.</p></div></div>`;
+  if(items.length)out+=blk('Предметы, вещества, коды',items.length+' совпадений',K.navy,items.map(([x,k,a,c])=>`<div class="resrow" style="--kc:${c}"><span>${hl(x)}</span><span class="res-k">${esc(k)}</span>${a?`<button class="add" type="button" data-addart="${a}">${a} в приговор</button>`:'<span></span>'}</div>`).join(''));
+  if(arts.length)out+=`<div class="artgrid">${arts.map(a=>artCard(a,hl,true)).join('')}</div>`;
+  if(!items.length&&!arts.length)out+=`<div class="panel empty"><b>Ничего не нашлось</b>Попробуй английское название предмета, часть слова или номер статьи.</div>`;
+  $('#ref').innerHTML=out;
+}
+$('#refnav').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;refSec=b.dataset.s;$('#rq').value='';renderRef()});
+$('#rq').addEventListener('input',renderRef);
+$('#ref').addEventListener('click',e=>{const b=e.target.closest('[data-addart]');if(!b)return;const c=+b.dataset.addart;
+  if(S.example){S.sel=[];S.mods=[];S.example=0}addArt(c);S.focus=c;renderAll(true);toast('Статья '+c+' добавлена в приговор')});
+
+/* ===================== ОБЩЕЕ ===================== */
+function go(t){['calc','docs','ref'].forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  if(t==='docs'){renderTpls();renderForm();renderPaper()}
+  if(t==='ref')renderRef();
+  try{history.replaceState(null,'','#'+t)}catch(e){}window.scrollTo(0,0)}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
+let tt;function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,1800)}
+function copy(text,msg){
+  const fb=()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();toast(ok?msg:'Не удалось скопировать: выдели текст вручную')};
+  try{navigator.clipboard.writeText(text).then(()=>toast(msg),fb)}catch(e){fb()}}
+
+/* ===================== ПОДСКАЗКА ПО СТАТЬЕ ===================== */
+/* Любой элемент с data-tip="<код>" показывает сводку после задержки курсора */
+const TIP_DELAY=650;
+const tip=document.createElement('div');tip.className='tip';tip.hidden=true;tip.setAttribute('role','tooltip');document.body.appendChild(tip);
+let tipTimer=null,tipEl=null,tipX=0,tipY=0;
+const cut=(s,n)=>s.length>n?s.slice(0,n-1).trimEnd()+'…':s;
+function tipHtml(a){
+  const t=a.tier,r=S.sel.find(x=>x.c===a.c);
+  let state='';
+  if(r){const R=compute();
+    if(R.absorbed[a.c])state=`<span class="tag on">Поглощена статьёй ${R.absorbed[a.c]}</span>`;
+    else{const et=effTier(r),o=OPTS[et].find(x=>x.id===r.o)||OPTS[et][0],p=[];
+      if(o.jail)p.push(r.j*(r.x2?2:1)+' мин');if(o.fine)p.push(rub(r.f*(r.x2?2:1))+' кр');if(o.fl)p.push(o.fl.map(f=>FLAGN[f].toLowerCase()).join(', '));if(o.id==='warn')p.push('предупреждение');
+      state=`<span class="tag on">В приговоре: ${p.join(' + ')}</span>`}}
+  const more=a.i.length-2;
+  return `<div class="th"><b>${a.c}</b><strong>${esc(a.n)}</strong></div>
+   <div class="tt">${t}XX · ${TIERS[t].n}</div>
+   <div class="tp"><span>Наказание</span>${esc(tierRule(t))}</div>
+   <p>${esc(a.d)}</p>
+   <ul>${a.i.slice(0,2).map(x=>`<li>${esc(cut(x,120))}</li>`).join('')}${more>0?`<li>и ещё ${more}…</li>`:''}</ul>
+   <div class="tf">${state}<span class="tag">${a.t==='exact'?'только перечисленное':'примерный список'}</span>${a.complaint?'<span class="tag">нужна жалоба</span>':''}</div>`;
+}
+function placeTip(){
+  const pad=12,w=tip.offsetWidth,h=tip.offsetHeight,vw=document.documentElement.clientWidth,vh=window.innerHeight;
+  let x=tipX+16,y=tipY+20;
+  if(x+w>vw-pad)x=Math.max(pad,tipX-w-16);
+  if(y+h>vh-pad)y=Math.max(pad,tipY-h-14);
+  tip.style.left=x+'px';tip.style.top=y+'px';
+}
+function showTip(el){const a=ART[+el.dataset.tip];if(!a)return;
+  tip.className='tip t'+a.tier;tip.innerHTML=tipHtml(a);tip.hidden=false;placeTip()}
+function hideTip(){clearTimeout(tipTimer);tipTimer=null;tipEl=null;tip.hidden=true}
+document.addEventListener('mouseover',e=>{
+  const el=e.target.closest('[data-tip]');
+  if(el===tipEl)return;
+  hideTip();if(!el)return;
+  tipEl=el;tipTimer=setTimeout(()=>showTip(el),TIP_DELAY);
+});
+document.addEventListener('mousemove',e=>{tipX=e.clientX;tipY=e.clientY});
+['mousedown','scroll','wheel'].forEach(ev=>window.addEventListener(ev,hideTip,{passive:true,capture:true}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTip()});
+window.addEventListener('blur',hideTip);
+
+/* ===================== ПОВЕРХ ОКОН (только в exe) ===================== */
+const pinBtn=$('#pin');
+function applyPin(on){
+  pinBtn.setAttribute('aria-pressed',on);
+  $('#pinlbl').textContent=on?'Закреплено':'Поверх окон';
+  pinBtn.title=(on?'Открепить окно':'Закрепить поверх всех окон')+' (Ctrl+Shift+T)';
+  try{window.pywebview.api.set_on_top(on)}catch(e){}
+  try{localStorage.setItem('brig.pin',on?'1':'0')}catch(e){}
+}
+function initPin(){
+  if(!(window.pywebview&&window.pywebview.api&&window.pywebview.api.set_on_top))return;
+  pinBtn.hidden=false;let on=false;try{on=localStorage.getItem('brig.pin')==='1'}catch(e){}
+  applyPin(on);
+}
+pinBtn.addEventListener('click',()=>applyPin(pinBtn.getAttribute('aria-pressed')!=='true'));
+document.addEventListener('keydown',e=>{if(!pinBtn.hidden&&e.ctrlKey&&e.shiftKey&&e.code==='KeyT'){e.preventDefault();applyPin(pinBtn.getAttribute('aria-pressed')!=='true')}});
+if(window.pywebview&&window.pywebview.api)initPin();else window.addEventListener('pywebviewready',initPin);
+
+renderAll(true);
+if(D.example&&!D.arts){D.arts=articlesText();D.mods=modsText();D.verdict=verdictText()}
+const h0=(location.hash||'').slice(1);go(['calc','docs','ref'].includes(h0)?h0:'calc');
+</script>
+
+</body>
+</html>

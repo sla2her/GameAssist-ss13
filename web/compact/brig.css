@@ -1,0 +1,51 @@
+/* Терминал Брига внутри Пульта. Кнопку «Поверх окон» заменяет кнопка на панели Пульта. */
+.pult-embedded #pin { display: none !important; }
+
+/* ---------- Компактный режим ---------- */
+.pult-compact body { font-size: 14px; padding: 0 10px 24px !important; }
+.pult-compact header { padding: 8px 0 6px; gap: 6px 10px; }
+.pult-compact .badge { width: 24px; height: 28px; font-size: 10px; }
+.pult-compact .brand h1 { font-size: 16px; }
+.pult-compact .brand small { display: none; }
+.pult-compact nav {
+  margin-left: 0; width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+}
+.pult-compact nav button { flex: 1; padding: 5px 6px; white-space: nowrap; }
+.pult-compact main { padding-top: 10px; }
+
+/* Приговор */
+.pult-compact .calc { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 10px; }
+.pult-compact .side { position: static; gap: 10px; }
+.pult-compact .cmd { padding: 2px 4px 2px 10px; }
+.pult-compact .cmd input { font-size: 15px; padding: 7px 0; }
+.pult-compact .gridbox { padding: 10px; }
+.pult-compact .gscroll { margin: 0 -10px; padding: 0 10px; }
+.pult-compact .kz { grid-template-columns: 34px repeat(5, minmax(84px, 1fr)); min-width: 470px; gap: 4px; }
+.pult-compact .cell { min-height: 46px; padding: 5px 6px; font-size: 11.5px; }
+.pult-compact .mods, .pult-compact .verdict { padding: 10px; }
+.pult-compact .row { padding: 8px 10px; }
+.pult-compact .sl { grid-template-columns: 52px minmax(0, 1fr) 70px; }
+.pult-compact .num b { font-size: 21px; }
+.pult-compact .nums { grid-template-columns: 1fr 1fr; }
+.pult-compact .btn { padding: 6px 10px; font-size: 13px; }
+
+/* Документы */
+.pult-compact .docs { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.pult-compact .paper { position: static; }
+.pult-compact .form { padding: 10px; gap: 9px; }
+.pult-compact .f2 { grid-template-columns: 1fr; }
+.pult-compact .seg { margin-bottom: 10px; }
+.pult-compact .paper pre { padding: 12px; font-size: 12.5px; max-height: 60vh; }
+
+/* Справочник */
+.pult-compact .refhead h2 { font-size: 21px; }
+.pult-compact .refhead .big { display: none; }
+.pult-compact .card { padding: 12px; }
+.pult-compact .acard { padding: 10px 12px 10px 16px; }
+.pult-compact .artgrid, .pult-compact .grid2, .pult-compact .grid3, .pult-compact .grid4,
+.pult-compact .alerts, .pult-compact .cols3 { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.pult-compact .gas { grid-template-columns: 1fr 1fr; }
+.pult-compact .prow { grid-template-columns: 1fr; }
+.pult-compact .list-tight { columns: 1; }
+.pult-compact .tierband { padding: 10px 12px; gap: 10px; }
+.pult-compact .tierband .tcode { font-size: 28px; }

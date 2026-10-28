@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Инженер SS13</title>
+<style>
+/* Веб-версия оверлея engineer-helper: те же guides.json, шаги и хоткеи.
+   Узкое окно — только текущий шаг (как оверлей), широкое — ещё список инструкций и все шаги. */
+:root {
+  color-scheme: dark;
+  --bg: #16191d; --panel: #1d2127; --panel2: #252a31; --line: #2f353d;
+  --fg: #e6e6e6; --dim: #7d8590; --faint: #565d66;
+  --accent: #e8a33d; --note: #d7b46a; --ok: #6fd3a8; --todo: #2c3138;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; display: flex; flex-direction: column; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.layout { flex: 1; min-height: 0; display: flex; }
+.guides { display: none; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 12px 14px 16px; gap: 10px; }
+
+/* Заголовок: название инструкции (клик — список) и счётчик */
+.head { display: flex; align-items: center; gap: 8px; }
+.gname {
+  flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 2px 0;
+  color: var(--accent); font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gname small { color: var(--dim); font-weight: 400; margin-right: 6px; }
+.counter { color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.progress { display: flex; gap: 2px; height: 5px; }
+.progress i { flex: 1; border-radius: 2px; background: var(--todo); cursor: pointer; transition: background-color .15s; }
+.progress i.done { background: var(--accent); }
+.progress i.cur { background: var(--fg); }
+
+/* Текущий шаг */
+.card {
+  border: 2px solid var(--accent); border-radius: 10px; background: var(--panel); padding: 12px 14px;
+  display: grid; gap: 4px; transition: border-color .12s;
+}
+.card.flash { border-color: #fff; }
+.tool { font-size: 20px; font-weight: 700; line-height: 1.2; }
+.do { font-size: 16px; }
+.note { color: var(--note); font-style: italic; font-size: 13.5px; }
+.upnext { color: var(--dim); font-size: 12.5px; margin-top: 4px; }
+
+.nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.nav button {
+  flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--panel2); border-radius: 7px; padding: 7px 8px;
+  font-weight: 600; white-space: nowrap; transition: border-color .12s, background-color .12s;
+}
+.nav button:hover { border-color: var(--accent); }
+.nav button.pri { background: var(--accent); border-color: var(--accent); color: #1b1408; }
+.nav button:disabled { opacity: .4; cursor: default; border-color: var(--line); }
+.nav .sm { flex: none; font-weight: 400; color: var(--dim); }
+.keys { color: var(--faint); font-size: 12px; }
+.keys kbd { font: 11px Consolas, monospace; color: var(--dim); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+.keys .err { color: #e06c6c; display: block; margin-top: 2px; }
+
+/* Все шаги — только в широком окне */
+.steps { display: none; list-style: none; margin: 0; padding: 0; }
+.steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; padding: 7px 8px; border-radius: 7px; cursor: pointer; }
+.steps li:hover { background: var(--panel); }
+.steps li .n { color: var(--faint); font: 12px Consolas, monospace; padding-top: 2px; text-align: right; }
+.steps li .t { font-weight: 600; }
+.steps li .s { color: var(--dim); font-size: 13px; }
+.steps li.done { opacity: .5; }
+.steps li.cur { background: var(--panel2); box-shadow: inset 3px 0 var(--accent); }
+
+/* Список инструкций: выпадающий в узком окне, колонка в широком */
+.pop {
+  position: fixed; inset: 0; z-index: 10; background: rgba(0, 0, 0, .5); display: flex; justify-content: center; align-items: flex-start;
+  padding: 44px 10px 10px;
+}
+.pop[hidden] { display: none; }
+.pop .guides { display: block; width: min(420px, 100%); max-height: 100%; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+.guides h4 { margin: 0; padding: 10px 12px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); }
+.guides button { display: flex; width: 100%; gap: 8px; align-items: baseline; text-align: left; border: 0; background: none; padding: 6px 12px; }
+.guides button:hover { background: var(--panel2); }
+.guides button.on { color: var(--accent); font-weight: 600; box-shadow: inset 3px 0 var(--accent); }
+.guides button .c { margin-left: auto; color: var(--faint); font-size: 12px; }
+
+@media (min-width: 760px) {
+  body { font-size: 15px; }
+  .layout > .guides { display: block; width: 260px; flex: none; overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel); padding-bottom: 12px; }
+  .main { padding: 18px 24px 24px; max-width: 900px; }
+  .gname { pointer-events: none; font-size: 18px; }
+  .gname .arrow { display: none; }
+  .card { padding: 18px 20px; }
+  .tool { font-size: 24px; }
+  .do { font-size: 18px; }
+  .steps { display: block; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="guides" id="side" aria-label="Инструкции"></nav>
+  <main class="main" id="main">
+    <div class="head">
+      <button class="gname" id="gname" title="Выбрать инструкцию"></button>
+      <span class="counter" id="counter"></span>
+    </div>
+    <div class="progress" id="progress"></div>
+    <section class="card" id="card" aria-live="polite">
+      <div class="tool" id="tool"></div>
+      <div class="do" id="do"></div>
+      <div class="note" id="note"></div>
+      <div class="upnext" id="upnext"></div>
+    </section>
+    <div class="nav">
+      <button id="prev">◀ Назад</button>
+      <button id="next" class="pri">Дальше ▶</button>
+    </div>
+    <div class="nav">
+      <button class="sm" id="pguide" title="Предыдущая инструкция">◀ инстр.</button>
+      <button class="sm" id="restart">Сначала</button>
+      <button class="sm" id="nguide" title="Следующая инструкция">инстр. ▶</button>
+    </div>
+    <div class="keys" id="keys"></div>
+    <ol class="steps" id="steps"></ol>
+  </main>
+</div>
+<div class="pop" id="pop" hidden><nav class="guides" id="popList" aria-label="Инструкции"></nav></div>
+
+<script>
+'use strict';
+const TOOL_COLORS = { 'ключ': '#f0c674', 'отвёртка': '#7fb4e8', 'кусачки': '#e06c6c', 'сварка': '#ff9550', 'лом': '#c39be0', 'кабель': '#f2d16b', 'id-карта': '#6fd3a8' };
+const LABELS = { prev: '◀', next: '▶', prev_guide: '◀инстр.', next_guide: 'инстр.▶', toggle: 'скрыть' };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const inPult = window.parent !== window;
+
+let guides = [], hotkeys = {}, gi = 0, si = 0, failedKeys = [], globalKeys = false;
+
+function toolColor(t) {
+  t = t.toLowerCase();
+  for (const k in TOOL_COLORS) if (t.includes(k)) return TOOL_COLORS[k];
+  return '#8fd0c8';
+}
+const guide = () => guides[gi];
+
+function save() {
+  try { localStorage.setItem('engineer.state', JSON.stringify({ guide: guide().name, step: si })); } catch (e) { /* */ }
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('engineer.state') || 'null');
+    if (s) { const i = guides.findIndex((g) => g.name === s.guide); if (i >= 0) { gi = i; si = s.step || 0; } }
+  } catch (e) { /* */ }
+}
+
+function step(d) {
+  const n = guide().steps.length;
+  const v = Math.max(0, Math.min(n, si + d));
+  if (v !== si) { si = v; render(true); save(); }
+}
+function goto(i) { si = i; render(true); save(); }
+function switchGuide(d, index) {
+  gi = index != null ? index : (gi + d + guides.length) % guides.length;
+  si = 0;
+  $('pop').hidden = true;
+  render(true); save();
+}
+
+function render(flash) {
+  const g = guide(), steps = g.steps, n = steps.length;
+  si = Math.max(0, Math.min(n, si));
+  $('gname').innerHTML = `<small>${esc(g.group || '')}</small>${esc(g.name)} <span class="arrow">▾</span>`;
+  $('counter').textContent = si >= n ? 'готово' : `${si + 1} / ${n}`;
+  $('progress').innerHTML = steps.map((s, i) => `<i class="${i < si ? 'done' : i === si ? 'cur' : ''}" data-i="${i}" title="${i + 1}. ${esc(s.tool)}"></i>`).join('');
+
+  if (si >= n) {
+    $('tool').textContent = '✓ Готово'; $('tool').style.color = 'var(--ok)';
+    $('do').textContent = `${g.name} — все шаги пройдены.`;
+    $('note').textContent = '';
+    $('upnext').textContent = 'Дальше — следующая инструкция';
+  } else {
+    const s = steps[si];
+    $('tool').textContent = s.tool; $('tool').style.color = toolColor(s.tool);
+    $('do').textContent = s.do;
+    $('note').textContent = s.note || '';
+    const nx = steps[si + 1];
+    $('upnext').textContent = nx ? `дальше: ${nx.tool} — ${nx.do}` : 'это последний шаг';
+  }
+  $('note').hidden = !$('note').textContent;
+  $('prev').disabled = si === 0;
+  $('next').textContent = si >= n ? 'Следующая инструкция ▶' : 'Дальше ▶';
+
+  $('steps').innerHTML = steps.map((s, i) =>
+    `<li class="${i < si ? 'done' : i === si ? 'cur' : ''}" data-i="${i}"><span class="n">${i + 1}</span>` +
+    `<div><div class="t" style="color:${toolColor(s.tool)}">${esc(s.tool)}</div><div>${esc(s.do)}</div>` +
+    (s.note ? `<div class="s">${esc(s.note)}</div>` : '') + '</div></li>').join('');
+  const cur = $('steps').querySelector('.cur');
+  if (cur && flash) cur.scrollIntoView({ block: 'nearest' });
+
+  const list = guidesHtml();
+  $('side').innerHTML = list; $('popList').innerHTML = list;
+
+  if (flash) { $('card').classList.add('flash'); setTimeout(() => $('card').classList.remove('flash'), 120); }
+}
+
+function guidesHtml() {
+  let html = '', grp = null;
+  guides.forEach((g, i) => {
+    const gg = g.group || 'Прочее';
+    if (gg !== grp) { grp = gg; html += `<h4>${esc(gg)}</h4>`; }
+    html += `<button data-g="${i}" class="${i === gi ? 'on' : ''}">${esc(g.name)}<span class="c">${g.steps.length}</span></button>`;
+  });
+  return html;
+}
+
+function renderKeys() {
+  const order = ['prev', 'next', 'prev_guide', 'next_guide', 'toggle'].filter((a) => hotkeys[a]);
+  let html = order.map((a) => `<kbd>${esc(hotkeys[a])}</kbd> ${LABELS[a]}`).join(' &nbsp; ');
+  html += globalKeys ? ' · работают и поверх игры' : ' · ←/→ внутри окна';
+  if (failedKeys.length) html += `<span class="err">Не удалось занять: ${esc(failedKeys.join(', '))} — заняты другой программой или ошибка в guides.json</span>`;
+  $('keys').innerHTML = html;
+}
+
+// ---------- Управление ----------
+const ACTIONS = {
+  next: () => (si >= guide().steps.length ? switchGuide(1) : step(1)),
+  prev: () => step(-1),
+  next_guide: () => switchGuide(1),
+  prev_guide: () => switchGuide(-1),
+};
+$('next').onclick = ACTIONS.next;
+$('prev').onclick = ACTIONS.prev;
+$('nguide').onclick = ACTIONS.next_guide;
+$('pguide').onclick = ACTIONS.prev_guide;
+$('restart').onclick = () => goto(0);
+$('gname').onclick = () => { $('pop').hidden = false; const on = $('popList').querySelector('.on'); if (on) on.scrollIntoView({ block: 'center' }); };
+$('pop').onclick = (e) => { if (e.target === $('pop')) $('pop').hidden = true; };
+document.addEventListener('click', (e) => {
+  const g = e.target.closest('[data-g]'); if (g) return switchGuide(0, +g.dataset.g);
+  const s = e.target.closest('#steps li, #progress i'); if (s) goto(+s.dataset.i);
+});
+$('card').addEventListener('wheel', (e) => { e.preventDefault(); step(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+
+// Клавиши внутри окна; хоткеи F6–F10 поверх игры занимает Пульт и присылает их сюда
+const KEYMAP = { ArrowRight: 'next', ' ': 'next', ArrowLeft: 'prev', PageDown: 'next_guide', PageUp: 'prev_guide' };
+document.addEventListener('keydown', (e) => {
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === 'Escape' && !$('pop').hidden) { $('pop').hidden = true; return; }
+  let a = KEYMAP[e.key];
+  if (!a) for (const k in hotkeys) if (hotkeys[k].toLowerCase() === e.key.toLowerCase() && ACTIONS[k]) a = k;
+  if (a && ACTIONS[a] && !(e.key === ' ' && e.target.closest('button'))) { e.preventDefault(); ACTIONS[a](); }
+});
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin || !e.data) return;
+  if (e.data.type === 'pult-hotkey' && ACTIONS[e.data.action]) ACTIONS[e.data.action]();
+  if (e.data.type === 'pult-hotkeys-state') { globalKeys = true; failedKeys = e.data.failed || []; renderKeys(); }
+});
+
+fetch('guides.json', { cache: 'no-store' })
+  .then((r) => r.json())
+  .then((data) => {
+    guides = (data.guides || []).filter((g) => g.steps && g.steps.length);
+    hotkeys = data.hotkeys || {};
+    if (!guides.length) throw new Error('пусто');
+    load();
+    render();
+    renderKeys();
+    if (inPult) window.parent.postMessage({ type: 'pult-hotkeys', keys: hotkeys }, location.origin);
+  })
+  .catch((err) => { $('do').textContent = 'Не удалось прочитать guides.json: ' + err.message; });
+</script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Папирус</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Тему ставим до отрисовки, чтобы не мигало светлым
+    try {
+      var t = (JSON.parse(localStorage.getItem('papirus.settings') || '{}').theme) || 'system';
+      if (t === 'system') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
+</head>
+<body>
+
+<header class="titlebar">
+  <div class="qa">
+    <span class="logo">📜</span>
+    <button id="undoBtn" title="Отменить (Ctrl+Z)">↶</button>
+    <button id="redoBtn" title="Вернуть (Ctrl+Y)">↷</button>
+  </div>
+  <div class="title"><input id="docTitle" spellcheck="false" title="Название документа"> — Папирус</div>
+  <div class="tb-right">
+    <span class="sub">Форматирование бумаг SS13</span>
+    <button id="themeBtn" title="Светлая / тёмная тема">🌙</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="home">Главная</button>
+  <button class="tab" data-tab="insert">Вставка</button>
+  <button class="tab" data-tab="templates">Шаблоны</button>
+  <button class="tab" data-tab="settings">Настройки</button>
+</nav>
+
+<section class="ribbon" id="ribbon">
+  <div class="rpanel" data-panel="home">
+    <div class="rgroup">
+      <div class="rrow">
+        <button class="rb" data-cmd="bold" title="Жирный (Ctrl+B)"><b>Ж</b></button>
+        <button class="rb" data-cmd="italic" title="Курсив (Ctrl+I)"><i>К</i></button>
+        <button class="rb" data-cmd="underline" title="Подчёркнутый (Ctrl+U)"><u>Ч</u></button>
+        <span class="rsep"></span>
+        <button class="rb" data-size="sz-large" title="Крупный текст">A<sup>+</sup></button>
+        <button class="rb" data-size="sz-small" title="Мелкий текст">A<sup>−</sup></button>
+        <button class="rb" data-cmd="removeFormat" title="Очистить формат">A<sub>⌫</sub></button>
+      </div>
+      <div class="rlabel">Шрифт</div>
+    </div>
+    <div class="rgroup">
+      <div class="rrow">
+        <button class="rb" data-align="left" title="По левому краю">⯇≡</button>
+        <button class="rb" data-align="center" title="По центру">≡</button>
+        <button class="rb" data-align="right" title="По правому краю">≡⯈</button>
+      </div>
+      <div class="rlabel">Абзац</div>
+    </div>
+    <div class="rgroup">
+      <div class="rrow styles">
+        <button class="stylebtn" data-style="p"><span>АаБб</span>Обычный</button>
+        <button class="stylebtn" data-style="h1"><span class="s-h1">АаБб</span>Заголовок 1</button>
+        <button class="stylebtn" data-style="h2"><span class="s-h2">АаБб</span>Заголовок 2</button>
+        <button class="stylebtn" data-style="h3"><span class="s-h3">АаБб</span>Заголовок 3</button>
+        <button class="stylebtn" data-style="list"><span>• Аа</span>Список</button>
+      </div>
+      <div class="rlabel">Стили</div>
+    </div>
+    <div class="rgroup">
+      <div class="rrow">
+        <button class="rb wide" id="moveUp" title="Переместить блок выше">▲ Выше</button>
+        <button class="rb wide" id="moveDown" title="Переместить блок ниже">▼ Ниже</button>
+        <button class="rb wide" id="dupBlock" title="Дублировать блок">⧉ Копия</button>
+        <button class="rb wide" id="delBlock" title="Удалить блок">✕ Удалить</button>
+      </div>
+      <div class="rlabel">Блок</div>
+    </div>
+    <div class="rgroup">
+      <div class="rrow">
+        <button class="rb big" id="newDoc" title="Новый документ"><span class="ico">🗋</span>Новый</button>
+        <button class="rb big" data-import title="Вставить код бумаги из игры и разобрать его в блоки"><span class="ico">📥</span>Импорт кода</button>
+        <button class="rb big primary" data-copy title="Скопировать код в буфер обмена"><span class="ico">📋</span>Копировать код</button>
+      </div>
+      <div class="rlabel">Документ</div>
+    </div>
+  </div>
+
+  <div class="rpanel" data-panel="insert" hidden id="insertPanel"></div>
+
+  <div class="rpanel" data-panel="templates" hidden>
+    <div class="rgroup">
+      <div class="rrow">
+        <button class="rb big" id="tplSave"><span class="ico">💾</span>Сохранить как шаблон</button>
+        <button class="rb big" id="docExport"><span class="ico">⭳</span>Сохранить в файл</button>
+        <button class="rb big" id="docImport"><span class="ico">⭱</span>Открыть файл</button>
+        <button class="rb big" data-import><span class="ico">📥</span>Импорт кода SS13</button>
+        <button class="rb big" id="tplFromTxt" title="Создать шаблоны из .txt-файлов с кодом бумаг (можно выбрать несколько)"><span class="ico">📄</span>Шаблон из .txt</button>
+      </div>
+      <div class="rlabel">Файл</div>
+    </div>
+    <div class="rgroup grow">
+      <div class="rrow tplgallery" id="tplGallery"></div>
+      <div class="rlabel">Шаблоны документов</div>
+    </div>
+  </div>
+</section>
+<div class="ribbon-grip" id="ribbonGrip" title="Потяните, чтобы изменить размер ленты. Двойной щелчок — свернуть или развернуть"></div>
+
+<main id="workspace">
+  <aside class="palette" id="palette"></aside>
+  <div class="splitter" data-split="palette" title="Потяните, чтобы изменить ширину. Двойной щелчок — по умолчанию"></div>
+  <div class="canvas" id="canvas">
+    <div class="page" id="page"></div>
+  </div>
+  <div class="splitter" data-split="code" title="Потяните, чтобы изменить ширину. Двойной щелчок — по умолчанию"></div>
+  <aside class="codepanel" id="codepanel">
+    <div class="cp-head">
+      <span>Код для SS13</span>
+      <select id="quickProfile" title="Профиль команд"></select>
+    </div>
+    <textarea id="code" readonly spellcheck="false"></textarea>
+    <div class="cp-foot">
+      <span id="counter"></span>
+      <button class="btn primary" data-copy>📋 Копировать</button>
+    </div>
+  </aside>
+</main>
+
+<main id="settingsView" hidden></main>
+
+<footer class="status">
+  <span id="stBlocks"></span>
+  <span id="stChars"></span>
+  <span id="stProfile"></span>
+  <span class="grow"></span>
+  <span class="hint">Ctrl+Enter — новый абзац · перетаскивайте блоки за ⠿</span>
+  <span class="credit">made by: Sla2her for BlueMoon</span>
+  <label class="zoom">− <input type="range" id="zoom" min="50" max="150" step="10" value="100"> + <span id="zoomVal">100%</span></label>
+</footer>
+
+<dialog id="importDlg" class="dlg">
+  <h2>Импорт кода SS13</h2>
+  <p class="muted">Вставьте код бумаги из игры или откройте .txt-файл. Папирус разберёт его на блоки по командам выбранного профиля. Незнакомые теги останутся как текст.</p>
+  <div class="row">
+    <label>Профиль: <select id="importProfile"></select></label>
+    <span class="grow"></span>
+    <button class="btn" id="importOpenTxt">📄 Открыть .txt</button>
+  </div>
+  <textarea id="importText" spellcheck="false" placeholder="[center][b]РАПОРТ[/b][/center]&#10;Кому: [field]&#10;..."></textarea>
+  <div class="dlg-foot">
+    <span id="importInfo" class="muted"></span>
+    <span class="grow"></span>
+    <button class="btn" id="importCancel">Отмена</button>
+    <button class="btn" id="importAsTpl">💾 Сохранить как шаблон</button>
+    <button class="btn" id="importAppend">Добавить в конец</button>
+    <button class="btn primary" id="importReplace">Заменить документ</button>
+  </div>
+</dialog>
+
+<dialog id="askDlg" class="dlg small">
+  <form method="dialog">
+    <h2 id="askTitle"></h2>
+    <input type="text" id="askInput">
+    <div class="dlg-foot">
+      <span class="grow"></span>
+      <button class="btn" value="cancel" formnovalidate>Отмена</button>
+      <button class="btn primary" value="ok" id="askOk">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+<input type="file" id="fileInput" hidden>
+
+<script src="js/app.js"></script>
+</body>
+</html>

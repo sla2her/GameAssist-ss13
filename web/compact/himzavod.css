@@ -1,0 +1,17 @@
+/* Химзавод внутри Пульта: компактный режим. Поле сверху, под ним инструменты и инспектор,
+   панель кнопок — одной строкой с прокруткой колесом. */
+.pult-embedded { color-scheme: dark; }
+.pult-compact header, .pult-compact main, .pult-compact footer { flex: none; }
+.pult-compact header { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding: 4px 6px; gap: 5px; }
+.pult-compact header > * { flex: none; }
+.pult-compact header h1 { font-size: 13px; margin-right: 4px; }
+.pult-compact header button, .pult-compact header select { padding: 2px 7px; }
+
+.pult-compact body { overflow: auto; }
+.pult-compact main { flex-wrap: wrap; min-height: auto; }
+.pult-compact #wrap { order: 1; flex: 1 1 100%; height: 55vh; }
+.pult-compact #tools, .pult-compact #insp { order: 2; flex: 1 1 100%; width: auto; border: none; border-top: 1px solid var(--line); }
+.pult-compact #insp { order: 3; }
+.pult-compact footer { flex-wrap: wrap; gap: 4px 12px; padding: 3px 8px; font-size: 11px; }
+.pult-compact footer > span:last-child { margin-left: 0 !important; }
+.pult-compact dialog { min-width: 0; width: 94vw; }

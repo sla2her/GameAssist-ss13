@@ -1,0 +1,17 @@
+# Ключ подписи APK и пароль к нему — никогда не публиковать
+*.jks
+*.keystore
+android/pult-release.password.txt
+
+# Портативные инструменты сборки (JDK, Android SDK) и временные папки
+android/.tools/
+android/build/
+
+# Собранные программы — выкладываются в GitHub Releases, а не в код
+Пульт.exe
+Пульт.apk
+*.apk.idsig
+native/icon.ico
+
+# Локальные настройки редактора / Claude Code
+.claude/

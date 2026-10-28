@@ -1,0 +1,35 @@
+/* Алхимик внутри Пульта. Кнопку «Поверх всех окон» заменяет кнопка на панели Пульта. */
+.pult-embedded #pinBtn { display: none !important; }
+
+/* ---------- Компактный режим ---------- */
+.pult-compact, .pult-compact body { font-size: 12.5px; }
+.pult-compact .top {
+  padding: 5px 8px 0 !important; gap: 4px 8px; flex-wrap: wrap;
+}
+.pult-compact .top h1 { font-size: 13.5px; }
+.pult-compact .top h1 small { display: none; }
+.pult-compact .topr {
+  position: static !important; margin-left: auto; flex-direction: row !important; align-items: center; gap: 6px;
+}
+.pult-compact .ver { display: block !important; font-size: 10.5px; }
+.pult-compact .credit { font-size: 10.5px; padding: 0 6px; }
+/* Вкладки — одной строкой с прокруткой */
+.pult-compact .tabs {
+  order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; margin: 0 -2px;
+}
+.pult-compact .tab { padding: 5px 9px; white-space: nowrap; flex: none; }
+
+.pult-compact main { padding: 5px; }
+.pult-compact .grid3 { grid-template-columns: minmax(0, 1fr) !important; gap: 6px; }
+.pult-compact .win + .win, .pult-compact .win[style*="margin-top"] { margin-top: 6px !important; }
+.pult-compact .wtitle { padding: 4px 8px; }
+.pult-compact .sec { padding: 6px 8px; }
+.pult-compact .chems { grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); }
+.pult-compact .log { max-height: 130px; }
+.pult-compact .cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 6px; }
+.pult-compact .card { padding: 8px; }
+.pult-compact .scroll { max-height: none; }
+.pult-compact table.tbl th, .pult-compact table.tbl td { padding: 3px 4px; }
+.pult-compact .modal { padding: 6px; }
+.pult-compact .modal .box { max-height: 96vh; }
+.pult-compact input[type=range] { min-width: 60px !important; }
