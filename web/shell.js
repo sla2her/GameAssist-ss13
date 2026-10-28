@@ -1,5 +1,5 @@
 'use strict';
-// Пульт — оболочка для шести приложений: стартовое радиальное меню, переключение приложений
+// Пульт — оболочка для семи приложений: стартовое радиальное меню, переключение приложений
 // и два режима окна (компактный и расширенный). Работает в Пульт.exe, Пульт.apk и в браузере. Приложения открываются в iframe с того же
 // адреса, поэтому оболочка может подключить к ним стили компактного режима.
 
@@ -10,6 +10,7 @@ const ICONS = {
   wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/>',
   pot: '<path d="M3 11h18"/><path d="M5 11v6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-6"/><path d="M9 7.5c0-1.2 1-1.3 1-2.5M14 7.5c0-1.2 1-1.3 1-2.5"/>',
   factory: '<path d="M3 21V10l5 3v-3l5 3v-3l5 3V4h3v17z"/><path d="M7 17h2M12 17h2M17 17h1"/>',
+  person: '<circle cx="12" cy="7.5" r="4"/><path d="M4.5 21v-1.5a7.5 7.5 0 0 1 15 0V21"/>',
   expand: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
   shrink: '<path d="M4 14h6v6M20 10h-6V4M10 14l-7 7M14 10l7-7"/>',
   pin: '<path d="M15 4.5 19.5 9l-3 3-1 4.5-7-7 4.5-1z"/><path d="M8.5 15.5 4 20"/>',
@@ -32,6 +33,8 @@ const APPS = [
     src: 'apps/kitchen/index.html', color: '#e07a3f', icon: 'pot', hscroll: '.tabs, .subtabs, .controls .chips' },
   { id: 'himzavod', name: 'Химзавод', sub: 'Плюмбинг и химия', desc: 'Трубы, машины и реакции завода',
     src: 'apps/himzavod/index.html', color: '#9a6ad6', icon: 'factory', hscroll: 'header' },
+  { id: 'character', name: 'Персонаж', sub: 'Редактор персонажа', desc: 'Окно настройки персонажа, превью и 60 слотов',
+    src: 'apps/character/index.html', color: '#d65a9c', icon: 'person', hscroll: '.CharacterSetup__tabs, .CharacterSetup__header-actions' },
 ];
 APPS.forEach((a, i) => { a.angle = -90 + (i * 360) / APPS.length; });
 const byId = Object.fromEntries(APPS.map((a) => [a.id, a]));

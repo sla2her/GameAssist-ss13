@@ -1,0 +1,28 @@
+/* Персонаж внутри Пульта: компактный режим. Узкая вёрстка страницы (слоты, редактор и превью
+   друг под другом) своя, здесь — заголовок поменьше и высоты блоков под узкое окно. */
+.pult-compact .TitleBar { height: 26px; }
+.pult-compact .TitleBar__statusIcon { left: 8px; line-height: 26px; font-size: 16px; }
+.pult-compact .TitleBar__title { left: 34px; line-height: 25px; font-size: 12.5px; }
+.pult-compact .TitleBar__btns, .pult-compact .TitleBar__btn { height: 26px; }
+.pult-compact .TitleBar__btn { width: 36px; font-size: 14px; }
+.pult-compact .Window__rest { top: 26px; }
+.pult-compact .Dimmer { inset: 26px 0 0 0; }
+.pult-compact .Window__content { padding: .35rem; }
+
+.pult-compact .CharacterSetup { gap: .4rem; }
+.pult-compact .CharacterSetup__name { font-size: 1.05rem; }
+/* Шапка: кнопки переносятся на новые строки, имя персонажа не сжимается в столбик */
+.pult-compact .CharacterSetup__header .Stack { flex-wrap: wrap; row-gap: 4px; }
+.pult-compact .CharacterSetup__header .Stack > .grow { flex: 1 1 150px; }
+.pult-compact .CharacterSetup__header-actions { flex-wrap: wrap; gap: 2px; }
+.pult-compact .CharacterSetup__tabs .Tab { flex: 1 0 auto; min-width: 0; padding: 0 .4em; }
+/* У вкладки нужна именно высота: её содержимое растягивается на 100% и при одной min-height схлопывается в 0 */
+.pult-compact .CharacterSetup__content { flex: none; height: 65vh; min-height: 0; }
+.pult-compact .CharacterSetup__preview { height: 60vh; }
+.pult-compact .CharacterSetup__slots { height: 42vh; }
+.pult-compact .CharacterSetup__settings-grid,
+.pult-compact .CharacterSetup__settings-grid--compact { columns: 1; }
+.pult-compact .CharacterSetup__field-label { flex-basis: 42%; }
+.pult-compact .JobMenu { grid-template-columns: minmax(0, 1fr); }
+.pult-compact .ThemeGrid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.pult-compact .Modal { padding: .6rem; max-width: calc(100% - .5rem); }

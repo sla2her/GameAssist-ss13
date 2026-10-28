@@ -34,9 +34,9 @@ if (Test-Path $build) { Remove-Item $build -Recurse -Force }
 New-Item -ItemType Directory -Force "$build\assets", "$build\classes", "$build\dex" | Out-Null
 Copy-Item (Join-Path $root 'web') "$build\assets\web" -Recurse
 
-# Значок: шесть дуг цветов приложений на тёмном круге — как в меню и у Пульт.exe
+# Значок: дуги цветов приложений на тёмном круге — как в меню и у Пульт.exe
 Add-Type -AssemblyName System.Drawing
-$colors = '#3fa66b', '#d63c45', '#3a7be0', '#e2b33a', '#e07a3f', '#9a6ad6'
+$colors = '#3fa66b', '#d63c45', '#3a7be0', '#e2b33a', '#e07a3f', '#9a6ad6', '#d65a9c'
 $span = 360 / $colors.Count
 $densities = @{ mdpi = 48; hdpi = 72; xhdpi = 96; xxhdpi = 144; xxxhdpi = 192 }
 foreach ($d in $densities.Keys) {

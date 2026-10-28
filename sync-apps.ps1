@@ -38,4 +38,8 @@ Copy-Item (Join-Path $clod 'ss13-kitchen\BlueMoon-Kitchen.html') (Join-Path $dst
 $dst = Join-Path $apps 'himzavod'; Reset-Dir $dst
 Copy-Item (Join-Path $clod 'Химзавод\Химзавод.html') (Join-Path $dst 'index.html')
 
+# Персонаж — редактор персонажа: один файл со встроенными данными и спрайтами билда
+$dst = Join-Path $apps 'character'; Reset-Dir $dst
+Copy-Item (Join-Path $clod 'Персонаж\Персонаж.html') (Join-Path $dst 'index.html')
+
 "Приложения скопированы в $apps"
