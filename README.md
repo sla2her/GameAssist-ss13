@@ -81,3 +81,19 @@ powershell -ExecutionPolicy Bypass -File native\build.ps1
 `BlueMoon-Kitchen.html` и `Химзавод.html`, затем компилирует exe встроенным в Windows `csc`.
 
 Посмотреть в браузере: `npx http-server web -p 5180` и открыть http://localhost:5180 (компактный режим там показывается узкой колонкой).
+
+## Лицензия
+
+Copyright (C) 2026 Sla2her.
+
+Пульт распространяется под лицензией **GNU Affero General Public License v3.0** — полный текст в [LICENSE](LICENSE).
+Можно свободно использовать, изменять и распространять Пульт, но изменённые версии (в том числе запущенные как
+сетевой сервис) нужно публиковать с исходным кодом под той же лицензией.
+
+Встроенные базы реагентов, реакций и рецептов разобраны из кода
+[MOLOT-BlueMoon-Station](https://github.com/BlueMoon-Labs/MOLOT-BlueMoon-Station), который тоже распространяется под AGPL-3.0.
+
+Сторонние компоненты сохраняют свои лицензии:
+
+- библиотеки Microsoft Edge WebView2 (`native/lib`) — BSD-3-Clause, текст в [native/lib/LICENSE.txt](native/lib/LICENSE.txt);
+- шрифты IBM Plex Sans, IBM Plex Mono и Russo One в Терминале Брига (`web/apps/brig/fonts`) — SIL Open Font License 1.1.
