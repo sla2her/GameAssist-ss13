@@ -19,8 +19,8 @@ using Microsoft.Web.WebView2.WinForms;
 [assembly: AssemblyProduct("Пульт — Алхимик, Терминал Брига, Папирус")]
 [assembly: AssemblyCompany("Sla2her")]
 [assembly: AssemblyCopyright("Made by: Sla2her for BlueMoon")]
-[assembly: AssemblyVersion("0.0.3.0")]
-[assembly: AssemblyFileVersion("0.0.3.0")]
+[assembly: AssemblyVersion("0.0.4.0")]
+[assembly: AssemblyFileVersion("0.0.4.0")]
 
 static class Program
 {
