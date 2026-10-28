@@ -42,4 +42,12 @@ Copy-Item (Join-Path $clod 'Химзавод\Химзавод.html') (Join-Path 
 $dst = Join-Path $apps 'character'; Reset-Dir $dst
 Copy-Item (Join-Path $clod 'Персонаж\Персонаж.html') (Join-Path $dst 'index.html')
 
+# Симулятор Схем — конструктор схем живёт в Пульте (circuits\), каталог компонентов — circuits\catalog.js
+$dst = Join-Path $apps 'circuits'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'circuits\*') $dst -Exclude '*.mjs'
+
+# Панель АВД — живёт в Пульте (avd\), база НРП — avd\nrp.js (собирает avd\parse_nrp.py)
+$dst = Join-Path $apps 'avd'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'avd\index.html'), (Join-Path $root 'avd\nrp.js') $dst
+
 "Приложения скопированы в $apps"

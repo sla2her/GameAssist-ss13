@@ -15,3 +15,4 @@ native/icon.ico
 
 # Локальные настройки редактора / Claude Code
 .claude/
+*.old.exe

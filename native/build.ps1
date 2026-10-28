@@ -15,7 +15,7 @@ $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 # Иконка: три дуги цветов приложений вокруг точки, PNG нескольких размеров в одном .ico
 Add-Type -AssemblyName System.Drawing
 # Цвета приложений по часовой стрелке от верха — как в меню (Алхимик, Бриг, Папирус, Инженер, Кухня, Химзавод, Персонаж)
-$colors = '#3fa66b', '#d63c45', '#3a7be0', '#e2b33a', '#e07a3f', '#9a6ad6', '#d65a9c'
+$colors = '#3fa66b', '#d63c45', '#3a7be0', '#e2b33a', '#e07a3f', '#9a6ad6', '#d65a9c', '#2fb5a5', '#b8863b'
 $span = 360 / $colors.Count
 $sizes = 16, 24, 32, 48, 64, 256
 $pngs = foreach ($s in $sizes) {

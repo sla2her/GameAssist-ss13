@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Панель АВД</title>
+<style>
+/* Панель Агента Внутренних Дел: нарушения НРП по отделам, быстрый рапорт и документы, полномочия АВД.
+   Вёрстка как у Терминала Брига: шапка с вкладками, слева список, справа закреплённая панель рапорта. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#9a6a1f; --accent-fg:#ffffff; --navy:#1d3766;
+  --duty:#c26a0a; --ban:#c0262d; --right:#2e8a4b; --rule:#5a6b8c;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#e0a648; --accent-fg:#1a1204; --navy:#8eafee;
+  --duty:#f0973a; --ban:#ef5560; --right:#52c47a; --rule:#9aabd0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#e0a648; --accent-fg:#1a1204; --navy:#8eafee;
+  --duty:#f0973a; --ban:#ef5560; --right:#52c47a; --rule:#9aabd0; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+nav .n{font-size:11px;font-family:var(--font-m);background:var(--accent);color:var(--accent-fg);border-radius:9px;padding:0 6px;margin-left:5px}
+main{padding-top:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* поиск и отделы */
+.search{display:flex;align-items:center;gap:8px;background:var(--panel);border:1.5px solid var(--line2);border-radius:12px;padding:0 6px 0 14px}
+.search:focus-within{border-color:var(--navy)}
+.search input{flex:1;min-width:0;border:0;outline:none;background:none;padding:11px 0;font-size:15px}
+.search button{border:0;background:none;color:var(--muted);cursor:pointer;padding:6px 10px;border-radius:8px;font-size:13px}
+.search button:hover{background:var(--panel2);color:var(--fg)}
+.depts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr));gap:8px;margin:12px 0 16px}
+.depts button{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 11px;cursor:pointer;font-size:13.5px;font-weight:600;line-height:1.2}
+.depts button i{width:6px;align-self:stretch;min-height:28px;border-radius:3px;background:var(--kc);flex:none}
+.depts button small{display:block;color:var(--muted);font-weight:400;font-size:11.5px;margin-top:2px}
+.depts button:hover{border-color:var(--kc)}
+.depts button[aria-pressed="true"]{border-color:var(--kc);background:color-mix(in srgb,var(--kc) 13%,var(--panel));box-shadow:inset 0 0 0 1px var(--kc)}
+
+.viol{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:18px;align-items:start}
+@media (max-width:980px){.viol{grid-template-columns:minmax(0,1fr)}}
+
+.dhead{border-bottom:3px solid var(--kc);padding-bottom:10px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.dhead h2{margin:0;font-size:24px;line-height:1.15}
+.dhead p{margin:4px 0 0;color:var(--muted);font-size:13.5px;max-width:80ch}
+.seg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.roles{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.roles button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:4px 11px;font-size:13px;cursor:pointer;color:var(--muted)}
+.roles button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.roles button small{font-family:var(--font-m);font-size:11px;opacity:.75;margin-left:4px}
+
+.role{margin-bottom:14px;overflow:hidden}
+.role>h3{margin:0;padding:11px 16px;font-size:15.5px;display:flex;gap:10px;align-items:baseline;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--kc) 7%,var(--panel))}
+.role>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.role .intro{margin:0;padding:10px 16px 0;color:var(--muted);font-size:13.5px}
+.grp{padding:10px 16px 6px}
+.grp h4{margin:0 0 6px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--gc);display:flex;gap:6px;align-items:center}
+.grp h4::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--gc)}
+.duty{--gc:var(--duty)} .ban{--gc:var(--ban)} .right{--gc:var(--right)} .rule{--gc:var(--rule)}
+.it{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.grp h4+.it{border-top:0}
+.it .no{font:12px var(--font-m);color:var(--faint);padding-top:2px;min-width:30px}
+.it .tx{max-width:90ch}
+.it .tx .ctx{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+.it .add{font-size:12px;border:1px solid var(--line2);background:var(--panel);border-radius:6px;padding:3px 9px;cursor:pointer;color:var(--navy);font-weight:500;white-space:nowrap}
+.it .add:hover{border-color:var(--navy)}
+.it.on{background:color-mix(in srgb,var(--gc) 8%,transparent);border-radius:6px}
+.it.on .add{background:var(--gc);border-color:var(--gc);color:#fff}
+.tbl{overflow-x:auto;padding:4px 16px 12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td{border:1px solid var(--line);padding:5px 7px;vertical-align:top}
+tr:first-child td{font-weight:600;background:var(--panel2)}
+.hit{background:color-mix(in srgb,#e0b43a 40%,transparent);border-radius:2px}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.empty b{display:block;font-size:18px;color:var(--fg);margin-bottom:6px}
+.more{display:block;margin:4px 0 12px;border:0;background:none;color:var(--navy);cursor:pointer;font-weight:500;font-size:13px}
+
+/* рапорт сбоку */
+.side{position:sticky;top:76px;display:grid;gap:12px}
+@media (max-width:980px){.side{position:static}}
+.rp{padding:14px;display:grid;gap:10px}
+.rp h3{margin:0;font-size:15px;display:flex;align-items:center;gap:8px}
+.rp h3 .cnt{font:12px var(--font-m);background:var(--accent);color:var(--accent-fg);border-radius:9px;padding:0 7px}
+.sel{display:grid;gap:6px;max-height:44vh;overflow:auto}
+.si{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:start;border:1px solid var(--line);border-left:4px solid var(--gc);border-radius:8px;padding:6px 8px;font-size:13px;background:var(--panel)}
+.si b{font-weight:600;color:var(--gc);font-size:11.5px;display:block}
+.si .src{font-size:11.5px;color:var(--muted);display:block}
+.si .x{border:0;background:none;color:var(--faint);cursor:pointer;font-size:18px;line-height:1;padding:0 3px}
+.si .x:hover{color:var(--ban)}
+.noth{font-size:13px;color:var(--muted)}
+.f{display:grid;gap:4px}
+.f label{font-size:12.5px;color:var(--muted);font-weight:500}
+.f input,.f select,.f textarea{width:100%;border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:7px 10px;font-size:14px}
+.f textarea{resize:vertical;min-height:62px;line-height:1.45}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:13.5px}
+.btn:hover{border-color:var(--fg)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+.dock{display:none}
+@media (max-width:980px){
+  .dock{display:flex;position:sticky;bottom:8px;z-index:4;margin-top:12px;align-items:center;gap:10px;background:var(--fg);color:var(--bg);border-radius:12px;padding:8px 8px 8px 14px;font-size:13.5px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  .dock span{flex:1}
+  .dock .btn{border-color:transparent}
+}
+
+/* документы */
+.docs{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.docs{grid-template-columns:minmax(0,1fr)}}
+.tpls{display:flex;flex-wrap:wrap;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:14px}
+.tpls button{flex:1 1 auto;border:0;background:none;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.tpls button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.form{padding:16px;display:grid;gap:12px}
+.f .side-btn{justify-self:start;border:0;background:none;color:var(--navy);font-size:12.5px;cursor:pointer;padding:0;font-weight:500}
+.paper{overflow:hidden;position:sticky;top:76px}
+@media (max-width:900px){.paper{position:static}}
+.paperbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.paperbar .btn{margin-left:auto}
+.topapirus{display:none}
+.pult-embedded .topapirus{display:inline-block;margin-left:auto}
+.pult-embedded .topapirus+.btn{margin-left:0}
+.paperinfo{padding:7px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;gap:6px 12px;flex-wrap:wrap}
+.paperinfo b{color:var(--fg);font-weight:500}
+.paperinfo .over{color:var(--ban);font-weight:600}
+.paper pre{margin:0;padding:18px 20px;font:13.5px/1.6 var(--font-m);white-space:pre-wrap;word-break:break-word;max-height:72vh;overflow:auto}
+
+/* полномочия */
+.auth{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{padding:0;overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--accent) 12%,var(--panel));border-bottom:1px solid var(--line)}
+.card .grp .it{grid-template-columns:minmax(0,1fr)}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 45%,var(--panel))}
+
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:13.5px;z-index:20}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%} nav button{flex:1;padding:7px 6px}
+  .f2{grid-template-columns:1fr} .dhead h2{font-size:20px}
+  .it{grid-template-columns:minmax(0,1fr) auto} .it .no{display:none}
+  .depts{grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}
+  .depts button small{display:none}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%}
+.pult-compact nav button{flex:1;padding:5px 6px}
+.pult-compact .depts{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:5px;margin:8px 0 10px}
+.pult-compact .depts button{padding:6px 8px;font-size:12.5px}
+.pult-compact .depts button small{display:none}
+.pult-compact .depts button i{min-height:18px}
+.pult-compact .dhead h2{font-size:18px}
+.pult-compact .dhead p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pult-compact .roles{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .roles button{white-space:nowrap}
+.pult-compact .grp,.pult-compact .role>h3{padding-left:10px;padding-right:10px}
+.pult-compact .it{grid-template-columns:minmax(0,1fr) auto}
+.pult-compact .it .no{display:none}
+.pult-compact .foot{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">АВД</div><div><h1>Панель АВД</h1><small id="rev">Нормы рабочих процедур</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-viol" data-tab="viol" aria-selected="true">Нарушения</button>
+    <button role="tab" id="tab-docs" data-tab="docs" aria-selected="false">Рапорт<span class="n" id="navn" hidden></span></button>
+    <button role="tab" id="tab-auth" data-tab="auth" aria-selected="false">Полномочия</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ НАРУШЕНИЯ ============ -->
+<section id="v-viol">
+  <div class="search"><span style="color:var(--muted)">⌕</span><input id="q" autocomplete="off" spellcheck="false" placeholder="Поиск по всем НРП: «бармен дробовик», «покидать рабочее место», «импланты»… ( / )" aria-label="Поиск по НРП"><button id="qclear" type="button" hidden>Очистить</button></div>
+  <div class="depts" id="depts"></div>
+  <div class="viol">
+    <div id="list"></div>
+    <div class="side">
+      <div class="panel rp" id="rp"></div>
+    </div>
+  </div>
+  <div class="dock" id="dock"><span id="dockt"></span><button class="btn pri sm" type="button" data-act="todoc">Оформить рапорт</button></div>
+</section>
+
+<!-- ============ РАПОРТ ============ -->
+<section id="v-docs" hidden>
+  <div class="docs">
+    <div>
+      <div class="tpls" id="tpls"></div>
+      <div class="panel form" id="form"></div>
+    </div>
+    <div class="panel paper">
+      <div class="paperbar">
+        <div class="seg" id="fmt"><button type="button" data-f="txt" aria-pressed="true">Текст</button><button type="button" data-f="md" aria-pressed="false">Markdown</button><button type="button" data-f="ss13" aria-pressed="false" title="Теги бумаги SS13 по правилам активного профиля Папируса">SS13</button></div>
+        <button class="btn topapirus" id="topapirus" type="button" title="Открыть документ в Папирусе для оформления">В Папирус</button>
+        <button class="btn pri" id="copydoc" type="button">Копировать</button>
+      </div>
+      <div class="paperinfo" id="paperinfo" hidden></div>
+      <pre id="paper"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ПОЛНОМОЧИЯ ============ -->
+<section id="v-auth" hidden>
+  <div class="auth" id="auth"></div>
+</section>
+
+<p class="foot">Неофициальный помощник по документу «Нормы рабочих процедур». Номер пункта — порядковый номер внутри раздела отдела (должность.пункт), в самом документе пункты не пронумерованы. Решение о мере всегда за уполномоченным лицом.</p>
+</main>
+</div>
+
+<script src="nrp.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const N=window.NRP||{depts:[]};
+
+/* ===================== ДАННЫЕ ===================== */
+// Отделы: порядок кнопок, цвета и короткие названия для рапорта
+const LOOK={
+  srv:{c:'#3fa66b',of:'Сервисного отдела'}, sup:{c:'#a87a3c',of:'Отдела снабжения'}, med:{c:'#4aa8d8',of:'Медицинского отдела'},
+  sci:{c:'#9a6ad6',of:'Отдела исследований и разработок'}, eng:{c:'#e2a33a',of:'Инженерного отдела'}, sec:{c:'#d63c45',of:'Службы безопасности'},
+  command:{c:'#5b8def',of:'Командующего состава'}, legal:{c:'#b8863b',of:'Юридического отдела'}, ai:{c:'#2fb5a5',of:'Силиконов'},
+  alert:{c:'#7a8496',of:'уровней тревоги'}, law:{c:'#a33c6b',of:'применения Космического Закона'}
+};
+const ORDER=['srv','sup','med','sci','eng','sec','command','legal','ai','alert','law'];
+const DEPTS=ORDER.map(id=>N.depts.find(d=>d.id===id)).filter(Boolean);
+const KIND={duty:{l:'Обязан',v:'Неисполнение обязанности'},ban:{l:'Запрещено',v:'Нарушение запрета'},right:{l:'Имеет право',v:'Превышение полномочий'},rule:{l:'Положения',v:'Нарушение положения'}};
+// Плоский список пунктов для поиска и рапорта: ключ «отдел:должность.пункт»
+const ITEMS=[],BYKEY={};
+DEPTS.forEach(d=>d.roles.forEach((r,ri)=>r.groups.forEach(g=>g.items.forEach(it=>{
+  const x={k:d.id+':'+it.n,d,r,ri,g,it,low:norm(r.t+' '+g.t+' '+it.t)};ITEMS.push(x);BYKEY[x.k]=x}))));
+function norm(s){return s.toLowerCase().replace(/ё/g,'е')}
+const short=(s,n=170)=>{const m=s.match(/^.{20,}?[.;](?=\s|$)/);let t=m&&m[0].length<=n?m[0]:s;return t.length>n?t.slice(0,n-1).trimEnd()+'…':t};
+const src=x=>`НРП ${LOOK[x.d.id].of}, ${x.r.t}, п. ${x.it.n}`;
+const violText=x=>`${KIND[x.g.k].v}: ${short(x.it.t)} (${src(x)})`;
+
+/* ===================== СОСТОЯНИЕ ===================== */
+const S=(()=>{try{const s=JSON.parse(localStorage.getItem('avd.state')||'null');if(s&&Array.isArray(s.sel))return s}catch(e){}return{sel:[],dept:'srv',role:-1,flt:'v',who:'',job:'',measure:''}})();
+S.sel=S.sel.filter(k=>BYKEY[k]);if(!DEPTS.some(d=>d.id===S.dept))S.dept=DEPTS[0]&&DEPTS[0].id;
+function save(){try{localStorage.setItem('avd.state',JSON.stringify(S));localStorage.setItem('avd.doc',JSON.stringify(D))}catch(e){}}
+
+/* ===================== НАРУШЕНИЯ ===================== */
+const vcount=d=>d.roles.reduce((a,r)=>a+r.groups.reduce((b,g)=>b+(g.k==='right'?0:g.items.length),0),0);
+function renderDepts(){
+  $('#depts').innerHTML=DEPTS.map(d=>`<button type="button" data-d="${d.id}" style="--kc:${LOOK[d.id].c}" aria-pressed="${!query()&&S.dept===d.id}"><i></i><span>${esc(d.s)}<small>${vcount(d)} пунктов</small></span></button>`).join('');
+}
+const query=()=>$('#q').value.trim();
+function hl(text,words){let h=esc(text);if(!words.length)return h;
+  const re=new RegExp('('+words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/е/g,'[её]')).join('|')+')','gi');
+  return h.replace(re,'<span class="hit">$1</span>')}
+function itemHtml(x,words,ctx){
+  const on=S.sel.includes(x.k);
+  return `<div class="it ${x.g.k}${on?' on':''}"><span class="no">${x.it.n}</span><span class="tx">${ctx?`<span class="ctx">${esc(x.d.s)} · ${esc(x.r.t)} · ${KIND[x.g.k].l}</span>`:''}${hl(x.it.t,words)}</span><button type="button" class="add" data-k="${x.k}" title="${on?'Убрать из рапорта':'Добавить в рапорт как нарушение'}">${on?'✓ В рапорте':'+ В рапорт'}</button></div>`}
+function tablesHtml(r){return r.tables.map(t=>`<div class="tbl"><table>${t.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`).join('')}
+let showAll=false;
+function renderList(){
+  const q=query(),el=$('#list');$('#qclear').hidden=!q;
+  if(q){ // поиск по всем отделам
+    const words=norm(q).split(/\s+/).filter(Boolean);
+    const found=ITEMS.filter(x=>words.every(w=>x.low.includes(w))&&(S.flt==='a'||x.g.k!=='right'));
+    const lim=showAll?found.length:60;
+    el.innerHTML=`<div class="dhead" style="--kc:var(--accent)"><div><h2>Поиск: ${found.length?found.length+' '+plural(found.length,'пункт','пункта','пунктов'):'ничего'}</h2><p>По всем отделам${S.flt==='a'?', включая права':''}. Щелчок по отделу ниже — вернуться к списку отдела.</p></div>${fltSeg()}</div>`+
+      (found.length?`<div class="panel role" style="--kc:var(--accent)"><div class="grp">${found.slice(0,lim).map(x=>itemHtml(x,words,true)).join('')}</div></div>`+(found.length>lim?`<button class="more" type="button" data-act="more">Показать все ${found.length}</button>`:''):`<div class="panel empty"><b>Ничего не нашлось</b>Попробуйте другое слово или включите «Всё», чтобы искать и в правах.</div>`);
+    return}
+  const d=DEPTS.find(x=>x.id===S.dept);if(!d){el.innerHTML='<div class="panel empty"><b>Нет данных НРП</b>Файл nrp.js не загрузился.</div>';return}
+  const kc=LOOK[d.id].c;
+  const roles=d.roles.map((r,i)=>({r,i})).filter(({r})=>r.groups.length||r.tables.length);
+  if(S.role>=d.roles.length)S.role=-1;
+  let h=`<div class="dhead" style="--kc:${kc}"><div><h2>НРП ${esc(LOOK[d.id].of)}</h2>${d.intro.length?`<p>${esc(d.intro.join(' '))}</p>`:''}</div>${fltSeg()}</div>`;
+  h+=`<div class="roles"><button type="button" data-r="-1" aria-pressed="${S.role===-1}">Все</button>${roles.map(({r,i})=>`<button type="button" data-r="${i}" aria-pressed="${S.role===i}">${esc(r.t)}<small>${r.groups.reduce((a,g)=>a+g.items.length,0)}</small></button>`).join('')}</div>`;
+  roles.filter(({i})=>S.role===-1||S.role===i).forEach(({r,i})=>{
+    const gs=r.groups.filter(g=>S.flt==='a'||g.k!=='right');
+    if(!gs.length&&!r.tables.length&&S.flt!=='a')return;
+    h+=`<div class="panel role" style="--kc:${kc}"><h3>${esc(r.t)}<small>${esc(d.s)}</small></h3>`;
+    if(r.intro.length&&(S.role===i||r.intro.join(' ').length<400))h+=`<p class="intro">${esc(r.intro.join(' '))}</p>`;
+    gs.forEach(g=>{h+=`<div class="grp ${g.k}"><h4>${esc(g.t||KIND[g.k].l)}</h4>${g.items.map(it=>itemHtml(BYKEY[d.id+':'+it.n],[],false)).join('')}</div>`});
+    if(S.role===i||S.flt==='a')h+=tablesHtml(r);
+    h+='</div>'});
+  el.innerHTML=h;
+}
+const fltSeg=()=>`<div class="seg" id="flt"><button type="button" data-flt="v" aria-pressed="${S.flt!=='a'}" title="Обязанности, запреты и положения">Нарушения</button><button type="button" data-flt="a" aria-pressed="${S.flt==='a'}" title="Ещё и права должности — для оценки превышения полномочий">Всё</button></div>`;
+function plural(n,a,b,c){n=Math.abs(n)%100;const m=n%10;return n>10&&n<20?c:m===1?a:m>1&&m<5?b:c}
+
+const MEASURES=['Устное предупреждение','Письменное предупреждение (выговор)','Понижение в должности','Отстранение от должности (увольнение)','Передача дела в Службу Безопасности','Передача дела Представителю Пакта','Нарушение не подтвердилось'];
+function renderRp(){
+  const n=S.sel.length;
+  let h=`<h3>Рапорт <span class="cnt">${n}</span></h3>`;
+  h+=n?`<div class="sel">${S.sel.map(k=>{const x=BYKEY[k];return `<div class="si ${x.g.k}"><span><b>${KIND[x.g.k].v}</b>${esc(short(x.it.t,140))}<span class="src">${esc(x.d.s)} · ${esc(x.r.t)} · п. ${x.it.n}</span></span><button class="x" type="button" data-k="${k}" title="Убрать" aria-label="Убрать">×</button></div>`}).join('')}</div>`
+    :`<p class="noth">Нажмите «+ В рапорт» у нарушенного пункта. Найти пункт можно поиском или по отделу.</p>`;
+  h+=`<div class="f2"><div class="f"><label for="rp-who">Нарушитель</label><input id="rp-who" data-s="who" value="${esc(S.who)}" placeholder="Имя"></div><div class="f"><label for="rp-job">Должность</label><input id="rp-job" data-s="job" value="${esc(S.job)}" placeholder="Бармен"></div></div>`;
+  h+=`<div class="f"><label for="rp-m">Мера</label><select id="rp-m" data-s="measure"><option value="">— решить позже —</option>${MEASURES.map(m=>`<option${m===S.measure?' selected':''}>${m}</option>`).join('')}</select></div>`;
+  h+=`<div class="acts"><button class="btn pri" type="button" data-act="todoc">Оформить рапорт</button><button class="btn" type="button" data-act="copyv"${n?'':' disabled'}>Копировать список</button>${n?'<button class="btn" type="button" data-act="clear">Очистить</button>':''}</div>`;
+  $('#rp').innerHTML=h;
+  $('#dockt').textContent=n?'В рапорте: '+n+' '+plural(n,'нарушение','нарушения','нарушений'):'Рапорт пуст';
+  const nn=$('#navn');nn.hidden=!n;nn.textContent=n;
+}
+function toggle(k){const i=S.sel.indexOf(k);if(i<0)S.sel.push(k);else S.sel.splice(i,1);
+  // должность нарушителя подсказываем по первому пункту
+  if(i<0&&!S.job&&!['alert','law','ai'].includes(BYKEY[k].d.id)&&!/положени|политик|применени|строительств|посадк|пацификац/i.test(BYKEY[k].r.t))S.job=BYKEY[k].r.t;
+  renderList();renderRp();save()}
+const violList=()=>S.sel.map(k=>violText(BYKEY[k]));
+
+$('#depts').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;S.dept=b.dataset.d;S.role=-1;showAll=false;$('#q').value='';renderDepts();renderList();save();setHash(S.dept);window.scrollTo(0,0)});
+$('#q').addEventListener('input',()=>{showAll=false;renderDepts();renderList()});
+$('#qclear').addEventListener('click',()=>{$('#q').value='';renderDepts();renderList();$('#q').focus()});
+$('#list').addEventListener('click',e=>{
+  const a=e.target.closest('.add');if(a){toggle(a.dataset.k);return}
+  const r=e.target.closest('[data-r]');if(r){S.role=+r.dataset.r;renderList();save();return}
+  const f=e.target.closest('[data-flt]');if(f){S.flt=f.dataset.flt;renderList();save();return}
+  if(e.target.closest('[data-act="more"]')){showAll=true;renderList()}
+});
+$('#rp').addEventListener('click',e=>{const x=e.target.closest('.x');if(x){toggle(x.dataset.k);return}act(e)});
+$('#dock').addEventListener('click',act);
+$('#rp').addEventListener('input',e=>{const k=e.target.dataset.s;if(!k)return;S[k]=e.target.value;save()});
+function act(e){const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='todoc'){pull(true);go('docs')}
+  if(a==='copyv')copy(violList().map((t,i)=>(i+1)+'. '+t).join('\n'),'Список нарушений скопирован');
+  if(a==='clear'){S.sel=[];renderList();renderRp();save()}}
+document.addEventListener('keydown',e=>{if(e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)&&!$('#v-viol').hidden){e.preventDefault();$('#q').focus()}});
+
+/* ===================== РАПОРТ И ДОКУМЕНТЫ ===================== */
+const ALERTS=['Зелёный','Синий','Янтарный','Красный','Оранжевый','Фиолетовый','Лямбда','Дельта','Эпсилон'];
+const TPLS=[
+ {id:'rep',n:'Рапорт о нарушении НРП'},{id:'cmp',n:'Жалоба / заявление'},{id:'inv',n:'Протокол расследования'},
+ {id:'dis',n:'Акт об отстранении'},{id:'veto',n:'Отмена вердикта'},{id:'req',n:'Запрос информации'},{id:'sw',n:'Ордер на обыск'}
+];
+const REASONS=['Неоднократные нарушения НРП либо нарушение НРП, повлёкшее преступление по КЗ','Некомпетентность, не позволяющая выполнять обязанности','Нарушение статей «Субординации» (х03) Космического Закона','Нарушение статей КЗ второй категории (2хх) или выше'];
+const ALL='rep cmp inv dis veto req sw';
+const FIELDS=[
+ {k:'num',l:'Номер',t:'text',in:ALL,half:1},
+ {k:'time',l:'Станционное время',t:'text',in:ALL,half:1,ph:'12:47'},
+ {k:'code',l:'Код тревоги',t:'select',opts:ALERTS,in:'rep inv dis veto sw',half:1},
+ {k:'place',l:'Место',t:'text',in:'rep inv',half:1,ph:'Бар'},
+ {k:'agent',l:'Агент Внутренних Дел (имя)',t:'text',in:ALL},
+ {k:'to',l:'Кому',t:'select',opts:['Представителю Пакта','Главе отдела нарушителя','Капитану','Главе Службы Безопасности','Центральному Командованию'],in:'rep inv dis',half:1},
+ {k:'head',l:'Глава отдела / адресат (имя)',t:'text',in:'rep inv dis req',half:1},
+ {k:'applicant',l:'Заявитель',t:'text',in:'cmp',half:1},
+ {k:'appjob',l:'Его должность',t:'text',in:'cmp',half:1},
+ {k:'who',l:'Нарушитель / в отношении кого',t:'text',in:'rep cmp inv dis sw',half:1},
+ {k:'job',l:'Его должность',t:'text',in:'rep cmp inv dis sw',half:1},
+ {k:'dept',l:'Отдел',t:'text',in:'rep dis',pull:'dept'},
+ {k:'essence',l:'Суть жалобы',t:'textarea',in:'cmp',ph:'Бармен отказался налить напиток без причины и выгнал из бара.'},
+ {k:'subject',l:'Предмет расследования',t:'text',in:'inv req',ph:'Жалоба № АВД-0412 на бармена'},
+ {k:'viol',l:'Нарушенные пункты НРП',t:'textarea',in:'rep inv dis',rows:4,pull:'viol'},
+ {k:'desc',l:'Обстоятельства',t:'textarea',in:'rep inv',ph:'Что, где и когда произошло.'},
+ {k:'evidence',l:'Доказательства',t:'textarea',in:'rep cmp inv dis veto sw',ph:'Показания свидетелей, запись камеры, аудио-протокол, логи консоли…'},
+ {k:'witn',l:'Свидетели и опрошенные',t:'text',in:'rep cmp inv'},
+ {k:'expl',l:'Объяснение нарушителя',t:'textarea',in:'rep inv',rows:2},
+ {k:'measure',l:'Мера',t:'select',opts:['— решить позже —',...MEASURES],in:'rep inv',half:1,pull:'measure'},
+ {k:'rec',l:'Аудио-протокол',t:'select',opts:['Вёлся','Не вёлся'],in:'rep cmp inv',half:1},
+ {k:'result',l:'Решение по жалобе',t:'select',opts:['Принята в работу','Удовлетворена','Отклонена','Передана в Службу Безопасности','Передана Представителю Пакта'],in:'cmp',half:1},
+ {k:'notified',l:'Заявитель уведомлён',t:'select',opts:['Да','Нет'],in:'cmp',half:1},
+ {k:'next',l:'Дальнейшие действия',t:'textarea',in:'cmp inv',rows:2},
+ {k:'reason',l:'Законная причина',t:'select',opts:REASONS,in:'dis'},
+ {k:'newjob',l:'Новая должность',t:'text',in:'dis',half:1,ph:'Ассистент'},
+ {k:'db',l:'Нарушения отмечены в БД',t:'select',opts:['Да','Нет'],in:'dis',half:1},
+ {k:'seized',l:'Изъятые снаряжение и доступы',t:'textarea',in:'dis sw',rows:2},
+ {k:'vofficer',l:'Вынес вердикт (имя, должность)',t:'text',in:'veto'},
+ {k:'vsubj',l:'Осуждённый',t:'text',in:'veto',half:1},
+ {k:'varts',l:'Отменяемые статьи / вердикт',t:'text',in:'veto',half:1,ph:'203, 15 минут'},
+ {k:'vground',l:'Основание отмены',t:'select',opts:['Грубое нарушение в применении статей','Грубое нарушение процедуры наказания','Грубый ущерб репутации Пакта'],in:'veto'},
+ {k:'vwhy',l:'Обоснование',t:'textarea',in:'veto'},
+ {k:'what',l:'Запрашиваемая информация',t:'textarea',in:'req',ph:'Логи консоли доступа шлюза бара с 12:30 до 12:50'},
+ {k:'until',l:'Срок предоставления',t:'text',in:'req',half:1,ph:'10 минут'},
+ {k:'places',l:'Места для обыска',t:'textarea',in:'sw',ph:'Рабочее место в баре, личный шкафчик'}
+];
+const EX={tpl:'rep',fmt:'txt',num:'АВД-0412',time:'12:47',code:'Зелёный',place:'Бар',agent:'',to:'Представителю Пакта',head:'',
+  who:'',job:'',dept:'',viol:'',desc:'',evidence:'',witn:'',expl:'',measure:'— решить позже —',rec:'Вёлся',result:'Принята в работу',notified:'Да',reason:REASONS[0],newjob:'Ассистент',db:'Да',vground:'Грубое нарушение в применении статей'};
+let D=(()=>{try{const d=JSON.parse(localStorage.getItem('avd.doc')||'null');if(d&&d.tpl)return Object.assign({},EX,d)}catch(e){}return Object.assign({},EX)})();
+
+// Из панели нарушений: пункты, нарушитель, отдел, мера
+function pull(quiet){
+  if(S.sel.length)D.viol=violList().join('\n');
+  const ds=[...new Set(S.sel.map(k=>BYKEY[k].d).filter(d=>!['alert','law'].includes(d.id)).map(d=>d.t))];
+  if(ds.length)D.dept=ds.join(', ');
+  if(S.who)D.who=S.who;if(S.job)D.job=S.job;if(S.measure)D.measure=S.measure;
+  if(!quiet)toast('Данные подтянуты из панели нарушений');save()}
+function renderTpls(){$('#tpls').innerHTML=TPLS.map(t=>`<button type="button" data-t="${t.id}" aria-pressed="${D.tpl===t.id}">${t.n}</button>`).join('')}
+function renderForm(){
+  const fs=FIELDS.filter(f=>f.in.split(' ').includes(D.tpl));let h='',buf=[];
+  const one=f=>{const v=D[f.k]??'',id='fld-'+f.k;let c;
+    if(f.t==='select')c=`<select id="${id}" data-k="${f.k}">${f.opts.map(o=>`<option${o===v?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    else if(f.t==='textarea')c=`<textarea id="${id}" data-k="${f.k}" rows="${f.rows||3}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
+    else c=`<input id="${id}" data-k="${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}">`;
+    return `<div class="f"><label for="${id}">${f.l}</label>${c}${f.pull==='viol'?'<button type="button" class="side-btn" data-pull="1">Подтянуть из панели нарушений</button>':''}</div>`};
+  const flush=()=>{if(buf.length){h+=`<div class="f2">${buf.join('')}</div>`;buf=[]}};
+  fs.forEach(f=>{if(f.half){buf.push(one(f));if(buf.length===2)flush()}else{flush();h+=one(f)}});flush();
+  h+='<div class="acts"><button type="button" class="btn sm" id="docnew">Новый документ</button></div>';
+  $('#form').innerHTML=h}
+
+// Правила бумаги SS13 — активный профиль Папируса (в Пульте общее хранилище), без него «Классика». Как в Терминале Брига.
+const PAPIRUS_CLASSIC={name:'Классика (Paradise, Bay и форки)',useBr:false,limit:3072,cmds:{bold:['[b]','[/b]'],italic:['[i]','[/i]'],underline:['[u]','[/u]'],large:['[large]','[/large]'],small:['[small]','[/small]'],center:['[center]','[/center]'],right:['',''],h1:['[h1]','[/h1]'],h2:['[h2]','[/h2]'],h3:['[h3]','[/h3]'],list:['[list]','[/list]'],item:['[*]',''],hr:['[hr]',''],br:['[br]',''],field:['[field]',''],sign:['[sign]',''],date:['[date]',''],time:['[time]','']}};
+function papirusProfile(){try{const s=JSON.parse(localStorage.getItem('papirus.settings')||'null');const p=s&&s.profiles&&(s.profiles[s.active]||Object.values(s.profiles)[0]);if(p&&p.cmds)return{p,own:true}}catch(e){}return{p:PAPIRUS_CLASSIC,own:false}}
+function paperFmt(f,p){
+  if(f==='ss13'){const c=k=>p.cmds[k]||['',''],has=k=>!!(c(k)[0]||c(k)[1]),w=(k,s)=>s&&has(k)?c(k)[0]+s+c(k)[1]:s;
+    return{b:s=>w('bold',s),i:s=>w('italic',s),h:s=>w('center',has('h1')?w('h1',s.toUpperCase()):w('bold',w('large',s.toUpperCase()))),
+      head:s=>w('center',w('small',s.toUpperCase())),hr:c('hr')[0]||'------------------------------',
+      list:t=>{const m=c('item')[0]||'• ';return has('list')?w('list',t.map(x=>m+x).join('')):t.map(x=>m+x).join('\n')},
+      sign:c('sign')[0]||'______________',end:s=>p.useBr?s.replace(/\n/g,c('br')[0]||'\n'):s}}
+  const md=f==='md';
+  return{b:s=>md?'**'+s+'**':s,i:s=>md?'_'+s+'_':s,h:s=>md?'### '+s:s.toUpperCase(),head:s=>md?s:s.toUpperCase(),hr:null,
+    list:t=>t.map(x=>'  — '+x).join('\n'),sign:'______________',end:s=>s}
+}
+function buildPaper(fmt){
+  const P=papirusProfile(),F=paperFmt(fmt,P.p),B=F.b,v=k=>{const x=(D[k]||'').trim();return x&&!x.startsWith('— ')?x:'—'},L=[];
+  const line=(a,b)=>L.push(B(a+':')+' '+b);
+  const list=k=>{const t=(D[k]||'').split(/\n/).map(x=>x.trim()).filter(Boolean);return t.length?F.list(t):'  —'};
+  const has=k=>!!(D[k]||'').trim();
+  const T=TPLS.find(t=>t.id===D.tpl).n;
+  L.push(F.head('Юридический отдел · Агент Внутренних Дел'));
+  L.push(F.h(T+' № '+v('num')));if(F.hr)L.push(F.hr);L.push('');
+  line('Станционное время',v('time'));if(D.tpl!=='cmp'&&D.tpl!=='req')line('Код тревоги',v('code'));
+  const sign=()=>{L.push('');L.push('Агент Внутренних Дел: '+v('agent'));L.push('Подпись: '+F.sign)};
+  if(D.tpl==='rep'){
+    line('Кому',v('to')+(has('head')?' '+v('head'):''));line('Место',v('place'));
+    line('Нарушитель',v('who')+', '+v('job'));line('Отдел',v('dept'));
+    L.push('');L.push(B('Нарушенные пункты НРП:'));L.push(list('viol'));
+    L.push('');L.push(B('Обстоятельства:'));L.push(v('desc'));
+    line('Доказательства',v('evidence'));line('Свидетели',v('witn'));line('Аудио-протокол',v('rec').toLowerCase());
+    if(has('expl'))line('Объяснение нарушителя',v('expl'));
+    L.push('');line('Предлагаемая мера',v('measure'));sign()}
+  if(D.tpl==='cmp'){
+    line('Заявитель',v('applicant')+', '+v('appjob'));line('В отношении',v('who')+(has('job')?', '+v('job'):''));
+    L.push('');L.push(B('Суть жалобы:'));L.push(v('essence'));
+    line('Доказательства',v('evidence'));line('Свидетели',v('witn'));line('Аудио-протокол',v('rec').toLowerCase());
+    L.push('');line('Решение',v('result'));line('Заявитель уведомлён',v('notified').toLowerCase());
+    if(has('next'))line('Дальнейшие действия',v('next'));
+    sign();L.push('Подпись заявителя: '+F.sign)}
+  if(D.tpl==='inv'){
+    line('Кому',v('to')+(has('head')?' '+v('head'):''));line('Предмет расследования',v('subject'));line('Место',v('place'));
+    line('В отношении',v('who')+', '+v('job'));line('Опрошены',v('witn'));line('Аудио-протокол',v('rec').toLowerCase());
+    L.push('');L.push(B('Установлено:'));L.push(v('desc'));line('Доказательства',v('evidence'));
+    if(has('expl'))line('Объяснение',v('expl'));
+    L.push('');L.push(B('Выявленные нарушения НРП:'));L.push(list('viol'));
+    L.push('');line('Заключение и мера',v('measure'));if(has('next'))line('Дальнейшие действия',v('next'));sign()}
+  if(D.tpl==='dis'){
+    line('Кому',v('to')+(has('head')?' '+v('head'):''));
+    line('Отстраняемый сотрудник',v('who')+', '+v('job'));line('Отдел',v('dept'));
+    line('Законная причина',v('reason'));
+    L.push('');L.push(B('Основания (нарушения НРП):'));L.push(list('viol'));line('Доказательства',v('evidence'));
+    L.push('');line('Новая должность',v('newjob'));line('Нарушения отмечены в БД',v('db').toLowerCase());
+    L.push(B('Изъято:'));L.push(list('seized'));
+    L.push('');L.push(F.i('Отстранение проведено по результатам расследования АВД. Членов командования АВД не отстраняет.'));sign()}
+  if(D.tpl==='veto'){
+    line('Вердикт вынес',v('vofficer'));line('Осуждённый',v('vsubj'));line('Отменяется',v('varts'));
+    line('Основание',v('vground'));L.push('');L.push(B('Обоснование:'));L.push(v('vwhy'));line('Доказательства',v('evidence'));
+    L.push('');L.push(F.i('Снять отмену вердикта АВД уполномочен Капитан или Представитель Пакта, при их отсутствии — голосование глав.'));sign()}
+  if(D.tpl==='req'){
+    line('Кому',v('head'));line('В рамках расследования',v('subject'));
+    L.push('');L.push(B('Запрашивается:'));L.push(v('what'));line('Срок',v('until'));
+    L.push('');L.push(F.i('Запрос выдвинут в рамках расследования согласно НРП Агента Внутренних Дел.'));sign()}
+  if(D.tpl==='sw'){
+    line('Подлежит обыску',v('who')+', '+v('job'));L.push(B('Места:'));L.push(list('places'));
+    line('Основания',v('evidence'));if(has('seized')){L.push(B('Изъято:'));L.push(list('seized'))}
+    L.push('');L.push(F.i('Ордер составлен АВД в рамках расследования.'));sign()}
+  return{code:F.end(L.join('\n')),title:T+' № '+v('num'),P}}
+function renderPaper(){
+  const{code,P}=buildPaper(D.fmt);$('#paper').textContent=code;
+  const info=$('#paperinfo');info.hidden=D.fmt!=='ss13';
+  if(D.fmt==='ss13'){const lim=+P.p.limit||0,over=lim&&code.length>lim;
+    info.innerHTML=`<span>Правила Папируса: <b>${esc(P.p.name||'профиль')}</b>${P.own?'':' (по умолчанию)'}</span><span class="${over?'over':''}">${code.length}${lim?' / '+lim:''} символов</span>`}}
+const syncFmt=()=>[...$('#fmt').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===(D.fmt||'txt')));
+$('#tpls').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;D.tpl=b.dataset.t;renderTpls();renderForm();renderPaper();save()});
+$('#fmt').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;D.fmt=b.dataset.f;syncFmt();renderPaper();save()});
+addEventListener('storage',e=>{if(e.key==='papirus.settings'&&D.fmt==='ss13')renderPaper()});
+$('#form').addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;D[k]=e.target.value;renderPaper();save()});
+$('#form').addEventListener('click',e=>{
+  if(e.target.dataset.pull){pull();renderForm();renderPaper()}
+  if(e.target.id==='docnew'){D=Object.assign({},EX,{tpl:D.tpl,fmt:D.fmt,agent:D.agent,num:'АВД-'+String(Math.floor(1000+Math.random()*9000)),time:''});renderForm();renderPaper();save()}});
+$('#copydoc').addEventListener('click',()=>copy($('#paper').textContent,'Документ скопирован'));
+$('#topapirus').addEventListener('click',()=>{const p=buildPaper('ss13');parent.postMessage({type:'pult-send',to:'papirus',code:p.code,title:p.title},location.origin)});
+
+/* ===================== ПОЛНОМОЧИЯ ===================== */
+function renderAuth(){
+  const legal=N.depts.find(d=>d.id==='legal'),cmd=N.depts.find(d=>d.id==='command');
+  const roleCard=(d,r)=>`<div class="panel card"><h3>НРП ${esc(r.t)}</h3>${r.intro.length?`<p class="intro" style="margin:0;padding:10px 16px 0;color:var(--muted);font-size:13.5px">${esc(r.intro.join(' '))}</p>`:''}${r.groups.map(g=>`<div class="grp ${g.k}"><h4>${esc(g.t||KIND[g.k].l)}</h4>${g.items.map(it=>`<div class="it"><span class="tx">${esc(it.t)}</span></div>`).join('')}</div>`).join('')}</div>`;
+  let h=`<div class="panel card"><h3>Работа с жалобой — по НРП АВД</h3><ol class="steps">
+    <li>Принять любую жалобу или заявление члена экипажа (вкладка «Рапорт» → «Жалоба / заявление»).</li>
+    <li>Вести аудио-протокол или документировать процесс рассмотрения.</li>
+    <li>Расследовать: при необходимости — обоснованный запрос информации и ордер на обыск.</li>
+    <li>Найти нарушенные пункты НРП во вкладке «Нарушения» и добавить их в рапорт.</li>
+    <li>Уведомить заявителя о результате и о дальнейших действиях.</li>
+    <li>При законных причинах — отстранить рядового сотрудника (не командование) и отметить нарушения в БД.</li>
+    <li>По запросу Представителя Пакта — отчитаться о проделанной работе.</li></ol></div>`;
+  if(legal){const avd=legal.roles.find(r=>/внутренних/i.test(r.t)),rep=legal.roles.find(r=>/представ/i.test(r.t));
+    if(avd)h+=roleCard(legal,avd);if(rep)h+=roleCard(legal,rep)}
+  if(cmd){const pol=cmd.roles.find(r=>/политик/i.test(r.t));
+    if(pol){const want=pol.groups.filter(g=>/увольнен|понижен|отстранен/i.test(g.t));
+      if(want.length)h+=`<div class="panel card"><h3>Увольнение, понижение, отстранение</h3>${want.map(g=>`<div class="grp rule"><h4>${esc(g.t)}</h4>${g.items.map(it=>`<div class="it"><span class="tx">${esc(it.t)}</span></div>`).join('')}</div>`).join('')}</div>`}}
+  $('#auth').innerHTML=h}
+
+/* ===================== ОБЩЕЕ ===================== */
+const TABS=['viol','docs','auth'];
+function go(t){TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  if(t==='docs'){renderTpls();renderForm();syncFmt();renderPaper()}
+  if(t==='auth')renderAuth();
+  if(t==='viol'){renderDepts();renderList();renderRp()}
+  setHash(t==='viol'?S.dept:t);window.scrollTo(0,0)}
+function setHash(h){try{history.replaceState(null,'','#'+h)}catch(e){}}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
+let tt;function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,1800)}
+function copy(text,msg){
+  const fb=()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();toast(ok?msg:'Не удалось скопировать: выделите текст вручную')};
+  try{navigator.clipboard.writeText(text).then(()=>toast(msg),fb)}catch(e){fb()}}
+
+if(N.rev)$('#rev').textContent='Нормы рабочих процедур · '+N.rev;
+// #srv, #med… — сразу отдел; #docs, #auth — вкладка
+const h0=(location.hash||'').slice(1);
+if(DEPTS.some(d=>d.id===h0)){S.dept=h0;S.role=-1;go('viol')}else go(TABS.includes(h0)?h0:'viol');
+</script>
+</body>
+</html>

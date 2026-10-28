@@ -23,6 +23,12 @@
     <nav class="switch" id="switch" aria-label="Приложения"></nav>
     <div class="apptitle" id="appTitle"></div>
     <span class="grow"></span>
+    <div class="opacbox" id="opacityBox" hidden>
+      <button class="ibtn" id="opacityBtn" title="Прозрачность фона" aria-label="Прозрачность фона" aria-expanded="false" aria-controls="opacityPop"></button>
+      <div class="opacpop" id="opacityPop" hidden>
+        <span>Фон</span><input type="range" id="opacity" aria-label="Непрозрачность фона"><span class="opacval"></span>
+      </div>
+    </div>
     <button class="ibtn" id="pinBtn" hidden aria-pressed="false"></button>
     <button class="ibtn" id="modeBtn"></button>
   </header>
@@ -30,9 +36,13 @@
   <div class="stage" id="stage"></div>
 
   <section class="home" id="home" aria-label="Выбор приложения">
-    <div class="radial" id="radial"></div>
+    <div class="rstack">
+      <div class="radial" id="radial"></div>
+      <div class="radial sub" id="radial2" inert></div>
+    </div>
     <p class="homefoot">
-      <span class="keys"><kbd>Alt</kbd>+<kbd>1</kbd>…<kbd>7</kbd> — приложения · <kbd>Alt</kbd>+<kbd>0</kbd> — меню · <kbd>Alt</kbd>+<kbd>M</kbd> — режим</span>
+      <label class="opac opacbox" id="opacityHomeWrap" hidden>Фон <input type="range" id="opacityHome" aria-label="Непрозрачность фона"><span class="opacval"></span></label>
+      <span class="keys"><kbd>Alt</kbd>+<kbd>1</kbd>…<kbd>9</kbd> — приложения · <kbd>Alt</kbd>+<kbd>0</kbd> — меню · <kbd>Alt</kbd>+<kbd>M</kbd> — режим</span>
       <span class="credit">made by: Sla2her for BlueMoon</span>
     </p>
   </section>

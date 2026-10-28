@@ -36,7 +36,7 @@ Copy-Item (Join-Path $root 'web') "$build\assets\web" -Recurse
 
 # Значок: дуги цветов приложений на тёмном круге — как в меню и у Пульт.exe
 Add-Type -AssemblyName System.Drawing
-$colors = '#3fa66b', '#d63c45', '#3a7be0', '#e2b33a', '#e07a3f', '#9a6ad6', '#d65a9c'
+$colors = '#3fa66b', '#d63c45', '#3a7be0', '#e2b33a', '#e07a3f', '#9a6ad6', '#d65a9c', '#2fb5a5', '#b8863b'
 $span = 360 / $colors.Count
 $densities = @{ mdpi = 48; hdpi = 72; xhdpi = 96; xxhdpi = 144; xxxhdpi = 192 }
 foreach ($d in $densities.Keys) {
@@ -69,7 +69,7 @@ $version = [int](Get-Date -Format 'yyMMddHH')
 & "$bt\aapt2.exe" compile --dir "$build\res" -o "$build\res.zip"; Check 'aapt2.exe'
 & "$bt\aapt2.exe" link -o "$build\base.apk" -I $androidJar --manifest (Join-Path $android 'AndroidManifest.xml') `
     --min-sdk-version 24 --target-sdk-version 34 `
-    --version-code $version --version-name '0.0.4' "$build\res.zip"; Check 'aapt2 link'
+    --version-code $version --version-name '0.0.5' "$build\res.zip"; Check 'aapt2 link'
 # Страницы добавляет jar: aapt2 -A на Windows пишет пути через «\», и Android их не находит
 & "$jdk\bin\jar.exe" --update --file "$build\base.apk" --no-manifest --no-compress -C $build assets; Check 'jar'
 

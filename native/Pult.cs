@@ -19,8 +19,8 @@ using Microsoft.Web.WebView2.WinForms;
 [assembly: AssemblyProduct("Пульт — Алхимик, Терминал Брига, Папирус")]
 [assembly: AssemblyCompany("Sla2her")]
 [assembly: AssemblyCopyright("Made by: Sla2her for BlueMoon")]
-[assembly: AssemblyVersion("0.0.4.0")]
-[assembly: AssemblyFileVersion("0.0.4.0")]
+[assembly: AssemblyVersion("0.0.5.0")]
+[assembly: AssemblyFileVersion("0.0.5.0")]
 
 static class Program
 {
@@ -129,8 +129,6 @@ class MainForm : Form
 
     static readonly Size CompactMin = new Size(360, 480);
     static readonly Size ExpandedMin = new Size(1000, 600);
-    static readonly Color DarkBack = Color.FromArgb(18, 21, 27);
-    static readonly Color LightBack = Color.FromArgb(233, 236, 241);
 
     [DllImport("dwmapi.dll")]
     static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
@@ -146,7 +144,7 @@ class MainForm : Form
         StartPosition = FormStartPosition.Manual;
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
         dark = state["theme"] != "light";
-        BackColor = dark ? DarkBack : LightBack;
+        BackColor = Color.Black; // чёрный GDI-фон при включённой альфе прозрачен; фон рисует страница
 
         compact = state["mode"] == "compact";
         PlaceWindow();
@@ -154,10 +152,10 @@ class MainForm : Form
 
         web = new WebView2();
         web.Dock = DockStyle.Fill;
-        web.DefaultBackgroundColor = BackColor;
+        web.DefaultBackgroundColor = Color.Transparent;
         Controls.Add(web);
 
-        HandleCreated += (s, e) => ApplyCaption();
+        HandleCreated += (s, e) => { ApplyCaption(); EnableAlpha(); };
         Load += async (s, e) => await InitAsync();
     }
 
@@ -234,6 +232,31 @@ class MainForm : Form
         if (web.CoreWebView2 == null) return;
         web.CoreWebView2.PostWebMessageAsJson(
             "{\"mode\":\"" + Key + "\",\"pinned\":" + (TopMost ? "true" : "false") + "}");
+    }
+
+    // ---------- Прозрачный фон ----------
+    // Окно учитывает альфа-канал своих пикселей (как прозрачные окна Tauri): WebView2 рисует без
+    // подложки, а насколько прозрачен фон, решает страница — кнопки и текст остаются плотными.
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct DWM_BLURBEHIND { public int dwFlags; public bool fEnable; public IntPtr hRgnBlur; public bool fTransitionOnMaximized; }
+    [DllImport("dwmapi.dll")]
+    static extern int DwmEnableBlurBehindWindow(IntPtr hwnd, ref DWM_BLURBEHIND bb);
+    [DllImport("gdi32.dll")]
+    static extern IntPtr CreateRectRgn(int l, int t, int r, int b);
+    [DllImport("gdi32.dll")]
+    static extern bool DeleteObject(IntPtr h);
+
+    void EnableAlpha()
+    {
+        try
+        {
+            IntPtr rgn = CreateRectRgn(0, 0, -1, -1); // пустая область: без размытия, только альфа
+            var bb = new DWM_BLURBEHIND { dwFlags = 1 | 2, fEnable = true, hRgnBlur = rgn }; // DWM_BB_ENABLE | DWM_BB_BLURREGION
+            DwmEnableBlurBehindWindow(Handle, ref bb);
+            DeleteObject(rgn);
+        }
+        catch { }
     }
 
     // ---------- Хоткеи Инженера поверх игры ----------
@@ -357,8 +380,6 @@ class MainForm : Form
     {
         if (isDark == dark) return;
         dark = isDark;
-        BackColor = dark ? DarkBack : LightBack;
-        web.DefaultBackgroundColor = BackColor;
         ApplyCaption();
         // Windows перерисовывает рамку только при смене размера — слегка «пошевелим» окно
         if (WindowState == FormWindowState.Normal) { Width += 1; Width -= 1; }

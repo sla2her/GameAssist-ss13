@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Симулятор Схем SS13</title>
+<style>
+/* Конструктор интегральных схем: блоки перетаскиваются на поле и соединяются проводами,
+   справа печатается код для принтера схем («Load program»). Узкое окно — вкладки Блоки / Поле / Код. */
+:root {
+  color-scheme: dark;
+  --bg: #121519; --panel: #1a1e24; --panel2: #232830; --line: #2e343d; --line2: #3a414b;
+  --fg: #e4e6ea; --dim: #8a929d; --faint: #5b626c;
+  --accent: #2fb5a5; --warn: #e2b33a; --err: #e06c6c; --ok: #6fd3a8; --pulse: #ffb84a;
+  --node: #20252c; --node-h: #2a3039;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 13px/1.4 "Segoe UI", system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn { border: 1px solid var(--line2); background: var(--panel2); border-radius: 6px; padding: 4px 9px; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.on { background: var(--accent); border-color: var(--accent); color: #062420; font-weight: 600; }
+.btn:disabled { opacity: .4; cursor: default; border-color: var(--line2); }
+.inp { border: 1px solid var(--line2); background: var(--bg); border-radius: 5px; padding: 4px 7px; min-width: 0; }
+.muted { color: var(--dim); }
+
+/* Шапка: корпус, лимиты, действия */
+header { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+.brand { font-weight: 700; color: var(--accent); font-size: 14px; margin-right: 2px; }
+#asm { max-width: 260px; }
+#asmName { width: 150px; }
+.meters { display: flex; gap: 10px; font-variant-numeric: tabular-nums; }
+.meter b { font-weight: 600; }
+.meter.over b { color: var(--err); }
+.tools { display: flex; gap: 5px; margin-left: auto; flex-wrap: wrap; }
+
+nav.tabs { display: none; border-bottom: 1px solid var(--line); background: var(--panel); }
+nav.tabs button { flex: 1; border: 0; background: none; padding: 8px 4px; color: var(--dim); border-bottom: 2px solid transparent; }
+nav.tabs button.cur { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+
+main { flex: 1; min-height: 0; display: flex; }
+
+/* Палитра */
+#pal { width: 236px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--panel); min-height: 0; }
+#pal .search { padding: 8px; border-bottom: 1px solid var(--line); display: grid; gap: 6px; }
+#pal .search .inp { width: 100%; }
+#pal label.chk { display: flex; gap: 6px; align-items: center; color: var(--dim); font-size: 12px; }
+#cats { flex: 1; overflow-y: auto; padding: 4px 0 12px; }
+.cat > summary { list-style: none; cursor: pointer; padding: 5px 10px; display: flex; align-items: center; gap: 7px; font-weight: 600; user-select: none; }
+.cat > summary::-webkit-details-marker { display: none; }
+.cat > summary::before { content: '▸'; color: var(--faint); width: 8px; }
+.cat[open] > summary::before { content: '▾'; }
+.cat > summary i { width: 9px; height: 9px; border-radius: 2px; background: var(--c); flex: none; }
+.cat > summary small { margin-left: auto; color: var(--faint); font-weight: 400; }
+.item { margin: 1px 8px 1px 22px; padding: 4px 8px; border-radius: 5px; cursor: grab; display: flex; gap: 6px; align-items: baseline; border: 1px solid transparent; touch-action: none; user-select: none; }
+.item:hover { background: var(--panel2); border-color: var(--line2); }
+.item .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .bd { font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.item .r { font-size: 10px; color: var(--warn); border: 1px solid currentColor; border-radius: 3px; padding: 0 3px; }
+.ghost { position: fixed; z-index: 50; pointer-events: none; padding: 5px 10px; border-radius: 6px; background: var(--node-h); border: 1px solid var(--accent); box-shadow: 0 6px 20px rgba(0,0,0,.5); font-weight: 600; }
+
+/* Поле */
+#board { flex: 1; min-width: 0; position: relative; overflow: hidden; touch-action: none; cursor: default;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, #262b33 1px, transparent 1.2px);
+  background-size: 24px 24px; }
+#board.panning { cursor: grabbing; }
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#wires { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+#wires path { fill: none; stroke-width: 2.4; }
+#wires path.hit { stroke: transparent; stroke-width: 12; pointer-events: stroke; cursor: pointer; }
+#wires path.pulse { stroke-dasharray: 7 4; }
+#wires path.sel { stroke-width: 4; filter: drop-shadow(0 0 3px rgba(255,255,255,.6)); }
+#wires path.flash { stroke: #fff !important; }
+#wires path.tmp { stroke: var(--fg); stroke-dasharray: 4 4; }
+.wdel { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 1px solid var(--err); background: var(--panel); color: var(--err); font-size: 13px; line-height: 17px; padding: 0; text-align: center; z-index: 3; }
+.empty { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; color: var(--faint); text-align: center; padding: 20px; }
+.empty b { color: var(--dim); }
+.zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 4px; z-index: 4; }
+.zoom .btn { padding: 3px 8px; background: var(--panel); }
+.zoom .lvl { min-width: 46px; text-align: center; color: var(--dim); align-self: center; font-variant-numeric: tabular-nums; }
+
+/* Блок (компонент) */
+.node { position: absolute; min-width: 170px; max-width: 300px; background: var(--node); border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.35); user-select: none; }
+.node.sel { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), 0 6px 18px rgba(0,0,0,.45); }
+.node.busy { box-shadow: 0 0 0 2px var(--pulse), 0 0 18px rgba(255,184,74,.5); }
+.nh { display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 9px; background: var(--node-h); border-radius: 7px 7px 0 0; border-bottom: 2px solid var(--c); cursor: move; touch-action: none; }
+.nh .nt { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nh .nt small { display: block; color: var(--dim); font-weight: 400; font-size: 11px; margin-top: -1px; }
+.nh .r { font-size: 10px; color: var(--warn); }
+.nh button { border: 0; background: none; color: var(--faint); padding: 0 3px; font-size: 15px; line-height: 1; }
+.nh button:hover { color: var(--fg); }
+.nb { display: grid; grid-template-columns: auto auto; justify-content: space-between; column-gap: 14px; padding: 4px 0; }
+.nb .col { display: flex; flex-direction: column; min-width: 0; }
+.nb .col.out { align-items: flex-end; }
+.sep { grid-column: 1 / -1; height: 1px; background: var(--line); margin: 3px 0; }
+.pin { display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; position: relative; white-space: nowrap; max-width: 150px; }
+.pin .pn { overflow: hidden; text-overflow: ellipsis; color: #c9ced6; }
+.out .pin { flex-direction: row-reverse; }
+.dot { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--t); background: var(--bg); flex: none; cursor: crosshair; margin: 0 -14px; position: relative; z-index: 2; touch-action: none; }
+.dot::after { content: ''; position: absolute; inset: -6px; }
+.dot.on { background: var(--t); }
+.dot.pulse { border-radius: 2px; transform: rotate(45deg); width: 10px; height: 10px; }
+.pin.hot .dot { box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
+.pv { font: 11px Consolas, monospace; color: var(--dim); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.pv.set { color: var(--fg); border-color: var(--line2); }
+.pv.ph { font-style: italic; }
+.pv.live { color: var(--ok); border-color: #2b5b4b; cursor: default; }
+.fire { border: 1px solid #6b5422; background: #2d2414; color: var(--pulse); border-radius: 4px; font-size: 9px; padding: 0 4px; height: 16px; line-height: 14px; display: none; }
+.sim .fire { display: inline-block; }
+.nsim { display: none; padding: 6px 8px 8px; border-top: 1px solid var(--line); gap: 5px; }
+.sim .nsim:not(:empty) { display: grid; }
+.nsim .screen { font: 12px Consolas, monospace; background: #0b1410; color: #7dffb0; border: 1px solid #1f3a2c; border-radius: 4px; padding: 4px 6px; min-height: 22px; white-space: pre-wrap; word-break: break-word; max-width: 260px; }
+.nsim .bulb { display: flex; align-items: center; gap: 6px; color: var(--dim); }
+.nsim .bulb i { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid var(--line2); }
+.nsim .row { display: flex; gap: 4px; }
+.nsim .row .inp { flex: 1; width: 60px; padding: 2px 6px; }
+.nsim .row .btn { padding: 2px 8px; }
+.nsim .nosim { color: var(--faint); font-size: 11.5px; }
+
+/* Правая колонка: свойства блока и код */
+#side { width: 360px; flex: none; display: flex; flex-direction: column; border-left: 1px solid var(--line); background: var(--panel); min-height: 0; }
+#insp { flex: 0 1 auto; max-height: 55%; overflow-y: auto; padding: 10px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; align-content: start; }
+#insp h3 { margin: 0; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+#insp h3 i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); flex: none; }
+#insp .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--dim); font-size: 12px; }
+#insp .meta .r { color: var(--warn); }
+#insp .meta .a { color: var(--err); }
+#insp .desc { color: #c4c9d1; }
+#insp .ext { color: var(--dim); font-size: 12px; }
+#insp table { border-collapse: collapse; width: 100%; }
+#insp td { padding: 2px 4px 2px 0; vertical-align: middle; }
+#insp td:first-child { white-space: nowrap; color: #c9ced6; }
+#insp td .t { color: var(--faint); font-size: 11px; margin-left: 4px; }
+#insp td .inp { width: 100%; padding: 2px 6px; }
+#insp .wired { color: var(--faint); font-style: italic; font-size: 12px; }
+#insp .acts { display: flex; gap: 5px; flex-wrap: wrap; }
+#insp .hint { color: var(--faint); font-size: 12px; }
+#insp .hint kbd, .keys kbd { font: 11px Consolas, monospace; color: var(--dim); border: 1px solid var(--line2); border-radius: 3px; padding: 0 4px; }
+
+#codebox { flex: 1; min-height: 160px; display: flex; flex-direction: column; padding: 8px 12px 10px; gap: 6px; }
+#codebox .ch { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#codebox .ch b { margin-right: auto; }
+#code { flex: 1; min-height: 80px; resize: none; width: 100%; font: 11.5px/1.45 Consolas, monospace; background: #0d1014; color: #b9d7ff; border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; white-space: pre-wrap; word-break: break-all; }
+#status { font-size: 12px; display: grid; gap: 2px; }
+#status .e { color: var(--err); }
+#status .w { color: var(--warn); }
+#status .k { color: var(--ok); }
+#simlog { max-height: 130px; overflow-y: auto; font: 11.5px Consolas, monospace; color: var(--dim); border-top: 1px solid var(--line); padding: 6px 12px; display: none; }
+.sim #simlog { display: block; }
+#simlog div b { color: var(--fg); font-weight: 400; }
+
+/* Окна поверх: редактор значения, импорт кода, примеры */
+.pop { position: fixed; z-index: 40; background: var(--panel); border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 12px 34px rgba(0,0,0,.55); padding: 8px; display: grid; gap: 6px; min-width: 200px; }
+.pop .row { display: flex; gap: 5px; }
+.pop textarea { min-height: 70px; resize: vertical; }
+.modal { position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 12px; }
+.modal[hidden] { display: none; }
+.modal .box { width: min(560px, 100%); max-height: 100%; overflow-y: auto; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.modal h2 { margin: 0; font-size: 15px; }
+.modal textarea { min-height: 180px; font: 11.5px Consolas, monospace; resize: vertical; width: 100%; }
+.modal .row { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.modal .err { color: var(--err); white-space: pre-wrap; }
+.ex { border: 1px solid var(--line2); border-radius: 8px; padding: 9px 11px; text-align: left; background: var(--panel2); display: grid; gap: 2px; }
+.ex:hover { border-color: var(--accent); }
+.ex b { color: var(--accent); }
+.ex span { color: var(--dim); font-size: 12px; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 60; background: var(--panel2); border: 1px solid var(--accent); border-radius: 7px; padding: 6px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+
+/* Узкое окно (компактный режим Пульта, телефон): вкладки */
+@media (max-width: 900px) {
+  nav.tabs { display: flex; }
+  #pal, #side { width: auto; flex: 1; border: 0; }
+  main > * { display: none !important; }
+  body[data-tab="pal"] #pal, body[data-tab="side"] #side { display: flex !important; }
+  body[data-tab="board"] #board { display: block !important; }
+  #insp { max-height: 50%; }
+  header { gap: 6px; padding: 6px 8px; }
+  #asm { flex: 1; max-width: none; }
+  #asmName { flex: 1; width: auto; }
+  .meters { width: 100%; gap: 12px; }
+  .tools { margin-left: 0; width: 100%; }
+  .tools .btn { flex: 1; padding: 4px 6px; }
+}
+</style>
+</head>
+<body data-tab="board">
+<header>
+  <span class="brand">Симулятор Схем</span>
+  <select id="asm" class="inp" title="Корпус сборки: от него зависят лимиты места и сложности"></select>
+  <input id="asmName" class="inp" maxlength="42" placeholder="Имя сборки" title="Необязательно: название сборки после печати">
+  <div class="meters">
+    <span class="meter" id="mCx" title="Сложность компонентов / лимит корпуса">Сложность <b>0/75</b></span>
+    <span class="meter" id="mSp" title="Место компонентов / лимит корпуса">Место <b>0/25</b></span>
+    <span class="meter muted" id="mMt" title="Металл на печать компонентов (без корпуса), см³">Металл <b>0</b></span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="simBtn" title="Запустить схему прямо здесь: кнопки, импульсы, значения на пинах">▶ Симуляция</button>
+    <button class="btn" id="undoBtn" title="Отменить (Ctrl+Z)">↶</button>
+    <button class="btn" id="redoBtn" title="Вернуть (Ctrl+Y)">↷</button>
+    <button class="btn" id="exBtn">Примеры</button>
+    <button class="btn" id="clearBtn">Очистить</button>
+  </div>
+</header>
+<nav class="tabs">
+  <button data-tab="pal">Блоки</button>
+  <button data-tab="board" class="cur">Поле</button>
+  <button data-tab="side">Код</button>
+</nav>
+<main>
+  <aside id="pal">
+    <div class="search">
+      <input id="q" class="inp" type="search" placeholder="Поиск компонента…" autocomplete="off">
+      <label class="chk"><input type="checkbox" id="onlyDefault"> Только без улучшения принтера</label>
+    </div>
+    <div id="cats"></div>
+  </aside>
+  <section id="board">
+    <div id="world"><svg id="wires"></svg></div>
+    <div class="empty" id="empty"><div><b>Перетащите блок из списка слева</b><br>или нажмите на него, чтобы добавить в центр поля.<br>Провода тянутся от кружка выхода к кружку входа.</div></div>
+    <div class="zoom">
+      <button class="btn" id="zOut" title="Отдалить">−</button>
+      <span class="lvl" id="zLvl">100%</span>
+      <button class="btn" id="zIn" title="Приблизить">+</button>
+      <button class="btn" id="zFit" title="Показать всю схему">⤢</button>
+    </div>
+  </section>
+  <aside id="side">
+    <div id="insp"></div>
+    <div id="codebox">
+      <div class="ch">
+        <b>Код для принтера</b>
+        <label class="muted"><input type="checkbox" id="pretty"> читаемо</label>
+        <button class="btn" id="importBtn" title="Вставить код из анализатора или чужой схемы">Вставить код…</button>
+        <button class="btn on" id="copyBtn">Копировать</button>
+      </div>
+      <textarea id="code" readonly spellcheck="false"></textarea>
+      <div id="status"></div>
+    </div>
+    <div id="simlog"></div>
+  </aside>
+</main>
+
+<div class="modal" id="importModal" hidden>
+  <div class="box">
+    <h2>Вставить код схемы</h2>
+    <div class="muted">Код из анализатора схем (Circuit Analyzer) или из этого конструктора. Текущая схема будет заменена — её можно вернуть через «Отменить».</div>
+    <textarea id="importText" class="inp" spellcheck="false" placeholder='{"assembly":{"type":"type-a electronic assembly"},"components":[…],"wires":[…]}'></textarea>
+    <div class="err" id="importErr"></div>
+    <div class="row"><button class="btn" data-close>Отмена</button><button class="btn on" id="importGo">Загрузить</button></div>
+  </div>
+</div>
+<div class="modal" id="exModal" hidden>
+  <div class="box">
+    <h2>Примеры схем</h2>
+    <div id="exList" style="display:grid;gap:8px"></div>
+    <div class="row"><button class="btn" data-close>Закрыть</button></div>
+  </div>
+</div>
+
+<script src="catalog.js"></script>
+<script src="sim.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

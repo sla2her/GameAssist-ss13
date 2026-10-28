@@ -30,10 +30,17 @@
   }
 }
 
+/* Непрозрачность фона (ползунок «Фон» в программе): только подложки, кнопки и текст остаются плотными */
+:root {
+  --bga: 1;
+  --bgT: color-mix(in srgb, var(--bg) calc(var(--bga) * 100%), transparent);
+}
+
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
+html { background: transparent; }
 body {
-  background: var(--bg); color: var(--text);
+  background: var(--bgT); color: var(--text);
   font: 13px/1.4 var(--font);
   overflow: hidden;
 }
@@ -88,10 +95,23 @@ html.nohost.compact:not(.mobile) #win {
 .compact .apptitle { margin-left: 6px; font-size: 12px; }
 .compact .apptitle small { display: none; }
 
+/* Прозрачность окна */
+.opacbox { position: relative; display: flex; }
+.opacpop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow);
+  white-space: nowrap; font-size: 12px; color: var(--muted);
+}
+.opacbox input[type="range"] { width: 130px; margin: 0; accent-color: var(--app, var(--focus)); }
+.opacval { min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
+.homefoot .opac { align-items: center; gap: 8px; }
+.homefoot .opac input[type="range"] { width: 110px; }
+
 /* ---------- Приложения ---------- */
 .stage { position: relative; flex: 1; min-height: 0; }
 .stage iframe {
-  position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--bg);
+  position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent;
   visibility: hidden; opacity: 0; transition: opacity .2s;
 }
 .stage iframe.on { visibility: visible; }
@@ -103,13 +123,14 @@ html.nohost.compact:not(.mobile) #win {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   padding: 16px;
   background:
-    radial-gradient(closest-side, color-mix(in srgb, var(--surface) 60%, transparent), transparent) center / min(900px, 140vmin) min(900px, 140vmin) no-repeat,
-    var(--bg);
+    radial-gradient(closest-side, color-mix(in srgb, var(--surface) calc(var(--bga) * 60%), transparent), transparent) center / min(900px, 140vmin) min(900px, 140vmin) no-repeat,
+    var(--bgT);
   transition: opacity .2s, visibility .2s;
 }
-.home.overlay { background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(6px); }
+.home.overlay { background: color-mix(in srgb, var(--bg) calc(var(--bga) * 78%), transparent); backdrop-filter: blur(6px); }
 .home.closed { opacity: 0; visibility: hidden; pointer-events: none; }
-.home.closed .radial { transform: scale(.92); }
+.home.closed .rstack { transform: scale(.92); }
+.rstack { transition: transform .25s var(--ease); }
 .homefoot {
   margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px;
   color: var(--faint); font-size: 12px; text-align: center;
@@ -118,13 +139,25 @@ html.nohost.compact:not(.mobile) #win {
 .compact .homefoot .keys { display: none; }
 .home.overlay .homefoot .credit { display: none; }
 
-/* Радиальное меню */
-.radial {
+/* Радиальное меню: первый круг — профессии, второй — приложения профессии поверх размытого первого */
+.rstack {
   --d: min(600px, 84vmin, calc(100vw - 32px));
   position: relative; width: var(--d); height: var(--d); flex: none;
-  transition: transform .25s var(--ease);
 }
-.compact .radial { --d: min(350px, calc(100vw - 24px), calc(100vh - 110px)); }
+.compact .rstack { --d: min(350px, calc(100vw - 24px), calc(100vh - 110px)); }
+.radial {
+  position: absolute; inset: 0;
+  transition: transform .3s var(--ease), filter .3s, opacity .3s, visibility .3s;
+}
+.radial.behind { filter: blur(7px) saturate(.8); opacity: .45; transform: scale(.9); }
+.radial.sub { opacity: 0; visibility: hidden; transform: scale(.6); }
+.radial.sub.on { opacity: 1; visibility: visible; transform: scale(.8); }
+.compact .radial.sub.on { transform: scale(.86); }
+.hub .hubico {
+  display: grid; place-items: center; width: 30%; height: 30%; border-radius: 50%;
+  color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent);
+}
+.hub .hubico svg { width: 58%; height: 58%; }
 .radial svg.ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .ring .track { fill: none; stroke: var(--line); stroke-width: .6; stroke-dasharray: 1.5 2.5; }
 .ring .sec { cursor: pointer; transition: transform .22s var(--ease); }
@@ -205,7 +238,7 @@ html.nohost.compact:not(.mobile) #win {
 .mobile .switch { overflow-x: auto; scrollbar-width: none; min-width: 0; }
 .mobile .homefoot .keys { display: none; }
 .phone #modeBtn, .phone .modepill { display: none; }
-.phone .radial { --d: min(390px, calc(100vw - 20px), calc(100vh - 90px)); }
+.phone .rstack { --d: min(390px, calc(100vw - 20px), calc(100vh - 90px)); }
 .mobile .lab .ico { min-width: 36px; min-height: 36px; }
 
 @media (prefers-reduced-motion: reduce) {

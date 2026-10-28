@@ -2,7 +2,7 @@
 // и отдаются по адресу https://pult.app/ (как в Пульт.exe), поэтому localStorage общий и постоянный,
 // а оболочка может подключать к приложениям стили и мост.
 // Мост window.PultAndroid: сохранение файлов (через системный диалог «Сохранить»), буфер обмена,
-// кнопки громкости для Инженера. Кнопка «Назад» — window.pultBack() в shell.js.
+// тактильная отдача, кнопки громкости для Инженера. Кнопка «Назад» — window.pultBack() в shell.js.
 package app.pult;
 
 import android.app.Activity;
@@ -12,9 +12,11 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Message;
 import android.util.Base64;
+import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -229,6 +231,20 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void setEngineerOpen(boolean open) { engineerOpen = open; }
+
+        // Тактильная отдача: tap — нажатие кнопки, switch — смена приложения или меню, tick — шаг Инженера.
+        // Системная настройка «Виброотклик при касании» соблюдается: выключена — вибрации нет.
+        @JavascriptInterface
+        public void haptic(final String kind) {
+            runOnUiThread(() -> web.performHapticFeedback(hapticConstant(kind)));
+        }
+    }
+
+    static int hapticConstant(String kind) {
+        if ("switch".equals(kind))
+            return Build.VERSION.SDK_INT >= 30 ? HapticFeedbackConstants.CONFIRM : HapticFeedbackConstants.VIRTUAL_KEY;
+        if ("tick".equals(kind)) return HapticFeedbackConstants.CLOCK_TICK;
+        return HapticFeedbackConstants.KEYBOARD_TAP;
     }
 
     // ---------- Кнопки ----------
@@ -245,8 +261,10 @@ public class MainActivity extends Activity {
     public boolean dispatchKeyEvent(KeyEvent e) {
         int k = e.getKeyCode();
         if (engineerOpen && (k == KeyEvent.KEYCODE_VOLUME_DOWN || k == KeyEvent.KEYCODE_VOLUME_UP)) {
-            if (e.getAction() == KeyEvent.ACTION_DOWN)
+            if (e.getAction() == KeyEvent.ACTION_DOWN) {
+                web.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
                 web.evaluateJavascript("pultEngineer('" + (k == KeyEvent.KEYCODE_VOLUME_DOWN ? "next" : "prev") + "')", null);
+            }
             return true;
         }
         return super.dispatchKeyEvent(e);
