@@ -9,7 +9,9 @@ $sync = Join-Path $root 'sync-apps.ps1' # по настоящему пути: о
 # Ссылка постоянная и переиспользуется (удалять её через Remove-Item нельзя — удалит содержимое).
 if ($root -match '[^\x00-\x7F]') {
     $link = Join-Path $env:LOCALAPPDATA 'pult-build-root'
-    if (-not (Test-Path $link)) { New-Item -ItemType Junction -Path $link -Target $root | Out-Null }
+    $cur = Get-Item $link -Force -ErrorAction SilentlyContinue
+    if ($cur -and "$($cur.Target)" -ne $root) { [IO.Directory]::Delete($link) } # папку проекта переместили: снимаем только ссылку
+    if (-not (Get-Item $link -Force -ErrorAction SilentlyContinue)) { New-Item -ItemType Junction -Path $link -Target $root | Out-Null }
     $root = $link
 }
 $android = Join-Path $root 'android'
@@ -67,7 +69,7 @@ $version = [int](Get-Date -Format 'yyMMddHH')
 & "$bt\aapt2.exe" compile --dir "$build\res" -o "$build\res.zip"; Check 'aapt2.exe'
 & "$bt\aapt2.exe" link -o "$build\base.apk" -I $androidJar --manifest (Join-Path $android 'AndroidManifest.xml') `
     --min-sdk-version 24 --target-sdk-version 34 `
-    --version-code $version --version-name '1.0.0' "$build\res.zip"; Check 'aapt2 link'
+    --version-code $version --version-name '0.0.3' "$build\res.zip"; Check 'aapt2 link'
 # Страницы добавляет jar: aapt2 -A на Windows пишет пути через «\», и Android их не находит
 & "$jdk\bin\jar.exe" --update --file "$build\base.apk" --no-manifest --no-compress -C $build assets; Check 'jar'
 
