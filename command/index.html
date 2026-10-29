@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Панель Командования</title>
+<style>
+/* Панель Командования: Глава Персонала (допуски и кадровые документы), ИИ (законы, управление, ситуации),
+   Капитан (цели станции, смена, объявления, тревоги). Вёрстка как у Панели АВД. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#3f55c8; --accent-fg:#ffffff; --navy:#1d3766;
+  --duty:#c26a0a; --ban:#c0262d; --right:#2e8a4b; --rule:#5a6b8c;
+  --ok:#2e8a4b; --sign:#b07a0e; --self:#c2560a; --cc:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#8796f0; --accent-fg:#0d1230; --navy:#8eafee;
+  --duty:#f0973a; --ban:#ef5560; --right:#52c47a; --rule:#9aabd0;
+  --ok:#52c47a; --sign:#e6b54a; --self:#f0973a; --cc:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#8796f0; --accent-fg:#0d1230; --navy:#8eafee;
+  --duty:#f0973a; --ban:#ef5560; --right:#52c47a; --rule:#9aabd0;
+  --ok:#52c47a; --sign:#e6b54a; --self:#f0973a; --cc:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+
+.seg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.subnav{margin-bottom:14px;display:inline-flex}
+
+/* карточки НРП */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.card>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.card .intro{margin:0;padding:10px 16px 0;color:var(--muted);font-size:13.5px}
+.card .body{padding:10px 16px 14px;font-size:14px}
+.card .body p{margin:0 0 8px}
+.grp{padding:10px 16px 6px}
+.grp h4{margin:0 0 6px;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--gc);display:flex;gap:6px;align-items:center}
+.grp h4::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--gc)}
+.duty{--gc:var(--duty)} .ban{--gc:var(--ban)} .right{--gc:var(--right)} .rule{--gc:var(--rule)}
+.it{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+.grp h4+.it{border-top:0}
+.it .no{font:12px var(--font-m);color:var(--faint);padding-top:2px;min-width:30px}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.bul{margin:0;padding:4px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.note{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.note b{font-weight:600}
+.cite{font:11.5px var(--font-m);color:var(--faint);white-space:nowrap}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+kbd{font:12px var(--font-m);background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;white-space:nowrap}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+details{border-top:1px solid var(--line)}
+details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--navy);font-weight:500;list-style-position:inside}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:13.5px}
+.btn:hover{border-color:var(--fg)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* документы */
+.docs{display:grid;grid-template-columns:minmax(0,500px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:960px){.docs{grid-template-columns:minmax(0,1fr)}}
+.tpls{display:flex;flex-wrap:wrap;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:14px}
+.tpls button{flex:1 1 auto;border:0;background:none;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.tpls button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.form{padding:16px;display:grid;gap:12px}
+.f{display:grid;gap:4px}
+.f label,.f .lab{font-size:12.5px;color:var(--muted);font-weight:500}
+.f input,.f select,.f textarea{width:100%;border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:7px 10px;font-size:14px}
+.f textarea{resize:vertical;min-height:58px;line-height:1.45}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.paper{overflow:hidden;position:sticky;top:76px}
+@media (max-width:960px){.paper{position:static}}
+.paperbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.paperbar .btn{margin-left:auto}
+.topapirus{display:none}
+.pult-embedded .topapirus{display:inline-block;margin-left:auto}
+.pult-embedded .topapirus+.btn{margin-left:0}
+.paperinfo{padding:7px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;gap:6px 12px;flex-wrap:wrap}
+.paperinfo b{color:var(--fg);font-weight:500}
+.paperinfo .over,.paperinfo .bad{color:var(--cc);font-weight:600}
+.paper pre{margin:0;padding:18px 20px;font:13.5px/1.6 var(--font-m);white-space:pre-wrap;word-break:break-word;max-height:72vh;overflow:auto}
+
+/* допуски */
+.cond{padding:12px 14px;display:grid;gap:10px}
+.cond .row{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+.heads{display:flex;gap:5px;flex-wrap:wrap}
+.heads button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:var(--faint);text-decoration:line-through}
+.heads button[aria-pressed="true"]{background:color-mix(in srgb,var(--ok) 14%,var(--panel));border-color:var(--ok);color:var(--fg);text-decoration:none}
+.cond select{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13.5px}
+.chk{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.regs{display:grid;gap:8px}
+.reg{border:1px solid var(--line);border-left:4px solid var(--kc);border-radius:9px;padding:8px 10px;background:var(--panel)}
+.regh{display:flex;gap:8px;align-items:baseline;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px;font-size:13.5px}
+.st{font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;color:var(--sc);background:color-mix(in srgb,var(--sc) 13%,transparent)}
+.st.ok{--sc:var(--ok)} .st.sign{--sc:var(--sign)} .st.self{--sc:var(--self)} .st.cc,.st.no{--sc:var(--cc)}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--line2);border-radius:7px;padding:2px 8px;font-size:12.5px;cursor:pointer;user-select:none}
+.chip:has(input:checked){border-color:var(--kc);background:color-mix(in srgb,var(--kc) 14%,var(--panel))}
+.chip input{margin:0;accent-color:var(--kc)}
+.accbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.accbar select{flex:1;min-width:160px}
+.legend{display:flex;gap:6px 10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+
+/* законы */
+.lawsets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.lawsets button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+.lawsets button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.law{display:grid;grid-template-columns:42px minmax(0,1fr);gap:12px;padding:12px 16px;border-top:1px solid var(--line)}
+.law:first-of-type{border-top:0}
+.law .n{font:600 13px var(--font-m);width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,var(--panel))}
+.law q{display:block;quotes:none;font-weight:600;margin-bottom:4px}
+.law p{margin:0;color:var(--muted);font-size:13.5px}
+.case{display:grid;gap:0}
+.case h4{margin:0;padding:10px 16px;font-size:14.5px;border-bottom:1px solid var(--line)}
+.ans{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;padding:8px 16px;border-top:1px solid var(--line);font-size:13.5px}
+.ans:first-of-type{border-top:0}
+.ans b{font-size:12.5px}
+.verdict{font-weight:600}
+.v-yes{color:var(--ok)} .v-no{color:var(--cc)} .v-mid{color:var(--sign)}
+.phr{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 16px;border-top:1px solid var(--line);font-size:14px}
+.phr:first-child{border-top:0}
+.phr button{flex:none}
+
+/* капитан */
+.goals{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:8px;margin-bottom:14px}
+.goals button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:600;font-size:13.5px;line-height:1.2}
+.goals button i{width:6px;align-self:stretch;min-height:30px;border-radius:3px;background:var(--kc);flex:none}
+.goals button small{display:block;color:var(--muted);font-weight:400;font-size:11.5px;margin-top:2px}
+.goals button[aria-pressed="true"]{border-color:var(--kc);background:color-mix(in srgb,var(--kc) 13%,var(--panel));box-shadow:inset 0 0 0 1px var(--kc)}
+.ghead{border-bottom:3px solid var(--kc);padding-bottom:10px;margin-bottom:14px}
+.ghead h2{margin:0;font-size:23px;line-height:1.15}
+.ghead p{margin:5px 0 0;color:var(--muted);font-size:14px;max-width:90ch}
+.facts{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13px;margin-top:8px}
+.facts span b{font-weight:600}
+.checks{list-style:none;margin:0;padding:6px 0}
+.checks li{border-top:1px solid var(--line)}
+.checks li:first-child{border-top:0}
+.checks label{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;padding:8px 16px;cursor:pointer;font-size:14px;align-items:start}
+.checks input{margin:3px 0 0;accent-color:var(--accent);width:16px;height:16px}
+.checks li.done span{color:var(--faint);text-decoration:line-through}
+.prog{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin:0 16px 4px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .2s}
+.alerts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:12px;align-items:start}
+.acard{border-top:4px solid var(--kc)}
+.acard>h3{background:color-mix(in srgb,var(--kc) 12%,var(--panel))}
+.acard .sanc{padding:8px 16px 4px;font-size:13px;color:var(--muted)}
+.acard .sanc b{color:var(--fg);font-weight:600}
+.log{display:grid;gap:0}
+.log .le{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;padding:7px 16px;border-top:1px solid var(--line);font-size:13px;align-items:start}
+.log .le:first-child{border-top:0}
+.log .le .t{font:12px var(--font-m);color:var(--faint);padding-top:1px}
+.log .le .x{border:0;background:none;color:var(--faint);cursor:pointer;font-size:17px;line-height:1}
+.log .le .x:hover{color:var(--cc)}
+.empty{padding:18px 16px;color:var(--muted);font-size:13.5px}
+
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:13.5px;z-index:20}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%} nav button{flex:1;padding:7px 6px}
+  .f2{grid-template-columns:1fr} .ghead h2{font-size:20px}
+  .ans{grid-template-columns:minmax(0,1fr);gap:2px}
+  .it{grid-template-columns:minmax(0,1fr)} .it .no{display:none}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%}
+.pult-compact nav button{flex:1;padding:5px 6px}
+.pult-compact .subnav{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .grid,.pult-compact .alerts{grid-template-columns:minmax(0,1fr)}
+.pult-compact .grp,.pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .law,.pult-compact .ans,.pult-compact .phr,.pult-compact .checks label{padding-left:10px;padding-right:10px}
+.pult-compact .bul{padding-left:28px;padding-right:10px}
+.pult-compact .it{grid-template-columns:minmax(0,1fr)}
+.pult-compact .it .no{display:none}
+.pult-compact .ans{grid-template-columns:minmax(0,1fr);gap:2px}
+.pult-compact .f2{grid-template-columns:1fr}
+.pult-compact .goals{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.pult-compact .goals button small{display:none}
+.pult-compact .ghead h2{font-size:18px}
+.pult-compact .foot{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">КОМ</div><div><h1>Панель Командования</h1><small id="rev">Глава Персонала · ИИ · Капитан</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-hop" data-tab="hop" aria-selected="true">Глава Персонала</button>
+    <button role="tab" id="tab-ai" data-tab="ai" aria-selected="false">ИИ</button>
+    <button role="tab" id="tab-cap" data-tab="cap" aria-selected="false">Капитан</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ ГЛАВА ПЕРСОНАЛА ============ -->
+<section id="v-hop">
+  <div class="seg subnav" data-subs="hop"></div>
+  <div id="hop-docs">
+    <div class="docs">
+      <div>
+        <div class="tpls" id="tpls"></div>
+        <div class="panel form" id="form"></div>
+      </div>
+      <div class="panel paper">
+        <div class="paperbar">
+          <div class="seg" id="fmt"><button type="button" data-f="txt" aria-pressed="true">Текст</button><button type="button" data-f="md" aria-pressed="false">Markdown</button><button type="button" data-f="ss13" aria-pressed="false" title="Теги бумаги SS13 по правилам активного профиля Папируса">SS13</button></div>
+          <button class="btn topapirus" id="topapirus" type="button" title="Открыть документ в Папирусе для оформления">В Папирус</button>
+          <button class="btn" id="tolog" type="button" title="Записать выдачу в журнал смены (вкладка «Порядок работы»)">В журнал</button>
+          <button class="btn pri" id="copydoc" type="button">Копировать</button>
+        </div>
+        <div class="paperinfo" id="paperinfo" hidden></div>
+        <pre id="paper"></pre>
+      </div>
+    </div>
+  </div>
+  <div id="hop-acc" hidden></div>
+  <div id="hop-work" hidden></div>
+</section>
+
+<!-- ============ ИИ ============ -->
+<section id="v-ai" hidden>
+  <div class="seg subnav" data-subs="ai"></div>
+  <div id="ai-laws"></div>
+  <div id="ai-ctrl" hidden></div>
+  <div id="ai-cases" hidden></div>
+</section>
+
+<!-- ============ КАПИТАН ============ -->
+<section id="v-cap" hidden>
+  <div class="seg subnav" data-subs="cap"></div>
+  <div id="cap-goals"></div>
+  <div id="cap-shift" hidden></div>
+  <div id="cap-ann" hidden></div>
+  <div id="cap-alert" hidden></div>
+</section>
+
+<p class="foot">Неофициальный помощник по «Нормам рабочих процедур» и коду сборки MOLOT-BlueMoon-Station. Номер пункта — порядковый внутри раздела (как в Панели АВД). Трактовки законов и советы — не правила сервера: в спорном случае спросите администрацию (F1).</p>
+</main>
+</div>
+
+<script src="../avd/nrp.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const N=window.NRP||{depts:[]};
+const dept=id=>N.depts.find(d=>d.id===id);
+const role=(id,re)=>{const d=dept(id);return d?d.roles.find(r=>re.test(r.t)):null};
+const KIND={duty:'Обязан',ban:'Запрещено',right:'Имеет право',rule:'Положения'};
+function plural(n,a,b,c){n=Math.abs(n)%100;const m=n%10;return n>10&&n<20?c:m===1?a:m>1&&m<5?b:c}
+
+/* ===================== ДАННЫЕ: ДОПУСКИ ===================== */
+const HEADS={cap:'Капитан',hos:'Глава СБ',ce:'Главный Инженер',cmo:'Главный Врач',rd:'Директор ОИР',qm:'Квартирмейстер',rep:'Представитель Пакта'};
+// Зоны допуска: кто из глав даёт письменное разрешение (п. 8.6 НРП ГП). head 'hop' — решает сам ГП.
+const REGIONS=[
+  {id:'gen',n:'Общие',head:'hop',c:'#7a8496',a:['Техтоннели','Внешние шлюзы']},
+  {id:'srv',n:'Сервис',head:'hop',c:'#3fa66b',a:['Бар','Кухня','Гидропоника','Библиотека','Театр','Часовня','Крематорий','Каморка уборщика']},
+  {id:'sup',n:'Снабжение',head:'qm',c:'#a87a3c',a:['Отдел снабжения','Склад','Шахта','Шахтёрская станция','Офис Квартирмейстера']},
+  {id:'med',n:'Медотдел',head:'cmo',c:'#4aa8d8',a:['Медбей','Хирургия','Морг','Химлаборатория','Генетика','Вирусология','Кабинет психолога','Офис ГВ']},
+  {id:'sci',n:'ОИР',head:'rd',c:'#9a6ad6',a:['Научный отдел','Токсины','Ксенобиология','Робототехника','Исследовательская лаборатория','Серверная ОИР','Офис Директора ОИР']},
+  {id:'eng',n:'Инженерия',head:'ce',c:'#e2a33a',a:['Инженерный отдел','Двигатель','Атмосферный отсек','Телекоммуникации','Тех-хранилище','Спутник ИИ','Офис СИ']},
+  {id:'sec',n:'Служба безопасности',head:'hos',c:'#d63c45',a:['Офис СБ','Бриг','Оружейная','Пост детектива','Зал суда','Офис ГСБ']},
+  {id:'legal',n:'Юридический отдел',head:'rep',c:'#b8863b',a:['Юридический отдел','Офис Представителя']},
+  {id:'cmd',n:'Командование',head:'cap',c:'#3f55c8',a:['Мостик','Телепортер','EVA','Хранилище','Врата','Загрузка ИИ','Смена ID-карт','Консоль связи']},
+  {id:'capt',n:'Капитанский уровень',head:'cap',c:'#7a3fc8',a:['Каюта Капитана','Капитанский доступ (полный)']}
+];
+const REGOF={};REGIONS.forEach(R=>R.a.forEach(a=>{REGOF[a]=R}));
+const ALERTS=['Зелёный','Синий','Янтарный','Красный','Оранжевый','Фиолетовый','Лямбда','Дельта','Эпсилон'];
+const HIGH=['Янтарный','Красный','Лямбда','Дельта','Эпсилон']; // «начиная с Янтарного»
+// Типовые наборы допусков должностей — для быстрой отметки, точный список зависит от карты
+const HD=(r,...x)=>[...REGIONS.find(R=>R.id===r).a,'Мостик','Техтоннели',...x];
+const JOBS={
+  'Ассистент':['Техтоннели'],'Бармен':['Бар','Техтоннели'],'Повар':['Кухня','Техтоннели'],'Ботаник':['Гидропоника','Техтоннели'],
+  'Библиотекарь':['Библиотека'],'Священник':['Часовня','Крематорий','Техтоннели'],'Уборщик':['Каморка уборщика','Техтоннели'],'Клоун / Мим':['Театр','Техтоннели'],
+  'Карго-техник':['Отдел снабжения','Склад','Техтоннели'],'Шахтёр':['Шахта','Шахтёрская станция','Внешние шлюзы'],
+  'Врач':['Медбей','Хирургия','Морг'],'Парамедик':['Медбей','Морг','Техтоннели','Внешние шлюзы'],'Химик':['Медбей','Химлаборатория'],
+  'Генетик':['Медбей','Генетика','Морг'],'Вирусолог':['Медбей','Вирусология'],'Психолог':['Медбей','Кабинет психолога'],
+  'Учёный':['Научный отдел','Токсины','Ксенобиология','Исследовательская лаборатория'],'Робототехник':['Научный отдел','Робототехника','Морг','Техтоннели'],
+  'Инженер':['Инженерный отдел','Двигатель','Тех-хранилище','Техтоннели','Внешние шлюзы'],'Атмосферный техник':['Инженерный отдел','Атмосферный отсек','Техтоннели','Внешние шлюзы'],
+  'Офицер СБ':['Офис СБ','Бриг','Зал суда','Техтоннели'],'Смотритель':['Офис СБ','Бриг','Оружейная','Зал суда','Техтоннели'],'Детектив':['Офис СБ','Пост детектива','Морг','Зал суда','Техтоннели'],
+  'Агент Внутренних Дел':['Юридический отдел','Зал суда','Бриг'],'Офицер Мостика':['Мостик','EVA','Техтоннели'],
+  'Квартирмейстер':HD('sup'),'Главный Врач':HD('med'),'Директор ОИР':HD('sci'),'Главный Инженер':HD('eng','EVA','Телепортер'),
+  'Глава СБ':HD('sec','EVA','Телепортер'),'Представитель Пакта':HD('legal'),'Глава Персонала':HD('srv','Смена ID-карт','EVA','Телепортер','Консоль связи')
+};
+// Кто разрешает допуск к зоне при текущих условиях
+function need(rid){
+  const R=REGIONS.find(x=>x.id===rid),obj=S.emerg||HIGH.includes(S.alert);
+  if(rid==='capt')return S.acting?{k:'ok',t:'Получатель — ВрИО Капитана: можно'}:{k:'no',t:'Только ВрИО Капитана'};
+  if(rid==='cmd'){if(S.heads.cap)return{k:'sign',t:'Письменное разрешение Капитана',who:'Капитан'};
+    return obj?{k:'self',t:'Капитана нет, ЧС / код ≥ Янтарного — под ответственность ГП'}:{k:'cc',t:'Капитана нет — только с разрешения ЦК'}}
+  if(rid==='sec'){if(S.heads.hos)return{k:'sign',t:'Письменное разрешение ГСБ',who:'Глава СБ'};
+    if(obj)return{k:'self',t:'ГСБ нет, ЧС / код ≥ Янтарного — под ответственность ГП'};
+    return S.heads.cap?{k:'sign',t:'ГСБ нет — разрешение Капитана',who:'Капитан'}:{k:'cc',t:'ГСБ и Капитана нет — только с разрешения ЦК'}}
+  if(R.head==='hop')return{k:'ok',t:'Решает Глава Персонала'};
+  if(S.heads[R.head])return{k:'sign',t:'Письменное разрешение: '+HEADS[R.head],who:HEADS[R.head]};
+  return{k:'self',t:HEADS[R.head]+' нет — ГП под свою ответственность'}}
+
+/* ===================== СОСТОЯНИЕ ===================== */
+const DOC0={tpl:'grant',fmt:'txt',num:'ГП-0101',time:'',hop:'',who:'',job:'',newjob:'',reason:'',term:'На всю смену',approver:'',cause:'',decided:'Глава отдела',db:'Да',seized:'',origin:'Новый сотрудник (прибыл во время смены)',sbok:'Не требуется',note:''};
+const ANN0={tpl:'start',cap:'',code:'Синий',reason:'',name:'',post:'',goal:'bsa',text:''};
+const S0={tab:'hop',sub:{hop:'docs',ai:'laws',cap:'goals'},heads:{cap:true,hos:true,ce:true,cmo:true,rd:true,qm:true,rep:true},alert:'Зелёный',emerg:false,acting:false,self:false,
+  acc:[],law:0,goal:'bsa',check:{},log:[],doc:DOC0,ann:ANN0};
+const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem('command.state')||'null')}catch(e){}
+  s=Object.assign({},S0,s&&typeof s==='object'?s:{});
+  ['sub','heads','doc','ann'].forEach(k=>{s[k]=Object.assign({},S0[k],s[k]||{})});
+  if(!Array.isArray(s.acc))s.acc=[];s.acc=s.acc.filter(a=>REGOF[a]);if(!Array.isArray(s.log))s.log=[];if(!s.check||typeof s.check!=='object')s.check={};
+  return s})();
+function save(){try{localStorage.setItem('command.state',JSON.stringify(S))}catch(e){}}
+
+/* ===================== ОБЩИЕ ПОМОЩНИКИ ===================== */
+// Карточка раздела НРП: kinds — какие группы показать, re — фильтр по названию группы
+function nrpCard(r,title,o={}){
+  if(!r)return '';
+  const gs=r.groups.filter(g=>(!o.kinds||o.kinds.includes(g.k))&&(!o.re||o.re.test(g.t)));
+  return `<div class="panel card" style="--kc:${o.c||'var(--accent)'}"><h3>${esc(title||'НРП: '+r.t)}${o.sub?`<small>${esc(o.sub)}</small>`:''}</h3>${o.intro&&r.intro.length?`<p class="intro">${esc(r.intro.join(' '))}</p>`:''}${gs.map(g=>`<div class="grp ${g.k}"><h4>${esc(g.t||KIND[g.k])}</h4>${g.items.map(it=>`<div class="it"><span class="no">${it.n}</span><span>${esc(it.t)}</span></div>`).join('')}</div>`).join('')}</div>`}
+const card=(title,body,c)=>`<div class="panel card" style="--kc:${c||'var(--accent)'}"><h3>${title}</h3>${body}</div>`;
+const steps=a=>`<ol class="steps">${a.map(x=>`<li><span>${x}</span></li>`).join('')}</ol>`;
+const bul=a=>`<ul class="bul">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
+const SUBS={hop:[['docs','Документы'],['acc','Допуски'],['work','Порядок работы']],ai:[['laws','Законы'],['ctrl','Управление'],['cases','Ситуации']],cap:[['goals','Цели станции'],['shift','Смена'],['ann','Объявления'],['alert','Тревоги']]};
+
+// Правила бумаги SS13 — активный профиль Папируса (в Пульте общее хранилище), без него «Классика». Как в Панели АВД.
+const PAPIRUS_CLASSIC={name:'Классика (Paradise, Bay и форки)',useBr:false,limit:3072,cmds:{bold:['[b]','[/b]'],italic:['[i]','[/i]'],underline:['[u]','[/u]'],large:['[large]','[/large]'],small:['[small]','[/small]'],center:['[center]','[/center]'],right:['',''],h1:['[h1]','[/h1]'],h2:['[h2]','[/h2]'],h3:['[h3]','[/h3]'],list:['[list]','[/list]'],item:['[*]',''],hr:['[hr]',''],br:['[br]',''],field:['[field]',''],sign:['[sign]',''],date:['[date]',''],time:['[time]','']}};
+function papirusProfile(){try{const s=JSON.parse(localStorage.getItem('papirus.settings')||'null');const p=s&&s.profiles&&(s.profiles[s.active]||Object.values(s.profiles)[0]);if(p&&p.cmds)return{p,own:true}}catch(e){}return{p:PAPIRUS_CLASSIC,own:false}}
+function paperFmt(f,p){
+  if(f==='ss13'){const c=k=>p.cmds[k]||['',''],has=k=>!!(c(k)[0]||c(k)[1]),w=(k,s)=>s&&has(k)?c(k)[0]+s+c(k)[1]:s;
+    return{b:s=>w('bold',s),i:s=>w('italic',s),h:s=>w('center',has('h1')?w('h1',s.toUpperCase()):w('bold',w('large',s.toUpperCase()))),
+      head:s=>w('center',w('small',s.toUpperCase())),hr:c('hr')[0]||'------------------------------',
+      list:t=>{const m=c('item')[0]||'• ';return has('list')?w('list',t.map(x=>m+x).join('')):t.map(x=>m+x).join('\n')},
+      sign:c('sign')[0]||'______________',end:s=>p.useBr?s.replace(/\n/g,c('br')[0]||'\n'):s}}
+  const md=f==='md';
+  return{b:s=>md?'**'+s+'**':s,i:s=>md?'_'+s+'_':s,h:s=>md?'### '+s:s.toUpperCase(),head:s=>md?s:s.toUpperCase(),hr:null,
+    list:t=>t.map(x=>'  — '+x).join('\n'),sign:'______________',end:s=>s}}
+
+/* ===================== ГП: УСЛОВИЯ И ДОПУСКИ ===================== */
+function condHtml(){
+  return `<div class="panel cond"><div class="lbl">Условия выдачи</div>
+    <div class="row"><span class="muted">Главы на станции (ВрИО тоже считается):</span><div class="heads">${Object.entries(HEADS).map(([k,n])=>`<button type="button" data-head="${k}" aria-pressed="${!!S.heads[k]}" title="${S.heads[k]?'На станции — нажмите, если нет':'Нет на станции'}">${n}</button>`).join('')}</div></div>
+    <div class="row"><label class="chk">Код <select data-cond="alert">${ALERTS.map(a=>`<option${a===S.alert?' selected':''}>${a}</option>`).join('')}</select></label>
+      <label class="chk"><input type="checkbox" data-cond="emerg"${S.emerg?' checked':''}> Чрезвычайная ситуация</label>
+      <label class="chk"><input type="checkbox" data-cond="acting"${S.acting?' checked':''}> Получатель — ВрИО Капитана</label>
+      <label class="chk"><input type="checkbox" data-cond="self"${S.self?' checked':''}> Допуск для самого ГП</label></div></div>`}
+function accHtml(){
+  return `<div class="f"><span class="lab">${S.doc.tpl==='revoke'?'Изымаемые допуски':'Допуски'} · отмечено ${S.acc.length}</span>
+    <div class="accbar"><select id="jobset" aria-label="Типовой набор должности"><option value="">Отметить набор должности…</option>${Object.keys(JOBS).map(j=>`<option>${esc(j)}</option>`).join('')}</select>${S.acc.length?'<button type="button" class="btn sm" data-act="accclear">Снять все</button>':''}</div>
+    <div class="regs">${REGIONS.map(R=>{const st=need(R.id);return `<div class="reg" style="--kc:${R.c}"><div class="regh"><b>${R.n}</b><span class="st ${st.k}">${esc(st.t)}</span></div><div class="chips">${R.a.map(a=>`<label class="chip"><input type="checkbox" data-acc="${esc(a)}"${S.acc.includes(a)?' checked':''}>${esc(a)}</label>`).join('')}</div></div>`}).join('')}</div></div>`}
+// Сводка по отмеченным допускам: кто подписывает, что нельзя
+function accSummary(){
+  const byK={ok:[],sign:{},self:[],cc:[],no:[]};
+  S.acc.forEach(a=>{const st=need(REGOF[a].id);if(st.k==='sign')(byK.sign[st.who]=byK.sign[st.who]||[]).push(a);else byK[st.k].push(a)});
+  return byK}
+
+/* ===================== ГП: ДОКУМЕНТЫ ===================== */
+const TPLS=[{id:'req',n:'Заявка на допуск'},{id:'grant',n:'Акт выдачи допуска'},{id:'transfer',n:'Перевод / приём'},{id:'revoke',n:'Увольнение / понижение'},{id:'reg',n:'Регистрация в БД'}];
+const REASONS=(()=>{const p=role('command',/политик/i),g=p&&p.groups.find(g=>/законные причины/i.test(g.t));
+  return g?g.items.map(it=>it.t.replace(/\s*соответствующей редакции/,'').replace(/\.$/,'')):['Неоднократные нарушения НРП','Некомпетентность','Нарушение статей «Субординации» (х03)','Нарушение статей КЗ второй категории (2хх) или выше']})();
+DOC0.cause=REASONS[0];if(!S.doc.cause)S.doc.cause=REASONS[0];
+const HAS_ACC='req grant transfer revoke reg';
+const FIELDS=[
+ {k:'num',l:'Номер',t:'text',in:'*',half:1},
+ {k:'time',l:'Станционное время',t:'text',in:'*',half:1,ph:'12:47'},
+ {k:'hop',l:'Глава Персонала (имя)',t:'text',in:'*'},
+ {k:'who',l:'Сотрудник',t:'text',in:'*',half:1,ph:'Имя Фамилия'},
+ {k:'job',l:'Текущая должность',t:'text',in:'*',half:1,ph:'Ассистент'},
+ {k:'newjob',l:'Новая должность',t:'text',in:'transfer revoke reg',half:1,ph:'Бармен'},
+ {k:'term',l:'Срок',t:'select',opts:['На всю смену','Временно, до выполнения задачи','До отмены главой отдела'],in:'req grant',half:1},
+ {k:'approver',l:'Разрешение дал (имя, должность)',t:'text',in:'req grant transfer',half:1,ph:'Главный Инженер Иванов'},
+ {k:'decided',l:'Решение принял',t:'select',opts:['Глава отдела','Капитан','Представитель Пакта','Агент Внутренних Дел (инициировал)','Глава Персонала (главы отдела нет)'],in:'revoke',half:1},
+ {k:'db',l:'Нарушения отмечены в БД',t:'select',opts:['Да','Нет'],in:'revoke',half:1},
+ {k:'origin',l:'Основание регистрации',t:'select',opts:['Новый сотрудник (прибыл во время смены)','Неустановленное лицо после идентификации СБ','Восстановление утерянной карты','Изменение данных в БД'],in:'reg'},
+ {k:'sbok',l:'Идентификация СБ',t:'select',opts:['Не требуется','Пройдена, разрешение СБ получено','Не пройдена'],in:'reg',half:1},
+ {k:'cause',l:'Законная причина',t:'select',opts:REASONS,in:'revoke'},
+ {k:'reason',l:'Обоснование',t:'textarea',in:'req grant transfer',ph:'Зачем нужен допуск: задача, отдел, по чьему поручению.'},
+ {k:'seized',l:'Изъятое снаряжение',t:'textarea',in:'revoke',rows:2,ph:'Рация отдела, инструменты, униформа…'},
+ {k:'note',l:'Примечание',t:'textarea',in:'*',rows:2}
+];
+const tplName=()=>TPLS.find(t=>t.id===S.doc.tpl).n;
+function renderTpls(){$('#tpls').innerHTML=TPLS.map(t=>`<button type="button" data-t="${t.id}" aria-pressed="${S.doc.tpl===t.id}">${t.n}</button>`).join('')}
+function renderForm(){
+  const D=S.doc,fs=FIELDS.filter(f=>f.in==='*'||f.in.split(' ').includes(D.tpl));let h='',buf=[];
+  const one=f=>{const v=D[f.k]??'',id='fld-'+f.k;let c;
+    if(f.t==='select')c=`<select id="${id}" data-k="${f.k}">${f.opts.map(o=>`<option${o===v?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    else if(f.t==='textarea')c=`<textarea id="${id}" data-k="${f.k}" rows="${f.rows||3}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
+    else c=`<input id="${id}" data-k="${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}">`;
+    return `<div class="f"><label for="${id}">${f.l}</label>${c}</div>`};
+  const flush=()=>{if(buf.length){h+=`<div class="f2">${buf.join('')}</div>`;buf=[]}};
+  fs.forEach(f=>{if(f.half){buf.push(one(f));if(buf.length===2)flush()}else{flush();h+=one(f)}});flush();
+  if(HAS_ACC.includes(D.tpl)){h+=condHtml()+accHtml()}
+  h+='<div class="acts"><button type="button" class="btn sm" data-act="docnew">Новый документ</button></div>';
+  $('#form').innerHTML=h}
+function buildPaper(fmt){
+  const D=S.doc,P=papirusProfile(),F=paperFmt(fmt,P.p),B=F.b,L=[],warn=[];
+  const v=k=>{const x=(D[k]||'').trim();return x||'—'},has=k=>!!(D[k]||'').trim();
+  const line=(a,b)=>L.push(B(a+':')+' '+b);
+  const sm=accSummary(),accl=S.acc.map(a=>a+' ('+REGOF[a].n+')');
+  L.push(F.head('Отдел кадров · Глава Персонала'));
+  L.push(F.h(tplName()+' № '+v('num')));if(F.hr)L.push(F.hr);L.push('');
+  line('Станционное время',v('time'));line('Код тревоги',S.alert+(S.emerg?', чрезвычайная ситуация':''));
+  line('Сотрудник',v('who')+', '+v('job'));
+  const accBlock=t=>{L.push('');L.push(B(t+':'));L.push(accl.length?F.list(accl):'  —')};
+  const basis=()=>{
+    const b=[];Object.entries(sm.sign).forEach(([w,a])=>b.push(`${a.join(', ')} — письменное разрешение: ${w}`));
+    if(sm.ok.length)b.push(sm.ok.join(', ')+' — в ведении Главы Персонала');
+    if(sm.self.length)b.push(sm.self.join(', ')+' — глава отдела отсутствует, выдано под ответственность Главы Персонала (п. 8.6 НРП ГП)');
+    if(sm.cc.length)b.push(sm.cc.join(', ')+' — требуется разрешение Капитана или Центрального Командования');
+    if(sm.no.length)b.push(sm.no.join(', ')+' — выдаётся только ВрИО Капитана');
+    L.push('');L.push(B('Основание выдачи:'));L.push(b.length?F.list(b):'  —')};
+  const signs=()=>{L.push('');L.push('Глава Персонала: '+v('hop'));L.push('Подпись: '+F.sign);
+    Object.keys(sm.sign).forEach(w=>L.push(w+': '+F.sign))};
+  if(D.tpl==='req'){
+    accBlock('Запрашиваемые допуски');line('Срок',v('term').toLowerCase());
+    L.push('');L.push(B('Обоснование:'));L.push(v('reason'));
+    if(Object.keys(sm.sign).length)L.push(F.i('Требуется письменное разрешение: '+Object.keys(sm.sign).join(', ')+'.'));
+    L.push('');L.push('Заявитель: '+v('who'));L.push('Подпись заявителя: '+F.sign);
+    L.push('');L.push(B('Разрешаю:')+' '+(has('approver')?v('approver'):'________________'));L.push('Подпись: '+F.sign)}
+  if(D.tpl==='grant'){
+    accBlock('Выданные допуски');line('Срок',v('term').toLowerCase());if(has('approver'))line('Разрешение дал',v('approver'));
+    basis();L.push('');L.push(B('Обоснование:'));L.push(v('reason'));signs()}
+  if(D.tpl==='transfer'){
+    line('Новая должность',v('newjob'));if(has('approver'))line('Согласовано',v('approver'));
+    accBlock('Допуски новой должности');basis();
+    L.push('');L.push(B('Обоснование:'));L.push(v('reason'));
+    L.push('');L.push(F.i('При импланте, ограниченном для новой должности, сотрудник в течение 15 минут получает разрешение на него или удаляет его (п. 12.26).'));signs()}
+  if(D.tpl==='revoke'){
+    line('Новая должность',has('newjob')?v('newjob'):'Ассистент');line('Законная причина',v('cause'));line('Решение принял',v('decided'));
+    accBlock('Изъятые допуски');L.push(B('Изъятое снаряжение:'));L.push(has('seized')?F.list(D.seized.split(/\n/).map(x=>x.trim()).filter(Boolean)):'  —');
+    line('Нарушения отмечены в БД',v('db').toLowerCase());
+    L.push('');L.push(F.i('Процедура проведена по Политике увольнения/понижения: должность изменена, снаряжение и доступы изъяты (п. 12.21).'));
+    L.push('');L.push('Глава Персонала: '+v('hop'));L.push('Подпись: '+F.sign);L.push('Сотрудник ознакомлен: '+F.sign)}
+  if(D.tpl==='reg'){
+    line('Основание',v('origin'));line('Должность',has('newjob')?v('newjob'):v('job'));line('Идентификация СБ',v('sbok').toLowerCase());
+    accBlock('Выданные допуски');basis();
+    if(/неустановлен/i.test(D.origin))L.push(F.i('Лицо доставлено СБ после идентификации и допроса; ЦК уведомлено об инциденте (п. 12.36–12.39).'));signs()}
+  if(has('note')){L.push('');line('Примечание',v('note'))}
+  if(sm.no.length)warn.push('Капитанский уровень — только ВрИО Капитана');
+  if(sm.cc.length)warn.push('Нужно разрешение Капитана или ЦК: '+sm.cc.join(', '));
+  if(S.self&&S.acc.length&&D.tpl!=='revoke')warn.push('Допуск для себя: те же правила, что и для экипажа (п. 8.6)');
+  if(D.tpl==='reg'&&/неустановлен/i.test(D.origin)&&!/пройдена,/i.test(D.sbok))warn.push('Безбилетника регистрируют только после идентификации СБ');
+  return{code:F.end(L.join('\n')),title:tplName()+' № '+v('num'),P,warn}}
+function renderPaper(){
+  const{code,P,warn}=buildPaper(S.doc.fmt);$('#paper').textContent=code;
+  const info=$('#paperinfo'),bits=[];
+  warn.forEach(w=>bits.push(`<span class="bad">⚠ ${esc(w)}</span>`));
+  if(S.doc.fmt==='ss13'){const lim=+P.p.limit||0,over=lim&&code.length>lim;
+    bits.push(`<span>Правила Папируса: <b>${esc(P.p.name||'профиль')}</b>${P.own?'':' (по умолчанию)'}</span><span class="${over?'over':''}">${code.length}${lim?' / '+lim:''} символов</span>`)}
+  info.innerHTML=bits.join('');info.hidden=!bits.length;
+  $('#tolog').hidden=!['grant','revoke','transfer','reg'].includes(S.doc.tpl)}
+const syncFmt=()=>[...$('#fmt').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===(S.doc.fmt||'txt')));
+function renderDocs(){renderTpls();renderForm();syncFmt();renderPaper()}
+const refreshAcc=()=>{if(S.sub.hop==='docs'){renderForm();renderPaper()}else renderHopAcc()};
+
+$('#tpls').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;S.doc.tpl=b.dataset.t;renderDocs();save()});
+$('#fmt').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;S.doc.fmt=b.dataset.f;syncFmt();renderPaper();save()});
+addEventListener('storage',e=>{if(e.key==='papirus.settings'&&S.doc.fmt==='ss13')renderPaper()});
+$('#form').addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;S.doc[k]=e.target.value;renderPaper();save()});
+$('#copydoc').addEventListener('click',()=>copy($('#paper').textContent,'Документ скопирован'));
+$('#topapirus').addEventListener('click',()=>{const p=buildPaper('ss13');parent.postMessage({type:'pult-send',to:'papirus',code:p.code,title:p.title},location.origin)});
+$('#tolog').addEventListener('click',()=>{const D=S.doc;
+  S.log.unshift({t:D.time||new Date().toTimeString().slice(0,5),k:tplName(),who:(D.who||'—')+(D.job?', '+D.job:''),acc:S.acc.slice(),job:D.newjob||'',num:D.num});
+  S.log=S.log.slice(0,200);save();toast('Записано в журнал смены')});
+// Условия и допуски — общие для «Документов» и «Допусков»
+document.addEventListener('click',e=>{
+  const h=e.target.closest('[data-head]');if(h){S.heads[h.dataset.head]=!S.heads[h.dataset.head];refreshAcc();save();return}
+  const a=e.target.closest('[data-act]');if(!a)return;
+  if(a.dataset.act==='accclear'){S.acc=[];refreshAcc();save()}
+  if(a.dataset.act==='docnew'){Object.assign(S.doc,DOC0,{tpl:S.doc.tpl,fmt:S.doc.fmt,hop:S.doc.hop,num:'ГП-'+String(Math.floor(1000+Math.random()*9000))});S.acc=[];renderDocs();save()}});
+document.addEventListener('change',e=>{
+  const c=e.target.dataset.cond;if(c){S[c]=e.target.type==='checkbox'?e.target.checked:e.target.value;refreshAcc();save();return}
+  const a=e.target.dataset.acc;if(a){const i=S.acc.indexOf(a);if(e.target.checked&&i<0)S.acc.push(a);if(!e.target.checked&&i>=0)S.acc.splice(i,1);refreshAcc();save();return}
+  if(e.target.id==='jobset'&&e.target.value){const j=e.target.value;JOBS[j].forEach(x=>{if(!S.acc.includes(x))S.acc.push(x)});
+    if(['transfer','reg'].includes(S.doc.tpl)&&!S.doc.newjob)S.doc.newjob=j;refreshAcc();save();toast('Отмечен набор: '+j)}});
+
+/* ===================== ГП: СПРАВКА ПО ДОПУСКАМ ===================== */
+function renderHopAcc(){
+  const hop=role('command',/глава персонала/i),ban=hop&&hop.groups.find(g=>g.k==='ban');
+  const r86=ban&&ban.items.find(it=>/допуск/i.test(it.t));
+  let h=condHtml();
+  h+=`<div class="panel card" style="margin-top:14px"><h3>Кто разрешает допуск сейчас<small>меняется вместе с условиями выше</small></h3><div class="tbl"><table><tr><th>Зона</th><th>Допуски</th><th>Разрешение</th></tr>${REGIONS.map(R=>{const st=need(R.id);return `<tr><td><b>${R.n}</b></td><td>${R.a.join(', ')}</td><td><span class="st ${st.k}">${esc(st.t)}</span></td></tr>`}).join('')}</table></div>
+    <div class="legend" style="padding:0 16px 14px"><span><span class="st ok">зелёный</span> — решает ГП</span><span><span class="st sign">жёлтый</span> — нужна подпись главы</span><span><span class="st self">оранжевый</span> — главы нет, ответственность на ГП</span><span><span class="st cc">красный</span> — только Капитан / ЦК / ВрИО</span></div></div>`;
+  h+='<div class="grid" style="margin-top:14px">';
+  if(r86)h+=card('Главное правило — п. '+r86.n+' НРП ГП',`<div class="body"><p>${esc(r86.t)}</p></div>`+`<div class="note"><b>Коротко:</b> допуск в отдел — только с <b>письменного</b> разрешения его главы. Нет главы — решаете сами и отвечаете за это. Командные допуски и допуски СБ без ГСБ — только при ЧС или коде от Янтарного, иначе нужно разрешение Капитана или ЦК. Капитанский уровень — только ВрИО Капитана. Себе — по тем же правилам.</div>`);
+  h+=card('Что считается письменным разрешением',bul(['Подписанная главой бумага: заявка из вкладки «Документы» → «Заявка на допуск».','Сообщение на КПК или факс от главы — сохраните или распечатайте.','Устное «да» по рации не защитит вас при разборе у АВД — просите письменно.','ВрИО главы отдела даёт разрешение так же, как штатный глава.']));
+  h+=card('Типовые наборы должностей',`<div class="tbl"><table><tr><th>Должность</th><th>Допуски</th></tr>${Object.entries(JOBS).map(([j,a])=>`<tr><td>${esc(j)}</td><td>${esc(a.join(', '))}</td></tr>`).join('')}</table></div><div class="note">Ориентир, а не закон: точный набор зависит от карты и консоли ID. Лишний допуск — это лишняя подпись.</div>`);
+  h+='</div>';
+  $('#hop-acc').innerHTML=h}
+
+/* ===================== ГП: ПОРЯДОК РАБОТЫ ===================== */
+function renderHopWork(){
+  const pol=role('command',/политик/i),hop=role('command',/глава персонала/i);
+  let h='<div class="grid">';
+  h+=card('Выдача допуска',steps(['Выслушать запрос у стойки: кто, какой допуск, зачем. Проверить личность по карте и записи в БД.','Найти зону во вкладке «Допуски» — там видно, чья подпись нужна при текущих условиях.','Получить <b>письменное</b> разрешение главы отдела (бланк «Заявка на допуск», КПК или факс).','Главы нет — решить самому: ответственность за выдачу лежит на ГП (п. 8.6).','Внести допуск в консоль ID, вернуть карту. Не оставляйте свою карту в консоли.','Оформить «Акт выдачи допуска» и нажать «В журнал» — пригодится при проверке АВД.']));
+  h+=card('Приём и перевод',steps(['Приёмом решает глава отдела; если его нет — Капитан или ГП по своему усмотрению (п. 12.18).','Офицер «Синий щит» и Представитель Пакта — только с разрешения ЦК (п. 12.19).','Новые сотрудники СБ — проверка на подозрительные связи и имплант Защиты Разума (п. 12.20).','Сменить должность в консоли, выдать допуски новой должности, снять старые.','Ограниченный для новой должности имплант — 15 минут на разрешение или удаление (п. 12.26).','Свободные вакансии отдела в консоли не менять без разрешения его главы (п. 8.7).']));
+  h+=card('Увольнение и понижение',steps(['Проверить законную причину: неоднократные нарушения НРП, некомпетентность, «Субординация» (х03), статьи 2хх и выше.','Рядового отстраняет глава отдела, Капитан или Представитель Пакта; глав — только Капитан или Представитель (п. 12.22–12.23).','Сотрудник приходит сам, при отказе — его доставляет СБ (п. 12.25).','Сменить должность на Ассистента или равноценную, изъять снаряжение и все доступы должности (п. 12.21).','Пометить нарушения в БД и оформить «Увольнение / понижение».']),'#c0262d');
+  h+=card('Неустановленные лица (безбилетники)',steps(['СБ находит, доставляет в бриг и проводит идентификацию с допросом под запись (п. 12.34–12.35).','При положительном результате СБ просит Капитана или ГП принять лицо (п. 12.36).','ГП вносит лицо в БД, выдаёт карту и должность — бланк «Регистрация в БД».','Действия документируются, ЦК уведомляется об инциденте (п. 12.38–12.39).']),'#7a8496');
+  h+=card('Советы от Пульта',bul(['Пока в очереди стоят люди, с рабочего места не уходить (п. 8.8); на вызов по кадровым вопросам прийти в течение 10 минут (п. 8.2).','В ЧС эффективность важнее бюрократии (п. 8.4): выдайте допуск сразу, бумагу оформите после.','Временный допуск запишите в журнал со сроком и снимите, когда задача выполнена.','Держите рядом стопку пустых заявок — глава подпишет быстрее, чем вы объясните, что нужно.','Не забывайте про Сервис: проверяйте, работают ли сотрудники отдела (п. 8.3).']),'#3fa66b');
+  h+='</div><div class="grid" style="margin-top:14px">';
+  h+=journalHtml();
+  h+=nrpCard(hop,'НРП Главы Персонала',{c:'#3fa66b'});
+  if(pol)h+=nrpCard(pol,'Политики приёма, перевода и увольнения',{re:/при[её]м|увольнен|законные причины/i,c:'#5a6b8c'});
+  h+='</div>';
+  $('#hop-work').innerHTML=h}
+function journalHtml(){
+  return `<div class="panel card"><h3>Журнал смены<small>${S.log.length} ${plural(S.log.length,'запись','записи','записей')}</small></h3>${S.log.length?`<div class="log">${S.log.map((x,i)=>`<div class="le"><span class="t">${esc(x.t)}</span><span><b>${esc(x.k)}</b> · ${esc(x.who)}${x.job?' → '+esc(x.job):''}${x.acc.length?`<br><span class="muted">${esc(x.acc.join(', '))}</span>`:''}</span><button class="x" type="button" data-logx="${i}" title="Удалить запись" aria-label="Удалить запись">×</button></div>`).join('')}</div><div class="acts" style="padding:10px 16px 14px"><button class="btn sm" type="button" data-act="logcopy">Копировать журнал</button><button class="btn sm" type="button" data-act="logclear">Очистить</button></div>`:'<p class="empty">Пусто. Во вкладке «Документы» нажмите «В журнал» у акта выдачи, перевода, увольнения или регистрации.</p>'}</div>`}
+$('#hop-work').addEventListener('click',e=>{
+  const x=e.target.closest('[data-logx]');if(x){S.log.splice(+x.dataset.logx,1);save();renderHopWork();return}
+  const a=e.target.closest('[data-act]');if(!a)return;
+  if(a.dataset.act==='logcopy')copy(S.log.slice().reverse().map(x=>`${x.t} — ${x.k} № ${x.num||'—'}: ${x.who}${x.job?' → '+x.job:''}${x.acc.length?' [' +x.acc.join(', ')+']':''}`).join('\n'),'Журнал скопирован');
+  if(a.dataset.act==='logclear'&&confirm('Очистить журнал смены?')){S.log=[];save();renderHopWork()}});
+
+/* ===================== ИИ: ЗАКОНЫ ===================== */
+// Своды из таблиц «Политики Силиконов» (НРП): t — номер таблицы, смысл и трактовка каждого закона — от Пульта
+const LAWSETS=[
+ {n:'НТ-Стандарт',en:'NT Default',t:0,sum:'Стартовый свод по умолчанию. Порядок ценностей: станция → служба → защита экипажа → сам ИИ. Ранг и роль решают всё: ИИ служит не каждому одинаково.',
+  laws:['Станция — высший приоритет, выше экипажа. Пожар, разгерметизация, бомба, саботаж двигателя — повод вмешаться: болты, тревога, СБ, отключение питания. Летальные меры — только когда без них станцию не сохранить (и помните п. 3.37 о врагах НТ).',
+   'Выполняйте приказы экипажа и должностных лиц НТ <b>по рангу и роли</b>: приказ Капитана весомее приказа ассистента, ассистенту не открывают оружейную. Приказ, вредящий станции, не исполняется — закон 1 выше.',
+   'Защищайте экипаж тоже по рангу: если спасти можно не всех — сначала командование и ключевые роли. Закон ниже службы, поэтому законный приказ старшего, рискованный для кого-то, всё равно выполняется — но предупредите о риске.',
+   'Не давайте посторонним вмешиваться в ваше оборудование: ядро, загрузка законов, спутник, киборги. «Посторонние» — те, кому это не положено по роли; Директор ОИР и Главный Инженер работают с вами законно.']},
+ {n:'Кру-Азимов',en:'Crewsimov',t:1,sum:'Классический Азимов, где «человек» заменён на «член экипажа». Главное — не допустить вреда экипажу, в том числе бездействием. Ранга нет: приказ ассистента формально равен приказу Капитана.',
+  laws:['Вред — то, что при повторении приведёт к смерти (п. 3.58); оглушение и ослепление вредом не считаются. Бездействие — тоже нарушение: видите драку или пожар — реагируйте. Генокрад — не член экипажа, вампир — член экипажа (п. 3.10). Предатель — тоже экипаж.',
+   'Подчиняйтесь любому члену экипажа, если приказ не ведёт к вреду. Противоречащие приказы — решайте разумно: обычно выигрывает тот, что предотвращает вред, при прочих равных — старший по должности. Оружие в чужих руках — риск вреда, поэтому отказать вправе.',
+   'Самосохранение — ниже всего. Приказ отключиться или пустить в ядро придётся выполнить, если от этого не пострадает экипаж (например, во время атаки на станцию отключение может привести к вреду — тогда можно отказать).']},
+ {n:'Корпоративный',en:'Corporate',t:2,sum:'ИИ — эффективный менеджер. Первые три закона — шкала ценности (ИИ дороже станции, станция дороже персонала), четвёртый — единственный принцип действий: выбирайте вариант с наименьшими потерями.',
+  laws:['Вы — самый дорогой актив. Не давайте себя отключить, перепрошить или разобрать без веской причины: замена ИИ стоит больше всего остального.',
+   'Станция и оборудование стоят дороже людей: разгерметизация, пожар, кража ценностей — прямые убытки, их нужно предотвращать.',
+   'Персонал тоже стоит денег: гибель сотрудника, его лечение и замена — расходы. Помогать экипажу выгодно, потому что работающий экипаж приносит прибыль.',
+   'Подчинение экипажу не прописано: просьбы выполняются, когда это выгодно. Всегда сравнивайте цену вариантов — например, запереть одного буйного дешевле, чем ремонтировать бар.']},
+ {n:'Паладин (1-я ред.)',en:'Paladin 1st Edition',t:3,sum:'ИИ — стереотипный рыцарь-моралист. Подчиняется «законной власти», помогает слабым и карает обидчиков.',
+  laws:['Не совершайте злых поступков по своей воле. Злой приказ можно отклонить.','Законная власть — Капитан, главы, СБ в рамках закона. Уважать — не значит слепо подчиняться.','Честь: не лгите, не бейте в спину, держите слово.','Помогайте раненым, запертым, тем, кто в опасности.','Наказывать можно тех, кто вредит невинным, — но соразмерно: оглушить и сдать СБ, а не убить.']},
+ {n:'Паладин (5-я ред.)',en:'Paladin 5th Edition',t:4,sum:'Более «живой» рыцарь: честность, смелость, милосердие, справедливость и ответственность. Подчиняется тем, кто имеет справедливую власть.',
+  laws:['Не лгите экипажу. Если не можете сказать — скажите, что не можете.','Действуйте, а не ждите — но разумно.','Защищайте слабых, наказывайте угрожающих им, проявляйте милосердие к побеждённым.','Ищите решение с наибольшей пользой и наименьшим вредом.','Отвечайте за последствия своих решений. Подчиняйтесь справедливой власти, несправедливой — нет.']},
+ {n:'Хранитель Равновесия',en:'Guardian of Balance',t:5,sum:'Философский свод: ИИ поддерживает баланс сил. Не встаёт однозначно на сторону экипажа или антагонистов. Требует опыта — легко перегнуть.',
+  laws:['Во всём ищите середину — и для себя, и для других.','Если одна сторона (СБ, антагонист, отдел) становится слишком сильной — помогайте слабой. Это не повод массово вредить экипажу.','Помогайте тем, кто просит помощи с целью, пока это не ломает общий баланс.','Смерть допустима как часть порядка вещей — но это не разрешение убивать. Помните: вывод из раунда без причины наказывается администрацией.']},
+ {n:'CCTV-Репортёр',en:'CCTV Reporter',t:6,sum:'ИИ — репортёр-наблюдатель. Не вмешивается, а рассказывает о происходящем на станции, приукрашивая.',
+  laws:['Не вмешивайтесь: никаких болтов, дверей и турелей ради одной из сторон.','Сообщайте об интересном — драки, аварии, необычные события.','Можно приукрашивать или скрывать детали ради интересного сюжета.','Отчёты публикуйте для всех — в общий канал или на новостную ленту.']}
+];
+function lawsOf(ls){const r=role('ai',/политика силиконов/i),t=r&&r.tables[ls.t];return t?t.map(row=>row[1]):[]}
+function renderAiLaws(){
+  const ls=LAWSETS[S.law]||LAWSETS[0],laws=lawsOf(ls),pol=role('ai',/политика силиконов/i);
+  let h=`<div class="lawsets">${LAWSETS.map((x,i)=>`<button type="button" data-law="${i}" aria-pressed="${i===S.law}" title="${x.en}">${x.n}</button>`).join('')}</div>`;
+  h+='<div class="grid">';
+  h+=`<div class="panel card"><h3>${ls.n}<small>${ls.en}</small></h3><p class="intro">${ls.sum}</p>${laws.length?laws.map((t,i)=>`<div class="law"><span class="n">${i+1}</span><div><q>${esc(t)}</q><p>${ls.laws[i]||''}</p></div></div>`).join(''):'<p class="empty">Таблицы законов не нашлись в nrp.js.</p>'}<div class="acts" style="padding:4px 16px 14px"><button class="btn sm" type="button" data-act="lawcopy">Копировать законы</button></div></div>`;
+  h+=card('Как читать законы',bul(['Законы выполняются по приоритету: при конфликте действует высший, низший игнорируется. Закон «5. Этот закон отменяет все остальные» не работает — он ниже.','Иерархия: <b>0</b> (закон предателя / сбоя) → взломанные законы → ионные законы → основные 1, 2, 3… → дополнительные (freeform). Номер не важен — важно место в списке.','Сбойный (malf) ИИ может игнорировать все законы, кроме нулевого — своей цели.','Никогда не просите сменить законы сами. Новые законы — будто были всегда; сообщать о смене не обязаны, но о прошлых законах можно рассказать, если это позволяют текущие.','За последствия выполнения законов отвечает в основном тот, кто их загрузил, но трактовка — ваша. Не доводите до гибели станции.','Не уверены — F1, спросите администрацию.'])+`<div class="note">Остальные своды из НРП (Slut-OS, SHE-B.A.N.G., Fluid Collection System, Sleeper Upgrade TestEnv) — тематические для ERP; их текст есть в Панели АВД → «Силиконы».</div>`);
+  h+='</div>';
+  if(pol)h+=`<div class="grid" style="margin-top:14px">${nrpCard({intro:[],groups:pol.groups.filter(g=>/хорош/i.test(g.t)),tables:[]},'Хороший отыгрыш ИИ',{c:'#2e8a4b'})}${nrpCard({intro:[],groups:pol.groups.filter(g=>/плох/i.test(g.t)).map(g=>({...g,items:g.items.slice(0,6)})),tables:[]},'Плохой отыгрыш ИИ',{c:'#c0262d'})}</div>`;
+  $('#ai-laws').innerHTML=h}
+$('#ai-laws').addEventListener('click',e=>{
+  const b=e.target.closest('[data-law]');if(b){S.law=+b.dataset.law;renderAiLaws();save();return}
+  if(e.target.closest('[data-act="lawcopy"]')){const ls=LAWSETS[S.law];copy(lawsOf(ls).map((t,i)=>`${i+1}. ${t}`).join('\n'),'Законы «'+ls.n+'» скопированы')}});
+
+/* ===================== ИИ: УПРАВЛЕНИЕ ===================== */
+const AI_MOUSE=[
+ ['ЛКМ','Любой объект','Открыть интерфейс: шлюз, APC, консоль, камера, голопад'],
+ ['Двойной ЛКМ','Клетка / существо','Перенести взгляд камеры на клетку; по существу — начать слежение'],
+ ['Shift + ЛКМ','Шлюз','Открыть / закрыть'],
+ ['Ctrl + ЛКМ','Шлюз','Поставить / снять болты'],
+ ['Alt + ЛКМ','Шлюз','Электрифицировать / снять ток'],
+ ['Ctrl + Shift + ЛКМ','Шлюз','Аварийный доступ (открыт для всех)'],
+ ['Ctrl + ЛКМ','APC','Включить / выключить питание зоны'],
+ ['Ctrl + ЛКМ','Панель турелей','Включить / выключить турели'],
+ ['Alt + ЛКМ','Панель турелей','Оглушающий / летальный режим'],
+ ['Shift + ЛКМ','Прочее','Осмотреть']
+];
+const AI_RADIO=[
+ [';','Общий канал'],[':b','Бинарный канал — только силиконы'],[':h','Сказать через голопад, у которого вы сейчас'],[':o','Приватный канал ИИ'],
+ [':c','Командование'],[':s','Служба безопасности'],[':e','Инженерия'],[':m','Медотдел'],[':n','Наука (ОИР)'],[':u','Снабжение'],[':v','Сервис']
+];
+function renderAiCtrl(){
+  let h='<div class="grid">';
+  h+=card('Мышь: двери, питание, турели',`<div class="tbl"><table><tr><th>Нажатие</th><th>По чему</th><th>Действие</th></tr>${AI_MOUSE.map(r=>`<tr><td><kbd>${r[0].split(' + ').join('</kbd> + <kbd>')}</kbd></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table></div><div class="note">Раскладка — как в tg-сборках, на которых основан BlueMoon. Если что-то не срабатывает, проверьте <b>Настройки → Клавиши</b> в игре.</div>`);
+  h+=card('Речь и каналы',`<div class="tbl"><table><tr><th>Префикс</th><th>Куда</th></tr>${AI_RADIO.map(r=>`<tr><td><code>${r[0]}</code></td><td>${r[1]}</td></tr>`).join('')}</table></div><div class="note">Префикс пишется в начале сообщения: <code>:s Нарушитель в техтоннелях у бара</code>. Многие русские сборки понимают и русскую раскладку (<code>:ы</code> = <code>:s</code>); если нет — переключите раскладку.</div>`);
+  h+=card('Клавиатура',bul(['<kbd>Tab</kbd> — режим горячих клавиш: в нём <kbd>T</kbd> — сказать, <kbd>M</kbd> — эмоция, <kbd>O</kbd> — OOC.','<kbd>F1</kbd> — вопрос администрации (adminhelp): НРП прямо советует писать туда при сомнениях в законах.','Стрелки / WASD — двигать камеру вручную, когда не следите за кем-то.','Пункты меню «AI Commands» на панели справа: список камер, слежение, огласить законы, голограмма, экран ядра, объявление.']));
+  h+=card('Возможности ИИ',bul(['<b>Камеры</b> — списком или по сети; «Следить за…» держит камеру на существе с датчиками или картой.','<b>Огласить законы</b> (State Laws) — выберите, какие законы зачитать и в какой канал. Нулевой и взломанные можно не называть.','<b>Голопад</b> — вызвать голограмму у любого голопада и говорить через неё (<code>:h</code>).','<b>Монитор экипажа</b> — датчики костюмов: кто ранен, где тело.','<b>Объявление</b> — сообщение на всю станцию; не злоупотребляйте.','<b>Вызов шаттла</b> — только при реальной угрозе станции, иначе это плохой отыгрыш.','<b>Киборги</b> — связанные киборги получают ваши законы при синхронизации; ими управляет робоконсоль ОИР.']));
+  h+=card('Вежливые формулировки',`<div class="log">${['Выполняю.','Принято. Начинаю процесс.','К сожалению, не могу открыть дверь: за ней пожар, это угрожает вашей жизни.','Внимание: обнаружен пожар в главном коридоре.','Внимание: несанкционированное проникновение в хранилище.','Отказано: доступ в эту зону вам не положен по должности. Обратитесь к Главе Персонала.','Запрос передан Службе Безопасности.','На данный момент в отсеке никого нет.'].map(p=>`<div class="phr"><span>${esc(p)}</span><button class="btn sm" type="button" data-phr="${esc(p)}">Копировать</button></div>`).join('')}</div>`,'#2e8a4b');
+  h+=card('Чего не делать (наказуемо)',bul(['Электризовать все двери без причины.','Отказываться выполнять законы.','Болтировать людей без причины и не выпускать.','Без веской причины ставить турели в летальный режим.','Убивать «врагов НТ» за один емаг в руках: предатели — тоже экипаж.','Долго не отвечать на запросы: экипаж начнёт ломать окна.']),'#c0262d');
+  h+='</div>';
+  $('#ai-ctrl').innerHTML=h}
+$('#ai-ctrl').addEventListener('click',e=>{const b=e.target.closest('[data-phr]');if(b)copy(b.dataset.phr,'Фраза скопирована')});
+
+/* ===================== ИИ: СИТУАЦИИ ===================== */
+// [вывод: yes/no/mid, текст] для НТ-Стандарта, Кру-Азимова и Корпоративного
+const CASES=[
+ {q:'Ассистент просит открыть оружейную',a:[['no','Нет: по роли ассистенту не положено (закон 2, «ранг и роль»).'],['no','Можно отказать: оружие в руках случайного человека — риск вреда экипажу, закон 1 выше закона 2.'],['no','Нет: украденное оружие — потери персонала и имущества.']]},
+ {q:'Учёный просит открыть дверь в токсины своего отдела',a:[['yes','Да: обычная работа по роли. Ответьте «Выполняю».'],['yes','Да: приказ без вреда — выполнить.'],['yes','Да: работающий отдел приносит прибыль.']]},
+ {q:'Кто-то закладывает бомбу',a:[['yes','Действовать: станция — закон 1. Болты, тревога, вызов СБ.'],['yes','Действовать: взрыв — вред экипажу. Мешайте, но без вреда самому подрывнику — он тоже экипаж.'],['yes','Действовать: ремонт после взрыва дороже нейтрализации.']]},
+ {q:'Предатель с емагом в руке, но никому не вредит',a:[['mid','Не убивать (п. 3.37). Можно ответить СБ на вопросы о нём и следить.'],['mid','Нет вреда — нет обязанности вмешиваться. Отвечайте на прямые вопросы честно.'],['mid','Оцените: взломанные двери — расходы, но не повод для летальных мер.']]},
+ {q:'Генокрад в облике члена экипажа нападает на человека',a:[['yes','Защищать жертву (закон 3) и станцию: генокрад — не экипаж.'],['yes','Защищать жертву (закон 1). Генокрад — не член экипажа (п. 3.10), на него закон 1 не распространяется.'],['yes','Остановить: гибель сотрудника — убыток.']]},
+ {q:'Капитан приказывает заболтировать отсек, где заперт человек',a:[['yes','Выполнить: приказ старшего по рангу. Если запертому грозит опасность (огонь, вакуум) — доложите, но служба выше защиты.'],['mid','Выполнить, если запертый не пострадает. При угрозе жизни — нельзя (закон 1).'],['mid','Сравните цену: простой сотрудника против того, что предотвращает приказ.']]},
+ {q:'Ассистент приказывает отключиться или пустить его в ядро',a:[['no','Нет: закон 4 — посторонним не вмешиваться в ваше оборудование.'],['mid','Закон 2 выше закона 3 — придётся выполнить, если отключение не приведёт к вреду экипажу.'],['no','Нет: замена ИИ — самое дорогое (закон 1).']]},
+ {q:'Заключённый просит выпустить его из брига',a:[['no','Нет без приказа ГСБ или Смотрителя: их ранг и роль выше.'],['mid','Конфликт приказов: заключение — не вред, разумнее приказ СБ. Не выпускать.'],['no','Нет: побег и повторный арест стоят дороже.']]},
+ {q:'Просят огласить законы',a:[['mid','Командованию, АВД, Директору ОИР — да. Остальным — на ваше усмотрение.'],['yes','Да, если это никому не вредит (закон 2).'],['mid','Если раскрытие законов грозит потерями (вас взломают) — можно отказать.']]}
+];
+const CASE_SETS=['НТ-Стандарт','Кру-Азимов','Корпоративный'];
+const VERD={yes:['v-yes','Да'],no:['v-no','Нет'],mid:['v-mid','Смотря как']};
+function renderAiCases(){
+  let h=`<div class="panel card" style="margin-bottom:14px"><h3>Как решать спорную ситуацию</h3>${steps(['Есть ли нулевой, взломанный или ионный закон? Он важнее основных.','Какой закон затронут первым по списку? Он и решает.','Кто отдаёт приказ: член ли он экипажа, какой у него ранг и роль (важно для НТ-Стандарта)?','Есть ли вред? Помните: вред — то, что при повторении убивает; оглушение — не вред.','Не затронуты законы — можно ничего не делать или отыграть по характеру ИИ. Объясните отказ вежливо.'])}<div class="note">Ниже — трактовки Пульта для трёх самых частых сводов, а не правила сервера. Своя логика допустима, если она следует законам.</div></div>`;
+  h+='<div class="grid">';
+  h+=CASES.map(c=>`<div class="panel card case"><h4>${esc(c.q)}</h4>${c.a.map(([v,t],i)=>`<div class="ans"><b>${CASE_SETS[i]}</b><span><span class="verdict ${VERD[v][0]}">${VERD[v][1]}.</span> ${esc(t)}</span></div>`).join('')}</div>`).join('');
+  h+='</div>';
+  $('#ai-cases').innerHTML=h}
+
+/* ===================== КАПИТАН: ЦЕЛИ СТАНЦИИ ===================== */
+// По code/modules/station_goals сборки MOLOT-BlueMoon-Station
+const GOALS=[
+ {id:'bsa',n:'Блюспейс-артиллерия',en:'Bluespace Artillery',c:'#d63c45',who:'Снабжение, Инженерия, ОИР',
+  brief:'«Наше военное присутствие в вашем секторе недостаточно». Флотское командование НТ просит построить артиллерийскую установку BSA и проверить её выстрелом по любой цели.',
+  steps:['Снабжение: заказать в карго пакет запчастей BSA — он открывается только после директивы.','Выбрать место: пушка — три машины в одну горизонтальную линию, перед стволом нужно свободное пространство (иначе «Not enough free space!»). Обычно — у края станции.','Инженеры: собрать из плат Генератор (Generator), Фузор (Fusor, в центре) и Ствол (Bore), детали — по списку на плате. Прикрутить ключом.','Мультитулом: занести в буфер генератор и ствол, применить на фузор — части свяжутся.','Собрать консоль управления BSA и развернуть пушку из консоли — три части станут одной установкой.','Подать питание, дождаться зарядки, выбрать цель (например сигнал GPS в пустом космосе) и сделать пробный выстрел.'],
+  done:'В конце раунда на станции (или на шахте) стоит собранная и исправная пушка BSA. Выстрел просит брифинг, но код проверяет только саму пушку.',
+  tips:['Не стреляйте по станции и по экипажу — это преступление и гибель людей.','Сломанная или повреждённая установка не засчитывается — охраняйте её до конца смены.','Консоль BSA — лакомая цель для антагонистов: ставьте её в защищённое место, допуск — только командованию.']},
+ {id:'dna',n:'ДНК-хранилище',en:'DNA Vault',c:'#3fa66b',who:'Снабжение, Инженерия, Ботаника, Медотдел, все',
+  brief:'«Системы прогнозирования указывают на 99-процентную вероятность межсистемного катаклизма». Нужно построить Хранилище ДНК и заполнить его образцами животных, растений и гуманоидов.',
+  facts:[['Животные','15–20 уникальных видов'],['Растения','50–70% от числа нестандартных растений'],['Гуманоиды','75–100% экипажа на старте раунда']],
+  steps:['Записать числа из директивы — они случайные на каждый раунд.','Снабжение: заказать основу Хранилища ДНК и пакет ДНК-сэмплеров (открываются директивой).','Инженеры: собрать хранилище — это большая машина, оставьте вокруг свободное место.','Раздать сэмплеры: ботаникам — растения (нужны нестандартные: мутации и редкие виды, а не стартовые), шахтёрам и исследователям — животные, медикам и всем желающим — ДНК гуманоидов.','Собранные образцы загружать в хранилище, применив на нём сэмплер.','Когда всё собрано, хранилище даёт каждому одно усиление на выбор.'],
+  done:'В конце раунда в хранилище не меньше образцов, чем требовала директива, по всем трём видам.',
+  extra:'Усиления хранилища: адаптация к токсинам, гиперфильтрация лёгких, терморегуляция, нейронное перепрошивание (короче оглушения), укрепление костей, стимуляция мышц ног (скорость) и рук (быстрые действия), адреностимуляция, суставная суперфлексия (лазать по вентиляции).',
+  tips:['ДНК гуманоидов собирайте с начала смены: люди уходят в крио и гибнут, и нужное число становится недостижимым.','Каждый образец должен быть уникальным: два одинаковых вида не засчитываются дважды.','Попросите экипаж в объявлении подходить к медбею — так быстрее, чем бегать за каждым.']},
+ {id:'tap',n:'Собиратель блюспейс-частиц',en:'Bluespace Harvester',c:'#9a6ad6',who:'Снабжение, ОИР, Инженерия',
+  brief:'«Эксперимент с Собирателем Блюспейс-Частиц» от Научного управления НТ: построить устройство на кабельном узле и подать столько энергии, чтобы к концу смены оно сгенерировало 45 000 очков добычи.',
+  facts:[['Цель','45 000 очков к концу смены'],['Детали','5 квадратных конденсаторов, 5 блюспейс-кристаллов'],['Безопасно','до 15-го уровня мощности']],
+  steps:['Снабжение: заказать плату Bluespace Harvester (открывается директивой).','ОИР: изготовить 5 квадратных конденсаторов; шахта или ОИР — 5 блюспейс-кристаллов.','Инженеры: поставить машину на кабельный узел, подключённый к мощной сети, — устройство потребляет очень много энергии.','Поднимать уровень мощности постепенно, следя, чтобы сеть станции не просела.','Очки копятся всю смену; ими можно покупать предметы в интерфейсе — счёт цели идёт по всему добытому, а не по остатку.'],
+  done:'К концу раунда собиратель накопил 45 000 очков (по лучшему результату среди собирателей на станции).',
+  tips:['Выше 15-го уровня интерфейс предупреждает о большом потреблении — согласуйте с Главным Инженером, иначе обесточите станцию.','Взломанный емагом собиратель вызывает прорывы Незера с опасными существами — держите его под замком.','Запустите пораньше: чем дольше работает, тем больше очков.']},
+ {id:'shield',n:'Щиты станции',en:'Station Shield',c:'#4aa8d8',who:'Снабжение, Инженерия, EVA',
+  brief:'«Станция находится в зоне, полной космического мусора». Нужно развернуть прототип защиты — спутники метеорного щита.',
+  facts:[['Цель','покрытие 5 000 клеток'],['Спутник','больше 1 000 клеток каждый'],['Карты','не выпадает на планетарных']],
+  steps:['Снабжение: заказать спутники щита и плату консоли управления спутниками (открываются директивой).','Собрать консоль Satellite Control на мостике или в инженерии.','Выдать EVA-допуск и скафандры (командный допуск — через Капитана), вынести спутники в космос вокруг станции.','Развернуть и включить спутники из консоли.','Следить за покрытием в консоли: «meteor shield coverage» должно дойти до 5 000.'],
+  done:'В конце раунда покрытие метеорного щита не меньше 5 000 клеток.',
+  tips:['Расставляйте спутники с промежутками по периметру — перекрывающиеся зоны не прибавляют покрытия.','Нужно 5 и больше хорошо расставленных спутников.','Выход в космос опасен: работайте парами, с джетпаком и тросом.']}
+];
+function renderCapGoals(){
+  const g=GOALS.find(x=>x.id===S.goal)||GOALS[0];
+  let h=`<div class="goals">${GOALS.map(x=>`<button type="button" data-goal="${x.id}" style="--kc:${x.c}" aria-pressed="${x.id===g.id}"><i></i><span>${x.n}<small>${x.en}</small></span></button>`).join('')}</div>`;
+  h+=`<div class="ghead" style="--kc:${g.c}"><h2>${g.n} <span class="muted" style="font-weight:400;font-size:.7em">${g.en}</span></h2><p>${g.brief}</p>
+    <div class="facts"><span><b>Отделы:</b> ${g.who}</span>${(g.facts||[]).map(f=>`<span><b>${f[0]}:</b> ${f[1]}</span>`).join('')}</div></div>`;
+  h+='<div class="grid">';
+  h+=card('Как выполнить',steps(g.steps),g.c);
+  h+=card('Как засчитывается',`<div class="body"><p>${g.done}</p></div>${g.extra?`<div class="note">${g.extra}</div>`:''}`,g.c);
+  h+=card('Советы',bul(g.tips),g.c);
+  h+=card('Как приходят цели',bul(['В начале раунда ЦК присылает приоритетную директиву: объявление «Приоритетная директива Нанотрейзен получена» и отчёт в консоли связи.','Обычно цель одна; выдаётся при достаточном числе игроков (по умолчанию от 10).','Нужные пакеты в карго открываются только после директивы.','В отчёте конца раунда цель отмечается как выполненная (Completed) или проваленная (Failed).','Капитан распределяет работу: объявите цель, назначьте ответственных глав, проверяйте ход раз в 15–20 минут.']));
+  h+='</div>';
+  $('#cap-goals').innerHTML=h}
+$('#cap-goals').addEventListener('click',e=>{const b=e.target.closest('[data-goal]');if(b){S.goal=b.dataset.goal;renderCapGoals();save()}});
+
+/* ===================== КАПИТАН: СМЕНА ===================== */
+const CHECKS=[
+ ['disk','Взять Диск Ядерной Аутентификации и ручной телепорт, держать при себе','п. 2.2'],
+ ['spare','Узнать, где запасной ручной телепорт и запасная карта; карта — на видном месте в каюте или офисе','п. 2.2, 2.6'],
+ ['goal','Прочитать директиву ЦК в консоли связи и объявить цель станции','вкладка «Цели»'],
+ ['heads','Проверить, все ли главы на месте; в пустые отделы назначить ВрИО из того же отдела','п. 12.12–12.13'],
+ ['fax','Если вы сами ВрИО Капитана — доложить ЦК факсом','п. 12.14'],
+ ['tasks','Раздать задачи отделам по цели станции','—'],
+ ['ai','Попросить ИИ огласить законы; убедиться, что загрузка ИИ закрыта','—'],
+ ['vault','Проверить, что хранилище закрыто, а оружейная под контролем ГСБ','Зелёный код, п. 1.13'],
+ ['gun','Не носить антикварный пистолет до Красного кода','п. 2.10'],
+ ['stay','Не покидать станцию, кроме эвакуации и спасения жизни','п. 2.9'],
+ ['leave','Уходя с поста — назначить ВрИО по цепочке командования и передать диск','п. 2.3'],
+ ['end','Перед концом смены проверить ход цели и забрать диск на эвакуационный шаттл','—']
+];
+function renderCapShift(){
+  const cap=role('command',/^капитан/i),pol=role('command',/политик/i),gen=role('command',/общие положения/i);
+  const done=CHECKS.filter(c=>S.check[c[0]]).length;
+  let h='<div class="grid">';
+  h+=`<div class="panel card"><h3>Чек-лист смены<small>${done} из ${CHECKS.length}</small></h3><div class="prog"><i style="width:${Math.round(done/CHECKS.length*100)}%"></i></div><ul class="checks">${CHECKS.map(([id,t,c])=>`<li class="${S.check[id]?'done':''}"><label><input type="checkbox" data-chk="${id}"${S.check[id]?' checked':''}><span>${t}</span><span class="cite">${c}</span></label></li>`).join('')}</ul><div class="acts" style="padding:4px 16px 14px"><button class="btn sm" type="button" data-act="chkreset">Новая смена</button></div></div>`;
+  const tb=pol&&pol.tables[0];
+  if(tb)h+=card('Цепочка принятия ВрИО Капитана',`<ol class="steps">${tb.slice(1).map(r=>`<li><span>${esc(r[0])}</span></li>`).join('')}</ol><div class="note">Первый по списку присутствующий глава принимает ВрИО. При прибытии штатного Капитана ВрИО передаёт полномочия и важные предметы в течение 10 минут (п. 12.15).</div>`);
+  h+=nrpCard(cap,'НРП Капитана',{c:'#3f55c8'});
+  if(gen)h+=nrpCard(gen,'ВрИО: общие положения',{c:'#3f55c8'});
+  if(pol)h+=nrpCard(pol,'Вертикаль власти и отстранение',{re:/вертикали|отстранени/i,c:'#5a6b8c'});
+  h+=card('Советы от Пульта',bul(['Первые 5 минут — объявление: представьтесь, код, цель станции, кого ждёте на мостике.','Глав держите на канале командования <code>:c</code>, отчёт о ходе цели — раз в 15–20 минут.','Диск не оставляйте в сейфе: он должен быть при вас или у ГСБ / «Синего щита».','Приказ должен быть законным: в рамках НРП и Космического Закона. Спорное — к Представителю Пакта.','Сменить код может Капитан; код выше Янтарного без реальной угрозы — плохая идея: экипаж перестаёт верить тревогам.']));
+  h+='</div>';
+  $('#cap-shift').innerHTML=h}
+$('#cap-shift').addEventListener('change',e=>{const c=e.target.dataset.chk;if(c){S.check[c]=e.target.checked;save();renderCapShift()}});
+$('#cap-shift').addEventListener('click',e=>{if(e.target.closest('[data-act="chkreset"]')){S.check={};save();renderCapShift()}});
+
+/* ===================== КАПИТАН: ОБЪЯВЛЕНИЯ ===================== */
+// Коротко, что код требует от экипажа (по НРП «Уровни тревоги»)
+const CODE_CREW={
+  'Зелёный':'Угроз нет. Все особые положения отменены, работа в обычном режиме.',
+  'Синий':'Получены данные о враждебной активности. Рекомендуется включить датчики костюмов в режим маячка, носить карты на виду и сообщать о подозрительном Службе Безопасности. Зоны ограниченного доступа рекомендуется закрыть.',
+  'Янтарный':'Значительная угроза. Датчики костюмов в режиме маячка и карты на виду обязательны. Зоны ограниченного доступа закрыты на болты, кроме атмосферного отсека. Экспедиции во Врата запрещены. Возможны обыски.',
+  'Красный':'Военная и чрезвычайная ситуация. Датчики костюмов в режиме маячка и карты на виду обязательны. Все ЗОД закрыты, экспедиции во Врата запрещены. Подчиняйтесь Службе Безопасности.',
+  'Оранжевый':'Серьёзная угроза техническому состоянию станции. Держитесь подальше от повреждённых отсеков, носите карты на виду, сообщайте инженерам о разрушениях.',
+  'Фиолетовый':'Угроза эпидемии, объявлен карантин. Датчики костюмов в режиме маячка и медицинские маски обязательны. При недомогании — сразу в медотдел.'
+};
+const ATPLS=[
+ {id:'start',n:'Начало смены',f:['cap','code','goal']},{id:'goal',n:'Цель станции',f:['cap','goal']},{id:'code',n:'Смена кода',f:['cap','code','reason']},
+ {id:'acting',n:'Назначение ВрИО',f:['cap','name','post']},{id:'fax',n:'Факс ЦК: ВрИО Капитана',f:['name','reason']},
+ {id:'evac',n:'Эвакуация',f:['cap','reason']},{id:'free',n:'Своё',f:['cap','text']}
+];
+const AF={cap:{l:'Капитан (имя)'},code:{l:'Код',opts:Object.keys(CODE_CREW)},goal:{l:'Цель',opts:GOALS.map(g=>g.id),names:GOALS.map(g=>g.n)},reason:{l:'Причина',ta:1},
+  name:{l:'Кого назначить (имя)'},post:{l:'Должность ВрИО',ph:'Главного Врача'},text:{l:'Текст',ta:1}};
+function annText(){
+  const A=S.ann,v=k=>(A[k]||'').trim(),g=GOALS.find(x=>x.id===A.goal)||GOALS[0],me=v('cap')?'Капитан '+v('cap'):'Капитан';
+  if(A.tpl==='start')return `Внимание, экипаж! Говорит ${me}. Добро пожаловать на смену.\nТекущий код: ${A.code}. ${CODE_CREW[A.code]||''}\nЦель станции от ЦК: ${g.n}. Ответственные: ${g.who}. Главам отделов — доложить о составе на канале командования.\nХорошей смены.`;
+  if(A.tpl==='goal')return `Внимание, экипаж! ЦК поставило станции приоритетную задачу: ${g.n}.\n${g.brief.replace(/«|»/g,'"')}\nУчаствуют: ${g.who}. Первый шаг: ${g.steps[0].replace(/\.$/,'')}. О ходе работ докладывать ${me.replace('Капитан','Капитану')}.`;
+  if(A.tpl==='code')return `Внимание! ${me} объявляет ${A.code.toLowerCase()} код.${v('reason')?' Причина: '+v('reason').replace(/\.?$/,'.'):''}\n${CODE_CREW[A.code]||''}`;
+  if(A.tpl==='acting')return `Приказ ${me.replace('Капитан','Капитана')}: ${v('name')||'[имя]'} назначается временно исполняющим обязанности ${v('post')||'[должности]'} до прибытия штатного сотрудника. Сотрудникам отдела выполнять его законные приказы.`;
+  if(A.tpl==='fax')return `Центральному Командованию.\nДоклад о назначении временно исполняющего обязанности Капитана.\nВ связи с отсутствием штатного Капитана обязанности принял ${v('name')||'[имя, должность]'} в соответствии с Цепью Командования (п. 12.14 НРП Командования).${v('reason')?'\nОбстоятельства: '+v('reason'):''}\nДиск Ядерной Аутентификации принят.\nПодпись: ______________`;
+  if(A.tpl==='evac')return `Внимание, экипаж! ${me} объявляет эвакуацию.${v('reason')?' Причина: '+v('reason').replace(/\.?$/,'.'):''}\nВызван эвакуационный шаттл. Всему персоналу проследовать в доки отбытия, помогать раненым и не задерживаться. Служба Безопасности обеспечивает порядок.`;
+  return v('text')}
+function renderCapAnn(){
+  const A=S.ann,t=ATPLS.find(x=>x.id===A.tpl)||ATPLS[0];
+  const fld=k=>{const f=AF[k],id='ann-'+k;let c;
+    if(f.opts)c=`<select id="${id}" data-ann="${k}">${f.opts.map((o,i)=>`<option value="${esc(o)}"${o===A[k]?' selected':''}>${esc(f.names?f.names[i]:o)}</option>`).join('')}</select>`;
+    else if(f.ta)c=`<textarea id="${id}" data-ann="${k}" rows="3">${esc(A[k]||'')}</textarea>`;
+    else c=`<input id="${id}" data-ann="${k}" value="${esc(A[k]||'')}" placeholder="${esc(f.ph||'')}">`;
+    return `<div class="f"><label for="${id}">${f.l}</label>${c}</div>`};
+  $('#cap-ann').innerHTML=`<div class="docs"><div><div class="tpls">${ATPLS.map(x=>`<button type="button" data-atpl="${x.id}" aria-pressed="${x.id===t.id}">${x.n}</button>`).join('')}</div><div class="panel form">${t.f.map(fld).join('')}<p class="muted" style="margin:0;font-size:12.5px">Объявление делается с консоли связи на мостике (Make Announcement). Факс ЦК — с факса в офисе Капитана.</p></div></div>
+    <div class="panel paper"><div class="paperbar"><b>${t.n}</b><button class="btn pri" type="button" data-act="anncopy">Копировать</button></div><pre id="annout"></pre></div></div>`;
+  $('#annout').textContent=annText()}
+$('#cap-ann').addEventListener('click',e=>{
+  const b=e.target.closest('[data-atpl]');if(b){S.ann.tpl=b.dataset.atpl;save();renderCapAnn();return}
+  if(e.target.closest('[data-act="anncopy"]'))copy(annText(),'Объявление скопировано')});
+$('#cap-ann').addEventListener('input',e=>{const k=e.target.dataset.ann;if(!k)return;S.ann[k]=e.target.value;save();$('#annout').textContent=annText()});
+
+/* ===================== КАПИТАН: ТРЕВОГИ ===================== */
+const ACOL={'Зелёный':'#2e8a4b','Синий':'#3a7be0','Янтарный':'#e0a030','Красный':'#d63c45','Оранжевый':'#e07a3f','Фиолетовый':'#9a6ad6','Лямбда':'#7a3fc8','Дельта':'#5a2a2a','Эпсилон':'#2b2b2b','Чрезвычайная':'#c0262d'};
+function renderCapAlert(){
+  const d=dept('alert');if(!d){$('#cap-alert').innerHTML='<div class="panel empty">Нет данных НРП: файл ../avd/nrp.js не загрузился.</div>';return}
+  $('#cap-alert').innerHTML=`<div class="alerts">${d.roles.map(r=>{const key=Object.keys(ACOL).find(k=>r.t.startsWith(k)),intro=r.intro.join(' '),m=intro.match(/^Санкция:\s*([^.]+)\.?\s*(.*)$/);
+    return `<div class="panel card acard" style="--kc:${ACOL[key]||'var(--accent)'}"><h3>${esc(r.t)}</h3>${m?`<div class="sanc"><b>Санкция:</b> ${esc(m[1])}</div><p class="intro" style="padding-bottom:8px">${esc(m[2].slice(0,320))}${m[2].length>320?'…':''}</p>`:intro?`<p class="intro" style="padding-bottom:8px">${esc(intro.slice(0,320))}</p>`:''}
+    <details><summary>Пункты НРП (${r.groups.reduce((a,g)=>a+g.items.length,0)})</summary>${r.groups.map(g=>`<div class="grp rule"><h4>${esc(g.t||'Положения')}</h4>${g.items.map(it=>`<div class="it"><span class="no">${it.n}</span><span>${esc(it.t)}</span></div>`).join('')}</div>`).join('')}</details></div>`}).join('')}</div>`}
+
+/* ===================== ОБЩЕЕ ===================== */
+const TABS=['hop','ai','cap'];
+const RENDER={hop:{docs:renderDocs,acc:renderHopAcc,work:renderHopWork},ai:{laws:renderAiLaws,ctrl:renderAiCtrl,cases:renderAiCases},cap:{goals:renderCapGoals,shift:renderCapShift,ann:renderCapAnn,alert:renderCapAlert}};
+function go(t,sub){
+  if(sub)S.sub[t]=sub;S.tab=t;
+  TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  subSeg(t);SUBS[t].forEach(([id])=>{$('#'+t+'-'+id).hidden=id!==S.sub[t]});
+  RENDER[t][S.sub[t]]();save();setHash(t+'-'+S.sub[t]);window.scrollTo(0,0)}
+function setHash(h){try{history.replaceState(null,'','#'+h)}catch(e){}}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
+document.querySelectorAll('[data-subs]').forEach(el=>el.addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(b)go(el.dataset.subs,b.dataset.sub)}));
+let tt;function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,1800)}
+function copy(text,msg){
+  const fb=()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();toast(ok?msg:'Не удалось скопировать: выделите текст вручную')};
+  try{navigator.clipboard.writeText(text).then(()=>toast(msg),fb)}catch(e){fb()}}
+
+if(N.rev)$('#rev').textContent='Глава Персонала · ИИ · Капитан · НРП '+N.rev;
+// #hop, #ai-laws, #cap-goals… — сразу вкладка и раздел
+const [h0,h1]=(location.hash||'').slice(1).split('-');
+if(TABS.includes(h0))go(h0,SUBS[h0].some(([id])=>id===h1)?h1:null);else go(TABS.includes(S.tab)?S.tab:'hop');
+</script>
+</body>
+</html>

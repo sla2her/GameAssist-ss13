@@ -50,4 +50,8 @@ Copy-Item (Join-Path $root 'circuits\*') $dst -Exclude '*.mjs'
 $dst = Join-Path $apps 'avd'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'avd\index.html'), (Join-Path $root 'avd\nrp.js') $dst
 
+# Панель Командования — живёт в Пульте (command\), базу НРП берёт у Панели АВД (..\avd\nrp.js)
+$dst = Join-Path $apps 'command'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'command\index.html') $dst
+
 "Приложения скопированы в $apps"

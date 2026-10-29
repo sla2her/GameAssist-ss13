@@ -1,5 +1,5 @@
 'use strict';
-// Пульт — оболочка для девяти приложений: стартовое радиальное меню, переключение приложений
+// Пульт — оболочка для десяти приложений: стартовое радиальное меню, переключение приложений
 // и два режима окна (компактный и расширенный). Работает в Пульт.exe, Пульт.apk и в браузере. Приложения открываются в iframe с того же
 // адреса, поэтому оболочка может подключить к ним стили компактного режима.
 
@@ -22,6 +22,7 @@ const ICONS = {
   back: '<path d="M15 5l-7 7 7 7"/>',
   scales: '<path d="M12 3v18M7 21h10M5 7h14"/><path d="M5 7 2 14a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/>',
   drop: '<path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/><path d="M12 20a6 6 0 0 0 6-6H6"/>',
+  crown: '<path d="M3 18h18"/><path d="M4 15 3 7l5 3.5L12 5l4 5.5L21 7l-1 8z"/>',
 };
 const svg = (name, extra = '') =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONS[name]}</svg>`;
@@ -47,7 +48,11 @@ const APPS = [
     src: 'apps/circuits/index.html', color: '#2fb5a5', icon: 'chip', hscroll: 'nav.tabs, .tools', css: false },
   { id: 'avd', name: 'Панель АВД', short: 'АВД', sub: 'Нарушения НРП', desc: 'НРП по отделам, рапорты и жалобы',
     src: 'apps/avd/index.html', color: '#b8863b', icon: 'scales', hscroll: 'nav, .roles, .tpls', css: false },
+  { id: 'command', name: 'Панель Командования', short: 'Командование', sub: 'ГП, ИИ, Капитан', desc: 'Допуски и кадры, законы ИИ, цели станции',
+    src: 'apps/command/index.html', color: '#5566d6', icon: 'crown', hscroll: 'nav, .subnav, .tpls, .lawsets', css: false },
 ];
+// Клавиша приложения: Alt+1…9, десятое — Alt+-
+const appKey = (i) => (i < 9 ? 'Alt+' + (i + 1) : i === 9 ? 'Alt+-' : '');
 APPS.forEach((a, i) => { a.angle = -90 + (i * 360) / APPS.length; });
 const byId = Object.fromEntries(APPS.map((a) => [a.id, a]));
 
@@ -57,6 +62,7 @@ const DEPTS = [
   { id: 'gen', name: 'Общее', sub: 'Для любой роли', color: '#5b8def', icon: 'badge', apps: ['papirus', 'character'] },
   { id: 'sec', name: 'Служба безопасности', short: 'СБ', sub: 'Закон и рапорты', color: '#d63c45', icon: 'shield', apps: ['brig'] },
   { id: 'law', name: 'Юридический отдел', short: 'Юр. отдел', sub: 'АВД и Представитель', color: '#b8863b', icon: 'scales', apps: ['avd'] },
+  { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5566d6', icon: 'crown', apps: ['command'] },
   { id: 'eng', name: 'Инженерия', sub: 'Двигатель, атмос, электрика', color: '#e2b33a', icon: 'wrench', apps: ['engineer'] },
   { id: 'sci', name: 'Наука', sub: 'Исследования и схемы', color: '#2fb5a5', icon: 'atom', apps: ['circuits'] },
   { id: 'med', name: 'Медицина', sub: 'Химия и фармацевтика', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod'] },
@@ -69,7 +75,7 @@ DEPTS.forEach((d) => {
   d.title = d.name + ': ' + d.desc;
   d.apps.forEach((id) => { deptOf[id] = d; });
 });
-APPS.forEach((a, i) => { a.title = `${a.name} — ${a.sub} (Alt+${i + 1})`; });
+APPS.forEach((a, i) => { a.title = `${a.name} — ${a.sub}` + (appKey(i) ? ` (${appKey(i)})` : ''); });
 
 const $ = (id) => document.getElementById(id);
 const root = document.documentElement;
@@ -334,7 +340,7 @@ function prepare(app, frame) {
 
 function buildSwitch() {
   $('switch').innerHTML = APPS.map((a, i) =>
-    `<button data-id="${a.id}" style="--c:${a.color}" title="${a.name} (Alt+${i + 1})" aria-label="${a.name}">${svg(a.icon)}</button>`).join('');
+    `<button data-id="${a.id}" style="--c:${a.color}" title="${a.name}${appKey(i) ? ` (${appKey(i)})` : ''}" aria-label="${a.name}">${svg(a.icon)}</button>`).join('');
   $('switch').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) open(b.dataset.id); });
   $('hubBtn').innerHTML = `<svg viewBox="-12 -12 24 24" aria-hidden="true">${logoArcs(9, 3)}</svg>`;
   $('hubBtn').addEventListener('click', toggleMenu);
@@ -444,6 +450,7 @@ function onKey(e) {
   const k = e.code;
   let handled = true;
   if (/^Digit[1-9]$/.test(k) && APPS[+k.slice(5) - 1]) open(APPS[+k.slice(5) - 1].id);
+  else if (k === 'Minus' && APPS[9]) open(APPS[9].id);
   else if (k === 'Digit0' || k === 'Backquote') toggleMenu();
   else if (k === 'KeyM') setMode(!compact);
   else if (k === 'KeyP' && !$('pinBtn').hidden) $('pinBtn').click();
