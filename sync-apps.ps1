@@ -54,4 +54,8 @@ Copy-Item (Join-Path $root 'avd\index.html'), (Join-Path $root 'avd\nrp.js') $ds
 $dst = Join-Path $apps 'command'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'command\index.html') $dst
 
+# Карго — живёт в Пульте (cargo\): майнеры, шахта, ивенты шаттла
+$dst = Join-Path $apps 'cargo'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'cargo\index.html') $dst
+
 "Приложения скопированы в $apps"

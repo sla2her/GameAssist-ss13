@@ -1,5 +1,5 @@
 'use strict';
-// Пульт — оболочка для тринадцати приложений: стартовое радиальное меню, переключение приложений
+// Пульт — оболочка для шестнадцати приложений: стартовое радиальное меню, переключение приложений
 // и два режима окна (компактный и расширенный). Работает в Пульт.exe, Пульт.apk и в браузере. Приложения открываются в iframe с того же
 // адреса, поэтому оболочка может подключить к ним стили компактного режима.
 
@@ -26,6 +26,10 @@ const ICONS = {
   idcard: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.5-1.3 1.6-2 3-2s2.5.7 3 2M14 9.5h4M14 12.5h4M14 15.5h2.5"/>',
   wind: '<path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/>',
   ai: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="9" cy="10.5" r="1.2"/><circle cx="15" cy="10.5" r="1.2"/><path d="M9.5 14h5"/>',
+  crate: '<path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/><path d="m7.5 5.2 9 4.6"/>',
+  gem: '<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12"/>',
+  pick: '<path d="M4 7c4-4 12-4 16 0"/><path d="M12 4.5 11 20a1 1 0 0 0 2 0z"/>',
+  shuttle: '<path d="M12 2c3 2.5 4.5 6 4.5 10v5h-9v-5C7.5 8 9 4.5 12 2z"/><path d="M7.5 13 4 16v3h3.5M16.5 13l3.5 3v3h-3.5"/><path d="M10 20.5h4"/><circle cx="12" cy="9" r="1.5"/>',
 };
 const svg = (name, extra = '') =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONS[name]}</svg>`;
@@ -62,6 +66,13 @@ const APPS = [
   // В конце списка, чтобы не сдвинуть Alt-клавиши остальных; своей клавиши нет
   { id: 'air', name: 'Как дышать 101', short: 'Атмос', sub: 'Воздух и газы', desc: 'Вернуть воздух в отсек, смешать и сварить газы',
     src: 'apps/engineer/index.html?only=air', color: '#7cc6e8', icon: 'wind', hscroll: '.toc', css: false },
+  // Карго — одна страница, ?only= оставляет в ней одну часть; своих клавиш нет
+  { id: 'miners', name: 'Майнеры', sub: 'БС- и криптомайнеры', desc: 'Установка, выработка, законность',
+    src: 'apps/cargo/index.html?only=miners', color: '#4f8fe0', icon: 'gem', hscroll: '.subnav', css: false },
+  { id: 'mine', name: 'Шахта', sub: 'Гайд шахтёра', desc: 'Снаряжение, автомат, фауна Лаваленда',
+    src: 'apps/cargo/index.html?only=mine', color: '#b5653a', icon: 'pick', hscroll: '.subnav, .chips', css: false },
+  { id: 'cargoev', name: 'Ивенты шаттла', short: 'Ивенты', sub: 'События снабжения', desc: 'Займ шаттла, капсулы, пираты, инспекция',
+    src: 'apps/cargo/index.html?only=events', color: '#d9a03a', icon: 'shuttle', hscroll: '.subnav', css: false },
 ];
 // Клавиша приложения: Alt+1…9, дальше — Alt+-, Alt+=, Alt+\
 const EXTRA_KEYS = [['Minus', '-'], ['Equal', '='], ['Backslash', '\\']];
@@ -80,6 +91,7 @@ const DEPTS = [
   { id: 'sci', name: 'Наука', sub: 'Исследования и схемы', color: '#2fb5a5', icon: 'atom', apps: ['circuits'] },
   { id: 'med', name: 'Медицина', sub: 'Химия и фармацевтика', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod'] },
   { id: 'srv', name: 'Сервис', sub: 'Повар и бармен', color: '#e07a3f', icon: 'cloche', apps: ['kitchen'] },
+  { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev'] },
 ];
 const byDept = Object.fromEntries(DEPTS.map((d) => [d.id, d]));
 const deptOf = {};

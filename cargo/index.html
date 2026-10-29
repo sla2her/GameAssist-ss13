@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карго</title>
+<style>
+/* Карго: майнеры (БС-майнер и криптомайнер), шахта (гайд, автомат, фауна Лаваленда), ивенты карго-шаттла.
+   Вёрстка как у Панели Командования. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#a8702a; --accent-fg:#ffffff; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#e0a356; --accent-fg:#241503; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#e0a356; --accent-fg:#241503; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.single nav{display:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)}
+
+.seg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.subnav{margin-bottom:14px;display:inline-flex}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.card>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.card .body{padding:10px 16px 14px;font-size:14px}
+.card .body p{margin:0 0 8px}
+.card .body p:last-child{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.bul{margin:0;padding:10px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.note{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.note.bad{--kc:var(--bad)} .note.ok{--kc:var(--ok)}
+.src{font:11.5px var(--font-m);color:var(--faint)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+kbd{font:12px var(--font-m);background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;white-space:nowrap}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+.wide{grid-column:1/-1}
+
+/* калькулятор */
+.calc{padding:14px 16px;display:grid;gap:12px}
+.ctl{display:flex;gap:8px 16px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+.ctl label{display:inline-flex;gap:8px;align-items:center}
+.ctl select,.ctl input[type=number]{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13.5px}
+.ctl input[type=number]{width:72px}
+.ctl input[type=range]{accent-color:var(--accent);width:160px}
+.chk{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.chk input{accent-color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--panel2)}
+.kpi b{display:block;font-size:20px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)} .kpi.warn b{color:var(--warn)} .kpi.ok b{color:var(--ok)}
+.phase{display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--line);font-size:11.5px;font-weight:600}
+.phase i{display:grid;place-items:center;font-style:normal;color:#fff;white-space:nowrap;overflow:hidden}
+.ph1{background:#5c9e5f} .ph2{background:#d39a2a} .ph3{background:#c0393f}
+
+/* фильтры */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chips button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+.chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.danger{display:inline-block;font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;color:var(--dc);background:color-mix(in srgb,var(--dc) 14%,transparent);white-space:nowrap}
+.d1{--dc:var(--ok)} .d2{--dc:var(--warn)} .d3{--dc:var(--bad)}
+.mob{display:grid;gap:0}
+.mob .row{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;padding:10px 16px;border-top:1px solid var(--line);font-size:14px}
+.mob .row:first-child{border-top:0}
+.mob .hd{display:flex;gap:6px 10px;align-items:baseline;flex-wrap:wrap}
+.mob .hd b{font-size:14.5px}
+.mob .hd small{color:var(--faint);font:12px var(--font-m)}
+.mob .st{font-size:12.5px;color:var(--muted)}
+.ev{border-top:4px solid var(--kc)}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%} nav button{flex:1;padding:7px 6px}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%}
+.pult-compact nav button{flex:1;padding:5px 6px}
+.pult-compact .subnav{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .grid{grid-template-columns:minmax(0,1fr)}
+.pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .calc,.pult-compact .tbl,.pult-compact .mob .row{padding-left:10px;padding-right:10px}
+.pult-compact .bul{padding-left:28px;padding-right:10px}
+.pult-compact .note{margin-left:10px;margin-right:10px}
+.pult-compact .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pult-compact .foot{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge" id="badge">КАР</div><div><h1 id="ttl">Карго</h1><small id="rev">Майнеры · Шахта · Ивенты шаттла</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-miners" data-tab="miners" aria-selected="true">Майнеры</button>
+    <button role="tab" id="tab-mine" data-tab="mine" aria-selected="false">Шахта</button>
+    <button role="tab" id="tab-events" data-tab="events" aria-selected="false">Ивенты шаттла</button>
+  </nav>
+</header>
+
+<main>
+<section id="v-miners">
+  <div class="seg subnav" data-subs="miners"></div>
+  <div id="miners-bsm"></div>
+  <div id="miners-calc" hidden></div>
+  <div id="miners-crypto" hidden></div>
+  <div id="miners-law" hidden></div>
+</section>
+
+<section id="v-mine" hidden>
+  <div class="seg subnav" data-subs="mine"></div>
+  <div id="mine-guide"></div>
+  <div id="mine-shop" hidden></div>
+  <div id="mine-fauna" hidden></div>
+</section>
+
+<section id="v-events" hidden>
+  <div class="seg subnav" data-subs="events"></div>
+  <div id="events-loan"></div>
+  <div id="events-other" hidden></div>
+</section>
+
+<p class="foot">Неофициальный помощник по коду сборки MOLOT-BlueMoon-Station (цифры — из кода и конфига <code>config/sandstorm/balance.txt</code>), НРП и Космическому закону. Конфиг на сервере может отличаться от репозитория. В спорном случае спросите администрацию (F1).</p>
+</main>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+// ?only=miners|mine|events — одна часть (так её открывает Пульт: три приложения во втором круге «Карго»).
+const PART=(()=>{const p=new URLSearchParams(location.search).get('only');return ['miners','mine','events'].includes(p)?p:null})();
+const KEY='cargo.state'+(PART?'.'+PART:'');
+const fmt=(n,d=1)=>{const r=Math.round(n*10**d)/10**d;return r.toLocaleString('ru-RU',{maximumFractionDigits:d})};
+
+const card=(title,body,c,cls='')=>`<div class="panel card ${cls}" style="--kc:${c||'var(--accent)'}"><h3>${title}</h3>${body}</div>`;
+const steps=a=>`<ol class="steps">${a.map(x=>`<li><span>${x}</span></li>`).join('')}</ol>`;
+const bul=a=>`<ul class="bul">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+const body=a=>`<div class="body">${(Array.isArray(a)?a:[a]).map(x=>`<p>${x}</p>`).join('')}</div>`;
+const note=(t,cls='')=>`<div class="note ${cls}">${t}</div>`;
+const tbl=(head,rows)=>`<div class="tbl"><table><thead><tr>${head.map(h=>`<th${h[0]==='#'?' class="n"':''}>${h.replace(/^#/,'')}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td${head[i][0]==='#'?' class="n"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+
+const C={bsm:'#4f8fe0',crypto:'#3fa66b',law:'#c0393f',mine:'#b5653a',fauna:'#d2492f',ev:'#d9a03a'};
+
+/* ===================== МАЙНЕРЫ: БС-МАЙНЕР ===================== */
+function renderBsm(){
+  let h='<div class="grid">';
+  h+=card('Что это',body([
+    '<b>Блюспейс-майнер</b> (bluespace mining machine) медленно «добывает» материалы из других миров прямо в привязанное <b>хранилище материалов</b> (ore silo). Работает от <b>ядра блюспейс-аномалии</b>, которое за смену изнашивается.',
+    'Потребление: 100 Вт в простое, <b>5 кВт</b> в работе. Каждый тик машин (2 с) кладёт в сило порцию одного случайного материала.',
+    'Чем сильнее износ ядра, тем выше <b>нестабильность</b>: из майнера сыплются случайности — от торта и гондолы до аномалий, метеорита и взрыва.']),C.bsm);
+  h+=card('Как получить',steps([
+    'ОИР изучает узел <b>Bluespace Mining Technology</b> (5 000 очков; нужны Practical Bluespace, Advanced Mining, Anomaly Research).',
+    'Печать платы <b>Machine Design (Bluespace Miner)</b> — в протолатах науки, карго или инженерии (раздел Production Machinery).',
+    'Детали на корпус: по <b>5</b> матер-бинов, микролазеров, манипуляторов и сканирующих модулей + <b>5 блюспейс-кристаллов</b>.',
+    'Ядро: <b>ядро блюспейс-аномалии</b> — остаётся после нейтрализации блюспейс-аномалии сигналером на её частоте (частоту показывает анализатор). Это работа ОИР.',
+    'Плата иногда попадается в «1k Surplus Crate» карго.']),C.bsm);
+  h+=card('Как установить',steps([
+    'Соберите машину из рамы: плата, детали, кристаллы. Поставьте там, где <b>температура −10…+10 °C</b> и <b>давление 51…151 кПа</b> — вне этих рамок ядро изнашивается вдвое быстрее (оба сразу — вчетверо).',
+    'Прикрутите к полу гаечным ключом (панель должна быть открыта отвёрткой), затем закройте панель.',
+    'Привяжите к хранилищу материалов: мультитулом по <b>сило</b> (запомнить), затем мультитулом по майнеру.',
+    'Вставьте ядро блюспейс-аномалии рукой в машину (1,5 с). Дайте питание — значок сменится на рабочий.',
+    'Осмотр (Examine) показывает: эффективность, добычу кристаллов, состояние ядра, термометр (синий — норма) и барометр (зелёный — норма).']),C.bsm);
+  h+=card('Обслуживание и ядро',bul([
+    'Ядро рассчитано на <b>~30 минут</b> работы (конфиг), в 5% секунд износа нет — фактически ~33 минуты в нормальной атмосфере.',
+    'При <b>≤50%</b> майнер пишет предупреждение в канал Науки, при <b>≤10%</b> — громко в общий канал и воет сиреной (повтор раз в минуту).',
+    'Извлечь ядро: открыть панель отвёрткой → <b>ломом</b> (2 с). Так можно вовремя снять ядро до опасной фазы.',
+    'Разборка ломом с открытой панелью; ядро выпадает. Стабилизатор (ядро не изнашивается) есть только у майнеров, поставленных на карте, — при разборке он теряется.',
+    'Работа без вреда для ядра невозможна: нужен свежий запас ядер от ОИР, иначе майнер встанет.',
+    'Майнер нагревает и охлаждает воздух вокруг себя (2% в секунду, ±25…180 °C на 1–3 клетках) — ставьте термостабилизацию и не держите рядом людей без нужды.']),C.bsm);
+  h+=card('Нестабильность ядра <small>события раз в 5 минут на каждый майнер</small>',
+    tbl(['Ядро','Угроза','Что бывает'],[
+      ['99–51%','<span class="danger d1">низкая</span>','Плюшка, ломтик торта, еда, напиток, шприц с наркотиком, пивная кега, гондола, звуки. «Объятия пустоты» даже чинят ядро на +100.'],
+      ['50–11%','<span class="danger d2">средняя</span>','Выбросы плазмы, азота, CO₂, пара, закиси азота; криогенный скачок −75…130 °C; вспышка как от флешки.'],
+      ['≤10%','<span class="danger d3">высокая</span>','Аномалии рядом (в т.ч. пространственный разрыв), шторм порталов, спавн мобов, <b>взрыв майнера</b> (2/4/5), <b>метеорит класса «Тунгуска»</b> по майнеру; редко — суперматериевый меч или пульс-разрушитель.']])
+    +note('Высокая угроза — это реальные разрушения отсека. Снимайте ядро до 10% или ставьте майнер подальше от людей и важных систем.','bad'),C.bsm);
+  h+=card('Блокировка всех майнеров',body([
+    'Через <b>устройство аутентификации ключ-картами</b> (две карты глав) есть событие «протоколы БС-майнеров»: оно останавливает все майнеры на уровне станции и объявляет «Остановка добычи ресурсов». Повторное событие снимает блокировку.',
+    'Пока блокировка включена, майнеры пишут при осмотре «Все майнеры на станции отключены; свяжитесь с командованием». Майнеры вне станции (например, на Лаваленде) блокировка не трогает.']),C.bsm);
+  h+='</div>';
+  $('#miners-bsm').innerHTML=h;
+}
+
+/* ===================== МАЙНЕРЫ: ВЫРАБОТКА ===================== */
+// ore_rates машины: доля от 1000 единиц на тик, умноженная на средний разряд деталей
+const ORES=[['Железо',0.05],['Стекло',0.05],['Серебро',0.025],['Титан',0.025],['Уран',0.025],['Пластик',0.025],['Золото',0.01],['Алмаз',0.01],['Плазма',0.01]];
+const CRYSTALS=[['Блюспейс-кристаллы',0.005],['Бананиум',0.005]];
+const TICK=2, SHEET=2000, CORE_MIN=30, NO_DMG=1-Math.pow(1-0.05,TICK); // DT_PROB(5%, 2 с)
+const TIERS=[[1,'Т1 — стандартные'],[2,'Т2 — продвинутые'],[3,'Т3 — супер / пико'],[4,'Т4 — блюспейс / фемто'],[5,'Т5 — атто / дарк-матер']];
+function renderCalc(){
+  const s=S.calc;
+  let h='<div class="grid">';
+  h+=`<div class="panel card wide" style="--kc:${C.bsm}"><h3>Калькулятор выработки БС-майнеров</h3><div class="calc">
+    <div class="ctl">
+      <label>Детали <select id="c-tier">${TIERS.map(([v,n])=>`<option value="${v}"${+s.tier===v?' selected':''}>${n}</option>`).join('')}</select></label>
+      <label>Майнеров <input type="range" id="c-n" min="1" max="12" value="${s.n}"><b id="c-nv">${s.n}</b></label>
+      <label class="chk"><input type="checkbox" id="c-t"${s.badT?' checked':''}>температура вне −10…+10 °C</label>
+      <label class="chk"><input type="checkbox" id="c-p"${s.badP?' checked':''}>давление вне 51…151 кПа</label>
+    </div>
+    <div id="c-out"></div></div></div>`;
+  h+=card('Как считается',bul([
+    'Эффективность = <b>средний разряд всех 20 деталей</b> (Т1…Т5) × множитель конфига (1). Смешанные детали дают среднее.',
+    'Каждые 2 с майнер выбирает <b>один случайный материал из списка</b> и кладёт <i>доля × 1000 × эффективность</i> единиц. Лист = 2000 единиц.',
+    'На Т5 (все детали 5-го разряда) в список добавляются блюспейс-кристаллы и бананиум — из-за этого остальные материалы выпадают чуть реже.',
+    'Майнеры <b>не мешают друг другу</b>: выработка растёт линейно, но и события нестабильности тоже — каждый майнер бросает своё событие раз в 5 минут.',
+    'Ядро: 30 мин по конфигу, 5% секунд без износа → ~33 мин; плохая температура или давление — ×2 к износу каждое.']),C.bsm);
+  h+=card('Сколько ставить',bul([
+    '<b>1–2 майнера</b> — спокойный фон для сило: события раз в 2,5–5 минут, почти все безвредные.',
+    '<b>3–5</b> — заметный приток, но события идут каждую минуту-полторы, а к концу жизни ядер — аномалии и взрывы. Нужен человек, который снимает ядра.',
+    '<b>6 и больше</b> — сило полнеет быстро, но станцию трясёт постоянно; высокая угроза от нескольких майнеров одновременно почти гарантирует разрушения.',
+    'Все майнеры работают от <b>ядер аномалий</b> — их число ограничивает количество майнеров сильнее, чем детали.',
+    'Любой майнер — повод для штрафа инспекции Солнечной Федерации (25 000 кр за штуку): см. «Законность».']),C.law);
+  h+='</div>';
+  $('#miners-calc').innerHTML=h;
+  const upd=()=>{
+    s.tier=+$('#c-tier').value;s.n=+$('#c-n').value;s.badT=$('#c-t').checked;s.badP=$('#c-p').checked;save();
+    $('#c-nv').textContent=s.n;
+    const list=s.tier>=5?ORES.concat(CRYSTALS):ORES;
+    const env=(s.badT?2:1)*(s.badP?2:1);
+    const life=CORE_MIN/(1-NO_DMG)/env; // минут
+    const perMin=r=>r*1000*s.tier*(60/TICK)/list.length/SHEET*s.n; // листов в минуту на всех
+    const total=list.reduce((a,[,r])=>a+perMin(r),0);
+    const tLow=life*0.01, tMid=life*0.50, tHigh=life*0.90; // моменты 99%, 50%, 10%
+    const evPer=Math.floor((life-tLow)/5)+1;
+    let o=`<div class="kpis">
+      <div class="kpi"><b>${fmt(total*60,0)}</b><span>листов в час на всех</span></div>
+      <div class="kpi"><b>${fmt(total*life,0)}</b><span>листов за жизнь ядер</span></div>
+      <div class="kpi ${env>1?'bad':''}"><b>${fmt(life,0)} мин</b><span>жизнь ядра${env>1?` (износ ×${env})`:''}</span></div>
+      <div class="kpi"><b>${fmt(5*s.n,0)} кВт</b><span>питание в работе</span></div>
+      <div class="kpi ${s.n>=3?'warn':''}"><b>~${evPer*s.n}</b><span>событий за жизнь ядер</span></div>
+      <div class="kpi ${s.tier>=5?'ok':''}"><b>${s.tier>=5?fmt(perMin(0.005)*60,1):'нет'}</b><span>блюспейс-кристаллов в час</span></div>
+    </div>
+    <div><div class="muted" style="font-size:12.5px;margin:6px 0 4px">Фазы одного ядра: низкая угроза с ~${fmt(tLow,1)} мин, средняя с ~${fmt(tMid,0)} мин, высокая с ~${fmt(tHigh,0)} мин, ядро разрушится на ~${fmt(life,0)} мин.</div>
+    <div class="phase"><i class="ph1" style="width:49%">низкая</i><i class="ph2" style="width:40%">средняя</i><i class="ph3" style="width:11%">выс.</i></div></div>`;
+    o+=tbl(['Материал','#Доля','#Листов/мин','#Листов/час','#За жизнь ядер'],list.map(([n,r])=>[n,fmt(r*100/ (list.reduce((a,x)=>a+x[1],0)),1)+'%',fmt(perMin(r),2),fmt(perMin(r)*60,1),fmt(perMin(r)*life,1)]));
+    $('#c-out').innerHTML=o;
+  };
+  ['#c-tier','#c-n','#c-t','#c-p'].forEach(id=>$(id).addEventListener('input',upd));
+  upd();
+}
+
+/* ===================== МАЙНЕРЫ: КРИПТОМАЙНЕР ===================== */
+function renderCrypto(){
+  const s=S.crypto;
+  let h='<div class="grid">';
+  h+=card('Что это',body([
+    '<b>Криптомайнер</b> (cryptocurrency miner) печатает кредиты прямо на привязанный счёт — по умолчанию в <b>бюджет Карго</b>. Плата: узел <b>Cryptocurrency Mining</b> (5 000 очков, после Bluespace Mining), раздел Cargo Machinery.',
+    'Детали: по 2 матер-бина, микролазера, манипулятора, сканирующих модуля + 2 блюспейс-кристалла. Разряд деталей на доход <b>не влияет</b>.',
+    '<b>Синдикатский</b> вариант (узел Illegal Cryptocurrency Mining, нужен Syndicate Basic) платит вдвое больше и не докладывает в канал снабжения. Платы обоих иногда лежат в «50k Surplus Crate».']),C.crypto);
+  h+=card('Как запустить',steps([
+    'Соберите машину, прикрутите ключом, дайте питание.',
+    'Нажмите рукой — майнер запускается (ещё раз — останавливается).',
+    'Сменить счёт: <b>выключить</b>, открыть панель отвёрткой, на интенте Help приложить ID с банковским счётом (5 с). Обычный майнер сразу сообщит в канал снабжения, что его перевели с бюджета Карго.',
+    'Alt+клик — сброс обратно на бюджет Карго (5 с).',
+    'Держите вокруг <b>холод</b>: −48…0 °C (225–273 K) — двойной доход. Без охлаждения майнер сам перегреется: каждый тик он греет воздух на своей клетке на +100 K.']),C.crypto);
+  h+=`<div class="panel card wide" style="--kc:${C.crypto}"><h3>Калькулятор дохода</h3><div class="calc">
+    <div class="ctl">
+      <label>Тип <select id="k-type"><option value="10"${s.pay==10?' selected':''}>обычный (10 кр)</option><option value="20"${s.pay==20?' selected':''}>Синдиката (20 кр)</option></select></label>
+      <label>Воздух <select id="k-zone"><option value="2"${s.zone==2?' selected':''}>225–273 K (−48…0 °C)</option><option value="1"${s.zone==1?' selected':''}>273–500 K (0…+227 °C)</option><option value="0"${s.zone==0?' selected':''}>≤225 K или ≥500 K</option></select></label>
+      <label>Майнеров <input type="number" id="k-n" min="1" max="20" value="${s.n}"></label>
+    </div><div id="k-out"></div></div></div>`;
+  h+=card('Тонкости',bul([
+    'Доход начисляется каждый тик машин (2 с): в холодной зоне выплата срабатывает дважды, в тёплой — один раз. Множители из конфига к сумме не применяются.',
+    'Ниже 225 K или выше 500 K майнер кричит «Критически … температура!» и <b>отключается</b>. В вакууме (космос) тоже выключается.',
+    'Каждая выплата помечает счёт как <b>«подозрительная активность»</b> — это видно в базе банковских счетов, даже у обычного майнера.',
+    'Тепло: один майнер в комнате прогревает её очень быстро. Ставьте на охлаждаемую клетку (морозильник, холодная труба) и не группируйте вплотную.',
+    'Потребление: 250 Вт простой, 500 Вт в работе (синдикатский 500/1000).']),C.crypto);
+  h+='</div>';
+  $('#miners-crypto').innerHTML=h;
+  const upd=()=>{
+    s.pay=+$('#k-type').value;s.zone=+$('#k-zone').value;s.n=Math.max(1,Math.min(20,+$('#k-n').value||1));save();
+    const perTick=s.pay*s.zone*s.n, perMin=perTick*30;
+    $('#k-out').innerHTML=s.zone?`<div class="kpis">
+      <div class="kpi"><b>${fmt(perTick,0)} кр</b><span>за тик (2 с)</span></div>
+      <div class="kpi ok"><b>${fmt(perMin,0)} кр</b><span>в минуту</span></div>
+      <div class="kpi ok"><b>${fmt(perMin*60,0)} кр</b><span>в час</span></div>
+      <div class="kpi bad"><b>${fmt(25000/perMin,1)} мин</b><span>окупить штраф инспекции за 1 майнер</span></div></div>`
+      :note('В этой зоне майнер отключается и ничего не платит.','bad');
+  };
+  ['#k-type','#k-zone','#k-n'].forEach(id=>$(id).addEventListener('input',upd));
+  upd();
+}
+
+/* ===================== МАЙНЕРЫ: ЗАКОННОСТЬ ===================== */
+function renderLaw(){
+  let h='<div class="grid">';
+  h+=card('Коротко',tbl(['Машина','Статус'],[
+    ['БС-майнер','<span class="danger d2">серо</span> — прямого запрета в НРП и КЗ нет, ставят с разрешения глав; инспекция Солнечной Федерации считает его незаконной добывающей установкой.'],
+    ['Криптомайнер НТ','<span class="danger d2">серо</span> — то же самое; деньги идут в бюджет Карго.'],
+    ['Криптомайнер Синдиката','<span class="danger d3">незаконно</span> — КЗ ст. 306 «Мошенничество» прямо называет «криптомайн-машину Синдиката».'],
+    ['Чужой майнер / без разрешения','<span class="danger d3">незаконно</span> — КЗ ст. 306: «эксплуатация или установка чужой машинерии без разрешения».'],
+    ['Перевод майнера на личный счёт','<span class="danger d3">незаконно</span> — присвоение средств станции (ст. 306), обычный майнер ещё и сам доложит в канал снабжения.']]),C.law);
+  h+=card('Как поставить законно',steps([
+    'Согласуйте с <b>Квартирмейстером</b> (бюджет и сило Карго) и <b>Директором ОИР</b> (ядра аномалий, плата). Для БС-майнера на станции — уведомите командование: оно может заблокировать майнеры ключ-картами.',
+    'Место: отсек своего отдела, не жилые зоны и не коридоры. Для БС-майнера — подальше от людей и критичных систем: высокая нестабильность разрушает отсек.',
+    'Криптомайнер — только на бюджет Карго. Никаких личных счетов.',
+    'Объявите в канал отдела, где стоят майнеры и кто за ними следит (снятие ядер, охлаждение).',
+    'При объявлении инспекции Солнечной Федерации решите с командованием: откуп или разборка майнеров до прибытия шаттла.']),C.law);
+  h+=card('Инспекция Солнечной Федерации <small>ивент «Проверка от Солнечной Федерации»</small>',bul([
+    'Может прийти в раундах Extended и Dynamic Light, не раньше <b>1 часа</b> смены, если живы хотя бы <b>2</b> грузчика или КМ.',
+    'Сначала на консоли связи приходит требование откупа: <b>max(25 000 кр, 80% бюджета Карго)</b> с округлением до 1000, на ответ <b>5 минут</b>. Заплатили — инспекции не будет; отказ, обман или молчание — летит шаттл.',
+    'Объявление: проверке подлежат <b>БС-майнеры, криптомайнеры</b>, боевые мехи и слиперы с управлением внутри. Инспекторы проверяют станцию, Лаваленд и ксеноархеологическую экспедицию.',
+    'За каждый найденный майнер — <b>25 000 кр с бюджета Карго</b> и изъятие машины (сканирование 10 с, выдаётся квитанция).',
+    'Инспекторам запрещено подставлять нарушения: если майнер собрал сам инспектор, штраф отменяется, а инспектора требуют арестовать за «Грандиозный саботаж».',
+    'Инспекторы — не враги станции: применять силу против них без причины нельзя, их оружие — для самозащиты.']),C.law);
+  h+=card('Источники',bul([
+    'Космический закон, ст. 306 (Терминал Брига в Пульте).',
+    'НРП: пунктов о майнерах нет; Шахтёрский корпус обязан сдавать в печь руду на 6 000 очков в час.',
+    'Код: <code>sol_inspection/scanner.dm</code>, <code>inspection.dm</code>, <code>keycard_authentication.dm</code>, <code>cryptominers.dm</code>.',
+    'Правила сервера могут меняться: при сомнении спросите администрацию.']),'#7a8496');
+  h+='</div>';
+  $('#miners-law').innerHTML=h;
+}
+
+/* ===================== ШАХТА: ГАЙД ===================== */
+const ORE_PTS=[['Железо','1'],['Стекло (песок)','1'],['Плазма','15'],['Серебро','16'],['Золото','18'],['Уран','30'],['Алмаз','50'],['Титан','50'],['Бананиум','60']];
+function renderGuide(){
+  let h='<div class="grid">';
+  h+=card('Начало смены',steps([
+    'В шкафчике шахтёра: комбинезон исследователя с капюшоном, противогаз исследователя, мезонные очки, кирка или дрель, сумка для руды, кинетический акселератор (КА), ручной сканер руды.',
+    'Возьмите баллон и противогаз: атмосфера Лаваленда <b>непригодна для дыхания</b>. Без капюшона и маски вы задохнётесь или сгорите.',
+    'Шахтёрский шаттл — с консоли у шахты. Прилетаете на базу шахтёров на Лаваленде.',
+    'Купите в автомате на стартовые очки: <b>Shelter Capsule</b> (400) от бурь, <b>Survival Medipen</b> (750) и при возможности <b>Kinetic Crusher</b> (750).',
+    'Отметьте путь маячками (Marker Beacon) и сохраните GPS-сигнал базы.']),C.mine);
+  h+=card('Как добывать',bul([
+    'Мезонные очки показывают стены и жилы сквозь темноту, сканер руды подсвечивает минералы рядом.',
+    'КА ломает породу на расстоянии и лучше всего работает в <b>низком давлении</b> — на Лаваленде отлично, на станции слабо.',
+    'Руду собирает сумка при ходьбе. Сдавайте её в <b>печь переработки</b> (ore redemption machine) — очки начисляются на ID, листы уходят в сило.',
+    'Лазер в печи повышает очки: <b>65% + 35% × разряд</b> (Т1 = 100%, Т4 = 205%), матер-бины — выход листов. Попросите улучшить печь у ОИР.',
+    'Резонатор (800) пробивает большие участки, отбойный молоток (Sonic Jackhammer, 4000) копает мгновенно.',
+    'Ищите <b>гибтониты</b> (мерцающие жилы): ударьте и сразу отойдите — взорвутся. Можно унести и сдать в печь.']),C.mine);
+  h+=card('Очки за руду <small>до множителя печи</small>',tbl(['Руда','#Очки за кусок'],ORE_PTS)+note('НРП: Шахтёрский корпус обязан сдать в печь руду ценностью <b>не менее 6 000 очков в час</b>. Присваивать руду и слитки запрещено — всё в печь (КЗ ст. 304).'),C.mine);
+  h+=card('Опасности Лаваленда',bul([
+    '<b>Пепельные бури</b>: объявление по рации шахтёров, затем ожоги на открытом месте. Прячьтесь на базе, в пещере или в капсуле-убежище.',
+    '<b>Лава</b> поджигает и жжёт. Мосты — плиткой или мостами из досок; местная фауна к лаве иммунна.',
+    '<b>Провалы (chasm)</b>: падение — почти всегда смерть без возврата тела. Не бегите у края, следите за откидыванием от врагов.',
+    '<b>Тендрили</b> (щупальца некрополя) постоянно спавнят мобов. Уничтожьте — через несколько секунд обрушится провал, отбегите; останется сундук некрополя.',
+    '<b>Пеплоходцы</b> (ashwalkers) — местное племя; не нападайте без причины, лучше торговать.']),C.fauna);
+  h+=card('Полезные советы',bul([
+    '<b>Регенеративное ядро</b> из улья (hivelord) и легиона мгновенно лечит. Портится через 4 минуты —<b>Stabilizing Serum</b> (400) сохраняет его навсегда.',
+    'Отвоёвывайте трофеи: <b>кинетический крушитель</b> ставит метку выстрелом, затем удар по метке — большой урон, со спины ещё больше. Трофеи боссов дают крушителю спецэффекты.',
+    'Модули КА (Range, Damage, Cooldown — по 1000) ставятся в акселератор; лимит ёмкости 100%.',
+    '<b>Шахтёрский дрон</b> (800) сопровождает, копает и отстреливается; <b>Lazarus Injector</b> (1000) оживляет и приручает мёртвую фауну.',
+    '<b>Jaunter</b> (750) — аварийный прыжок на станцию; спасает и при падении в провал, если активен в рюкзаке.',
+    '<b>Fulton</b>: маяк (400) на базе + пакет (1000) — эвакуация тела или груза на маяк.',
+    'Артефакты Лаваленда носите только на Лаваленде и в отделе Снабжения (НРП); выносить на станцию без письменного разрешения ГСБ или ГП — ст. 304. Ценные артефакты выгодно продавать на ЦК через карго-шаттл.',
+    'Ходите парой и держите рацию на канале снабжения: так вас найдут, если упадёте.']),C.mine);
+  h+='</div>';
+  $('#mine-guide').innerHTML=h;
+}
+
+/* ===================== ШАХТА: АВТОМАТ ===================== */
+// Шахтёрский автомат (machine_vending.dm): название в игре, цена в очках, раздел, пояснение
+const SHOP=[
+  ['Equipment','Снаряжение'],['Tools','Инструменты'],['Melee','Ближний бой'],['Accelerators','Акселераторы'],['Upgrades','Модули КА'],['Medical','Выживание'],['Minebot','Дрон'],['Capsules','Капсулы'],['Earnings','Деньги']];
+const ITEMS=[
+  ['Explorer\'s Webbing',500,'Equipment','пояс на 6 предметов шахтёра'],['Larger Ore Bag',500,'Equipment','большая сумка руды'],['GAR Meson Scanners',500,'Equipment','мезоны, бьют как нож'],
+  ['Mining Conscription Kit',1000,'Equipment','комплект для нового шахтёра'],['Mining Hardsuit',2000,'Equipment','скафандр шахтёра'],['Spare Suit Voucher',2000,'Equipment','ваучер на костюм'],
+  ['Jump Boots',2500,'Equipment','прыжок на 3–4 клетки, через провалы'],['Ice hiking boots',2500,'Equipment','не скользят на льду'],['Miner Full Replacement',3000,'Equipment','полный комплект заново'],['Improved Miner Suit',15000,'Equipment','улучшенный костюм исследователя'],
+  ['Advanced Scanner',800,'Tools','авто-сканер руды с большим радиусом'],['Resonator',800,'Tools','взрывает участки породы'],['Silver Pickaxe',1000,'Tools','быстрее обычной'],['Diamond Pickaxe',2000,'Tools','ещё быстрее'],['Super Resonator',2500,'Tools','мощнее и быстрее'],['Sonic Jackhammer',4000,'Tools','копает почти мгновенно'],
+  ['Survival Knife',450,'Melee','разделка туш'],['Survival Dagger',550,'Melee','кастет-кинжал'],['Kinetic Crusher',750,'Melee','метка + удар, трофеи'],['Premium Kinetic Melee Kit',2250,'Melee','набор с глефой'],['Kinetic Destroyer',12000,'Melee','премиум-крушитель'],
+  ['Kinetic Accelerator',750,'Accelerators','запасной КА'],['Premium Accelerator',8000,'Accelerators','больше ёмкости модулей'],['Precise / Rapid / Heavy Accelerator',10000,'Accelerators','дальность / скорострельность / урон'],['Modular Accelerator',15000,'Accelerators','модульный'],['Build-your-own-KA kit',30000,'Accelerators','сборный КА'],
+  ['KA Range Increase',1000,'Upgrades','+дальность'],['KA Damage Increase',1000,'Upgrades','+урон'],['KA Cooldown Decrease',1000,'Upgrades','−перезарядка'],['KA AoE Damage',2000,'Upgrades','урон по области'],['KA Minebot Passthrough',100,'Upgrades','стреляет сквозь дронов'],['KA Super / Hyper Chassis',250,'Upgrades','цвет корпуса'],
+  ['Stabilizing Serum',400,'Medical','сохраняет регенеративное ядро'],['Fulton Beacon',400,'Medical','маяк для фултона'],['Tracking Implant Kit',600,'Medical','импланты слежения'],['Jaunter',750,'Medical','аварийная телепортация'],['Survival Medipen',750,'Medical','быстрое лечение'],['First-Aid Kit (Brute / Burn / обычная)',800,'Medical','аптечка'],['Fulton Pack',1000,'Medical','эвакуация на маяк'],['Lazarus Injector',1000,'Medical','оживляет и приручает фауну'],
+  ['Nanotrasen Minebot',800,'Minebot','дрон-помощник'],['Minebot Melee / Armor Upgrade',400,'Minebot','урон / броня дрона'],['Minebot Cooldown Upgrade',600,'Minebot','скорострельность дрона'],['Minebot AI Upgrade',1000,'Minebot','разумность (игрок-призрак)'],
+  ['Shelter Capsule / Pill Shelter',400,'Capsules','убежище от бури'],['Luxury Shelter Capsule',3000,'Capsules','убежище с удобствами'],['Penthouse / Garden & Kitchen Capsule',7500,'Capsules','большие убежища'],['Arena Shelter / Luxury Bar Capsule',10000,'Capsules','арена / бар'],['Supreme Shelter',100000,'Capsules','самое дорогое'],
+  ['50 / 500 / 5000 Point Transfer Card',50,'Earnings','передать очки (цена = номинал)'],['Space Cash',2000,'Earnings','1000 кредитов'],['1 Metadollar',50000,'Earnings','метадоллар'],
+];
+function renderShop(){
+  const f=S.shop;
+  let h=`<div class="chips" id="shopf"><button type="button" data-f="all" aria-pressed="${f==='all'}">Всё</button>${SHOP.map(([id,n])=>`<button type="button" data-f="${id}" aria-pressed="${f===id}">${n}</button>`).join('')}</div>`;
+  const rows=ITEMS.filter(i=>f==='all'||i[2]===f).map(i=>[i[0],`<span class="muted">${i[3]}</span>`,(SHOP.find(s=>s[0]===i[2])||[])[1],i[1].toLocaleString('ru-RU')]);
+  h+='<div class="grid">'+card('Шахтёрский автомат <small>очки с ID шахтёра</small>',tbl(['Предмет','Зачем','Раздел','#Очки'],rows),C.mine,'wide');
+  h+=card('С чего начать',bul([
+    'Первая покупка: <b>Shelter Capsule</b> 400 + <b>Survival Medipen</b> 750 + <b>Kinetic Crusher</b> 750.',
+    'Дальше: <b>Stabilizing Serum</b> 400, модули КА по 1000, <b>Jaunter</b> 750.',
+    'Для скорости: <b>Advanced Scanner</b> 800, <b>Diamond Pickaxe</b> 2000, <b>Sonic Jackhammer</b> 4000.',
+    'Против боссов: <b>Jump Boots</b> 2500, <b>Mining Hardsuit</b> 2000 и трофейный крушитель.',
+    'Очки можно передать напарнику картой Point Transfer Card.']),C.mine);
+  h+='</div>';
+  $('#mine-shop').innerHTML=h;
+  $('#shopf').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;S.shop=b.dataset.f;save();renderShop()});
+}
+
+/* ===================== ШАХТА: ФАУНА ===================== */
+// [название, англ., ОЗ, урон удара, опасность 1..3, группа, как бороться, лут]
+const FAUNA=[
+  ['Голиаф','goliath',300,18,2,'mob','Медленный, бьёт щупальцами из-под земли: когда пол под вами трескается — сразу шаг в сторону. Держите дистанцию, стреляйте КА.','Шкура голиафа (броня на костюм исследователя), мясо, кости; трофей крушителя — щупальце.'],
+  ['Древний голиаф','ancient goliath',800,18,3,'mob','Толще обычного, щупальца бьют чаще. Не дерись с ним в тупике.','Шкура голиафа.'],
+  ['Наблюдатель','watcher',200,15,2,'mob','Летает и стреляет замедляющими (ледяными) зарядами. Сокращайте дистанцию по зигзагу или выбивайте из-за угла.','Алмазы (2), сухожилия, кость; трофей — крыло. Огненный (magmawing, 215 ОЗ) поджигает, ледяной (icewing, 170) — 5 алмазов.'],
+  ['Улей','hivelord',75,0,1,'mob','Сам не бьёт, но выпускает рой мелких «выводков» по 1 ОЗ. Убивайте сначала его, а не рой.','<b>Регенеративное ядро</b> — мгновенное лечение.'],
+  ['Легион','legion',75,15,3,'mob','Выпускает черепа-выводки (до 12 урона), которые превращают трупы и упавших без сознания людей в новых легионов. Никогда не падайте рядом с ним.','Регенеративное ядро легиона; трофей — череп. Из тела иногда выпадает снаряжение жертвы.'],
+  ['Карликовый легион','dwarf legion',60,15,2,'mob','Быстрее обычного. Тактика та же.','Регенеративное ядро.'],
+  ['Василиск','basilisk',200,12,2,'mob','Замедляющие выстрелы, держится на расстоянии. Встречается в пещерах.','Алмазы.'],
+  ['Золотая личинка','goldgrub',45,0,1,'mob','Безвредна, убегает и закапывается. Догоните и добейте.','Руда, которую она съела (часто ценная).'],
+  ['Гатланч','gutlunch',null,0,1,'mob','Мирное животное пеплоходцев, ест отходы. Не трогайте — племя обидится.','—'],
+  ['Пепельный дракон','ash drake',3000,50,3,'boss','Огненное дыхание по линии, полёт и падение сверху на вас, поле лавы. Уходите с линии огня и из-под тени, бейте после приземления.','Сундук: один из — призрачный меч, посох лавы, книга «Священное пламя» с магическим крюком, кровь дракона. С тела — алмазы, кости, сухожилия. Младший дракон — 800 ОЗ, без сундука.'],
+  ['Бабблгам','bubblegum',3000,50,3,'boss','Рывки сквозь кровавые лужи, иллюзии-двойники, удары из луж. Не стойте в крови, держитесь у стен со светом.','Сундук: костюм H.E.C.K. (шлем и скафандр) + бутылка хаоса (mayhem) или книга заклинания «Асура».'],
+  ['Колосс','colossus',3000,40,3,'boss','Огромные залпы снарядов спиралями и крестом. Нужна скорость (прыжковые сапоги) и ясная голова.','Сундук: случайный аномальный кристалл, голосовые связки колосса, «око бога» (godeye).'],
+  ['Иерофант','hierophant',3000,65,3,'boss','Арена с квадратными «ударами»-волнами и телепортом. Прочитайте паттерн, бейте после его прыжка.','Дубина иерофанта (телепорт и магические стены).'],
+  ['Легион (босс)','Legion',900,32,3,'boss','Летающий череп, дробится на части при уроне. Бейте части по очереди.','Посох бурь, кости, сундук некрополя.'],
+  ['Шахтёр-кровопийца','blood-drunk miner',2100,null,3,'boss','Очень быстрые рывки и пила. Держите дистанцию КА, уворачивайтесь от рывка вбок.','Раскладная пила, премиум-КА, диск модулей.'],
+  ['Демонический морозный шахтёр','demonic-frost miner',1900,14,3,'boss','Айсленд. Ледяные дробовики, снежки-пулемёт, морозные сферы.','Демонический отбойник, проклятые сапоги, кристалл воскрешения.'],
+  ['Вендиго','wendigo',3000,50,3,'boss','Айсленд. Топот, телепорт и оглушающий крик.','Кровь вендиго (форма полярного медведя).'],
+  ['Тендриль некрополя','tendril',null,null,2,'boss','Постоянно спавнит мобов. После уничтожения через несколько секунд на его месте провал — сразу отбегите.','Сундук некрополя со случайным артефактом.'],
+];
+function renderFauna(){
+  const f=S.fauna;
+  const filt=[['all','Все'],['mob','Обычные'],['boss','Боссы и тендрили']];
+  let h=`<div class="chips" id="faunaf">${filt.map(([id,n])=>`<button type="button" data-f="${id}" aria-pressed="${f===id}">${n}</button>`).join('')}</div>`;
+  const D=['','<span class="danger d1">слабый</span>','<span class="danger d2">опасный</span>','<span class="danger d3">очень опасный</span>'];
+  const list=FAUNA.filter(m=>f==='all'||m[5]===f);
+  const half=Math.ceil(list.length/2);
+  const col=a=>`<div class="mob">${a.map(m=>`<div class="row"><div class="hd"><b>${m[0]}</b><small>${m[1]}</small>${D[m[4]]}</div>
+    <div class="st">${m[2]?`ОЗ: <b>${m[2]}</b>`:''}${m[3]?` · удар до <b>${m[3]}</b>`:''}</div><div>${m[6]}</div><div class="st">Лут: ${m[7]}</div></div>`).join('')}</div>`;
+  h+='<div class="grid">'+card('Фауна Лаваленда и Айсленда',col(list.slice(0,half)),C.fauna)+card('&nbsp;',col(list.slice(half)),C.fauna);
+  h+=card('Общие правила боя',bul([
+    'Не деритесь у провалов и лавы: удары и рывки отбрасывают.',
+    'Кинетика сильна на Лаваленде (низкое давление) — держите дистанцию и стреляйте.',
+    'Крушитель: выстрел ставит метку, удар по метке срабатывает с бонусом; со спины — ещё больше.',
+    'Боссы — только подготовленным: прыжковые сапоги, полное лечение, регенеративные ядра в стабилизаторе, напарник.',
+    'Тела и снаряжение погибших шахтёров ищите по GPS; трупы рядом с легионом заберите первыми.']),C.fauna,'wide');
+  h+='</div>';
+  $('#mine-fauna').innerHTML=h;
+  $('#faunaf').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;S.fauna=b.dataset.f;save();renderFauna()});
+}
+
+/* ===================== ИВЕНТЫ: ЗАЙМ ШАТТЛА ===================== */
+// shuttle_loan.dm: [название, кто пишет, бонус, что на шаттле, совет, цвет]
+const LOANS=[
+  ['Угон шаттла InteQ','Контрразведка ЦК',10000,'Ящик спецопераций и 2–4 вооружённых диверсанта-InteQ.','Встречайте с СБ, оружием и закрытыми шлюзами отдела. Не открывайте двери шаттла в одиночку.','#d63c45'],
+  ['Вечеринка ренегатов НРИ','ФМС ЦК',10000,'Ящик для вечеринки, 1–2 русских солдата, один с «Матебой», 1–2 русских медведя.','Медведи бьют больно; по коду этот вариант выпадает вдвое чаще других.','#c0393f'],
+  ['Подарок Клана Пауков','Дипломатический корпус ЦК',10000,'Ящик спецопераций, 3–4 гигантских паука (медсестра, иногда охотник), паутина, останки ниндзя.','Огонь и лазеры, не ходите в паутину. Ящик спецопераций — ценный.','#9a6ad6'],
+  ['Двойной заказ отделов','Снабжение ЦК',10000,'9 ящиков снабжения: экстренное, СБ, еда, борьба с сорняками, инструменты, инж. снаряжение, робототехника, плазма, медикаменты.','Самый безопасный вариант — бесплатные ящики. Ящик СБ передайте СБ.','#3fa66b'],
+  ['Эпидемиологический проект','Стартапы ЦК',10000,'10 трупов ассистентов с вирусом (пчёлы, гниение мозга или испанка), бутылки с вирусами, шприцы, осколки.','Встречать в био-костюмах, тела — в морг и вирусологу. Не трогайте без защиты.','#4aa8d8'],
+  ['Пчёлы эко-террористов','Подразделение уборщиков ЦК',20000,'8 ядовитых пчёл, набор пчеловода, трупы террориста, грузчиков и солдата НТ, пистолеты без магазинов.','Пчёлы ядовиты — дым, огонь, закрытый костюм. У трупа террориста C4 и кислотная граната.','#e2b33a'],
+  ['Бомба Синдиката','КСБ ЦК',45000,'Активная бомба Синдиката на шаттле (таймер 480–600 с) и записка «GOOD LUCK!».','Сразу зовите СИ/сапёра, разминируйте кусачками и мультитулом. Не успеваете — отправьте шаттл обратно и уведите людей.','#d2492f'],
+];
+function renderLoan(){
+  let h='<div class="grid">';
+  h+=card('Как это работает <small>ивент Shuttle Loan</small>',steps([
+    'ЦК присылает просьбу «одолжить» карго-шаттл — объявлением или распечаткой на консолях связи (50/50).',
+    'Принять можно на <b>консоли снабжения</b> кнопкой займа, пока шаттл <b>стоит на ЦК</b> и не летит. При блокаде снабжения — нельзя.',
+    'Сразу после согласия на бюджет Карго приходит <b>бонус</b> (10 000 кр, у опасных вариантов больше), шаттл улетает к станции и вернётся через <b>5 минут</b>.',
+    'Когда шаттл встанет у станции, на свободных клетках появляется груз ивента — ящики, мобы, трупы или бомба.',
+    'Ивент бывает до <b>5 раз</b> за раунд, не раньше 10 минут смены. Можно просто не принимать.']),C.ev);
+  h+=card('Перед согласием',bul([
+    'Угадать вариант можно по тексту и отправителю — смотрите карточки ниже.',
+    'Опасные варианты: предупредите СБ, медиков, закройте отдел снабжения и не стойте у шлюзов шаттла.',
+    'Бонус приходит <b>сразу</b>, даже если груз потом уничтожат.',
+    'Ни один из вариантов не нужно «сдавать» обратно — всё, что на шаттле, остаётся станции.']),C.ev);
+  h+='</div><div class="grid" style="margin-top:14px">';
+  LOANS.forEach(([n,who,bonus,what,tip,c])=>{h+=card(`${n} <small>${who} · +${bonus.toLocaleString('ru-RU')} кр</small>`,`<div class="body"><p><b>Груз:</b> ${what}</p><p class="muted">${tip}</p></div>`,c,'ev')});
+  h+='</div>';
+  $('#events-loan').innerHTML=h+`<div class="grid" style="margin-top:14px">${card('Редкие варианты',bul([
+    '<b>Пицца с соседней станции</b> — в коде есть, но её номер совпадает с вечеринкой НРИ, поэтому вместо пиццы приходит вечеринка.',
+    '<b>Запертые DELTA-ящики</b> (+25 000 кр, 7 заброшенных ящиков с кодовым замком и паутина) — в случайный выбор не входят, только если запустит администрация. Неверный код много раз подряд — ящик взрывается.']),'#7a8496','wide')}</div>`;
+}
+
+/* ===================== ИВЕНТЫ: ПРОЧИЕ ===================== */
+function renderOther(){
+  let h='<div class="grid">';
+  h+=card('Ошибка отгрузки <small>Shipping Error</small>',body([
+    'Автоматика снабжения сама ставит в очередь <b>заказ, которого никто не делал</b>: обычный ящик ценой 200–3000 кр. Приедет со следующим шаттлом и спишется с бюджета Карго.',
+    'В причине заказа — «Плановая закупка по форме 77-Б», «Подтверждено голосовой командой» и т.п. Заказчик — «Автоматическая система снабжения».',
+    'Совет: проверяйте очередь заказов перед отправкой шаттла и удаляйте лишнее, если не нужно. До 2 раз за раунд, от 5 игроков.']),'#5b7be0');
+  h+=card('Бродячая капсула <small>Stray Cargo Pod</small>',body([
+    'Объявление «обнаружена бродячая капсула с товарами» с примерным местом посадки. Через 20–40 с в отсек падает дроп-под со <b>случайным ящиком</b> карго (незапертым).',
+    'Не падает в спутник ИИ и инженерию. Груз ничей — заберите на склад и учтите. До 7 раз за раунд.']),'#3fa66b');
+  h+=card('Капсула Синдиката <small>Stray Syndicate Cargo Pod</small>',body([
+    'Тот же ивент, но в под в стиле Синдиката с <b>ящиком снаряжения Синдиката</b> (предметы аплинка).',
+    'Это контрабанда: сообщите СБ и сдайте груз, не раздавайте экипажу. До 3 раз за раунд.']),'#d63c45');
+  h+=card('Космические пираты <small>Space Pirates</small>',body([
+    'Через консоли связи пираты требуют <b>max(25 000, 80% бюджета Карго)</b> с округлением до 1000. На ответ — 5 минут.',
+    'Заплатили — деньги списываются с Карго, нападения нет. Отказ, обман или нехватка денег — прилетает пиратский корабль, который ворует ценности телепадом.',
+    'От 25 игроков, не раньше 30 минут, редкий. Держите бюджет в ценностях, а не на счету, если ждёте пиратов.']),'#c0393f');
+  h+=card('Инспекция Солнечной Федерации',body([
+    'Откуп с Карго или инспекция со штрафами 25 000 кр за каждый БС- или криптомайнер. Подробно — «Майнеры → Законность».']),C.law);
+  h+=card('Правила снабжения из НРП',bul([
+    'Грузчик обязан доставить каждый утверждённый заказ в течение 15 минут после одобрения.',
+    'Заказы охранного снаряжения — только с разрешения Смотрителя, ГСБ или Капитана; источники энергии и генераторы — с разрешения СИ.',
+    'Утилизатор мусора проверяется на трупы раз в 30 минут.',
+    'Артефакты Лаваленда выгодно продавать на ЦК через шаттл снабжения.']),'#7a8496');
+  h+='</div>';
+  $('#events-other').innerHTML=h;
+}
+
+/* ===================== ОБЩЕЕ ===================== */
+const S0={tab:'miners',sub:{miners:'bsm',mine:'guide',events:'loan'},calc:{tier:4,n:2,badT:false,badP:false},crypto:{pay:10,zone:2,n:1},shop:'all',fauna:'all'};
+const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  s=Object.assign({},S0,s&&typeof s==='object'?s:{});
+  ['sub','calc','crypto'].forEach(k=>{s[k]=Object.assign({},S0[k],s[k]||{})});
+  return s})();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const TABS=['miners','mine','events'];
+const SUBS={miners:[['bsm','БС-майнер'],['calc','Выработка'],['crypto','Криптомайнер'],['law','Законность']],mine:[['guide','Гайд шахтёра'],['shop','Автомат'],['fauna','Фауна Лаваленда']],events:[['loan','Займ шаттла'],['other','Прочие ивенты']]};
+const RENDER={miners:{bsm:renderBsm,calc:renderCalc,crypto:renderCrypto,law:renderLaw},mine:{guide:renderGuide,shop:renderShop,fauna:renderFauna},events:{loan:renderLoan,other:renderOther}};
+const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
+function go(t,sub){
+  if(PART)t=PART;
+  if(sub)S.sub[t]=sub;
+  if(!SUBS[t].some(([id])=>id===S.sub[t]))S.sub[t]=SUBS[t][0][0];
+  S.tab=t;
+  TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  subSeg(t);SUBS[t].forEach(([id])=>{$('#'+t+'-'+id).hidden=id!==S.sub[t]});
+  RENDER[t][S.sub[t]]();save();setHash(t+'/'+S.sub[t]);window.scrollTo(0,0)}
+function setHash(h){try{history.replaceState(null,'','#'+h)}catch(e){}}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
+document.querySelectorAll('[data-subs]').forEach(el=>el.addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(b)go(el.dataset.subs,b.dataset.sub)}));
+
+const PARTS={miners:['МАЙ','Майнеры','БС-майнер, криптомайнер, законность'],mine:['ШАХ','Шахта','Гайд шахтёра, автомат, фауна Лаваленда'],events:['ИВН','Ивенты шаттла','Займ шаттла и события снабжения']};
+if(PART){const p=PARTS[PART];document.documentElement.classList.add('single');
+  $('#badge').textContent=p[0];$('#ttl').textContent=p[1];document.title=p[1];$('#rev').textContent=p[2]}
+const [h0,h1]=(location.hash||'').slice(1).split(/[\/-]/);
+const t0=PART||(TABS.includes(h0)?h0:null);
+if(t0)go(t0,h0===t0&&SUBS[t0].some(([id])=>id===h1)?h1:null);else go(TABS.includes(S.tab)?S.tab:'miners');
+</script>
+</body>
+</html>
