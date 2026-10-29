@@ -1,5 +1,5 @@
 'use strict';
-// Пульт — оболочка для двенадцати приложений: стартовое радиальное меню, переключение приложений
+// Пульт — оболочка для тринадцати приложений: стартовое радиальное меню, переключение приложений
 // и два режима окна (компактный и расширенный). Работает в Пульт.exe, Пульт.apk и в браузере. Приложения открываются в iframe с того же
 // адреса, поэтому оболочка может подключить к ним стили компактного режима.
 
@@ -24,6 +24,7 @@ const ICONS = {
   drop: '<path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/><path d="M12 20a6 6 0 0 0 6-6H6"/>',
   crown: '<path d="M3 18h18"/><path d="M4 15 3 7l5 3.5L12 5l4 5.5L21 7l-1 8z"/>',
   idcard: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.5-1.3 1.6-2 3-2s2.5.7 3 2M14 9.5h4M14 12.5h4M14 15.5h2.5"/>',
+  wind: '<path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/>',
   ai: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="9" cy="10.5" r="1.2"/><circle cx="15" cy="10.5" r="1.2"/><path d="M9.5 14h5"/>',
 };
 const svg = (name, extra = '') =>
@@ -38,8 +39,9 @@ const APPS = [
     src: 'apps/brig/index.html', color: '#d63c45', icon: 'shield', hscroll: 'nav, .seg, .refnav' },
   { id: 'papirus', name: 'Папирус', sub: 'Оформление бумаг', desc: 'Блоки, шаблоны и готовый код SS13',
     src: 'apps/papirus/index.html', color: '#3a7be0', icon: 'scroll', hscroll: '.rpanel, .tabs, .tplgallery', script: true },
-  { id: 'engineer', name: 'Инженер', sub: 'Пошаговые инструкции', desc: 'Двигатель, атмос, электрика — шаг за шагом',
-    src: 'apps/engineer/index.html', color: '#e2b33a', icon: 'wrench', hscroll: '.nav', css: false },
+  // Инженер — одна страница, ?only= оставляет в ней инструкции или справку «Как дышать 101»
+  { id: 'engineer', name: 'Инженер', sub: 'Пошаговые инструкции', desc: 'Двигатель, стройка, цели станции — шаг за шагом',
+    src: 'apps/engineer/index.html?only=guides', color: '#e2b33a', icon: 'wrench', hscroll: '.nav', css: false },
   { id: 'kitchen', name: 'Кухня и бар', short: 'Кухня', sub: 'Повар и бармен', desc: 'Рецепты блюд и коктейлей, «Мой бар»',
     src: 'apps/kitchen/index.html', color: '#e07a3f', icon: 'pot', hscroll: '.tabs, .subtabs, .controls .chips' },
   { id: 'himzavod', name: 'Химзавод', sub: 'Плюмбинг и химия', desc: 'Трубы, машины и реакции завода',
@@ -57,6 +59,9 @@ const APPS = [
     src: 'apps/command/index.html?only=ai', color: '#3fb8d6', icon: 'ai', hscroll: '.subnav, .lawsets', css: false },
   { id: 'captain', name: 'Панель Капитана', short: 'Капитан', sub: 'Цели станции', desc: 'Цели станции, смена, объявления, тревоги',
     src: 'apps/command/index.html?only=cap', color: '#c9a227', icon: 'crown', hscroll: '.subnav, .tpls', css: false },
+  // В конце списка, чтобы не сдвинуть Alt-клавиши остальных; своей клавиши нет
+  { id: 'air', name: 'Как дышать 101', short: 'Атмос', sub: 'Воздух и газы', desc: 'Вернуть воздух в отсек, смешать и сварить газы',
+    src: 'apps/engineer/index.html?only=air', color: '#7cc6e8', icon: 'wind', hscroll: '.toc', css: false },
 ];
 // Клавиша приложения: Alt+1…9, дальше — Alt+-, Alt+=, Alt+\
 const EXTRA_KEYS = [['Minus', '-'], ['Equal', '='], ['Backslash', '\\']];
@@ -71,7 +76,7 @@ const DEPTS = [
   { id: 'sec', name: 'Служба безопасности', short: 'СБ', sub: 'Закон и рапорты', color: '#d63c45', icon: 'shield', apps: ['brig'] },
   { id: 'law', name: 'Юридический отдел', short: 'Юр. отдел', sub: 'АВД и Представитель', color: '#b8863b', icon: 'scales', apps: ['avd'] },
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
-  { id: 'eng', name: 'Инженерия', sub: 'Двигатель, атмос, электрика', color: '#e2b33a', icon: 'wrench', apps: ['engineer'] },
+  { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
   { id: 'sci', name: 'Наука', sub: 'Исследования и схемы', color: '#2fb5a5', icon: 'atom', apps: ['circuits'] },
   { id: 'med', name: 'Медицина', sub: 'Химия и фармацевтика', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod'] },
   { id: 'srv', name: 'Сервис', sub: 'Повар и бармен', color: '#e07a3f', icon: 'cloche', apps: ['kitchen'] },

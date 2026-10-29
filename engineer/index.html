@@ -84,8 +84,45 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .guides button.on { color: var(--accent); font-weight: 600; box-shadow: inset 3px 0 var(--accent); }
 .guides button .c { margin-left: auto; color: var(--faint); font-size: 12px; }
 
+/* Вкладки: инструкции и «Как дышать 101» */
+.tabs { display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--line); background: var(--panel); flex: none; overflow-x: auto; }
+.tabs button {
+  border: 0; background: none; padding: 7px 12px 8px; color: var(--dim); font-weight: 600; white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .12s, border-color .12s;
+}
+.tabs button:hover { color: var(--fg); }
+.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.layout[hidden], .doc[hidden] { display: none; }
+
+/* Справка «Как дышать 101» */
+.doc { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px 24px; }
+.doc .in { max-width: 860px; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.toc a { color: var(--fg); text-decoration: none; border: 1px solid var(--line); background: var(--panel2); border-radius: 999px; padding: 3px 10px; font-size: 13px; }
+.toc a:hover { border-color: var(--accent); }
+.doc h2 { margin: 22px 0 8px; font-size: 17px; color: var(--accent); scroll-margin-top: 8px; }
+.doc h3 { margin: 14px 0 6px; font-size: 14.5px; }
+.doc p { margin: 6px 0; }
+.doc .lead { color: var(--dim); }
+.doc ol.do-list { margin: 6px 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 6px; }
+.doc ol.do-list li { counter-increment: s; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.doc ol.do-list li::before { content: counter(s); color: var(--accent); font: 700 13px Consolas, monospace; padding-top: 1px; }
+.doc ol.do-list b { color: var(--fg); }
+.doc .s { color: var(--note); font-style: italic; font-size: 13px; display: block; margin-top: 2px; }
+.doc ul { margin: 6px 0; padding-left: 20px; }
+.doc li { margin: 2px 0; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; }
+.tbl table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.tbl th, .tbl td { text-align: left; vertical-align: top; padding: 6px 9px; border-bottom: 1px solid var(--line); }
+.tbl th { background: var(--panel2); color: var(--dim); font-weight: 600; white-space: nowrap; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td:first-child { font-weight: 600; white-space: nowrap; }
+.warn { border-left: 3px solid #e06c6c; background: var(--panel); border-radius: 0 8px 8px 0; padding: 8px 10px; margin: 8px 0; }
+.tip { border-left: 3px solid var(--ok); background: var(--panel); border-radius: 0 8px 8px 0; padding: 8px 10px; margin: 8px 0; }
+
 @media (min-width: 760px) {
   body { font-size: 15px; }
+  .doc { padding: 18px 24px 28px; }
   .layout > .guides { display: block; width: 260px; flex: none; overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel); padding-bottom: 12px; }
   .main { padding: 18px 24px 24px; max-width: 900px; }
   .gname { pointer-events: none; font-size: 18px; }
@@ -99,7 +136,111 @@ button { font: inherit; color: inherit; cursor: pointer; }
 </style>
 </head>
 <body>
-<div class="layout">
+<div class="tabs" role="tablist">
+  <button role="tab" data-tab="guides" aria-selected="true">Инструкции</button>
+  <button role="tab" data-tab="air" aria-selected="false">Как дышать 101</button>
+</div>
+<div class="doc" id="doc" hidden><div class="in">
+  <p class="lead">Как вернуть воздух в повреждённый отсек, чем дышат на станции и как смешивать и варить газы. Числа — по коду сборки BlueMoon.</p>
+  <nav class="toc" aria-label="Разделы">
+    <a href="#air-norm">Нормы</a><a href="#air-fix">Вернуть воздух</a><a href="#air-alarm">Воздушная тревога</a>
+    <a href="#air-mix">Смешивание</a><a href="#air-cook">Варка газов</a><a href="#air-gases">Газы</a>
+  </nav>
+
+  <h2 id="air-norm">Нормы: что такое «воздух»</h2>
+  <div class="tbl"><table>
+    <tr><th>Параметр</th><th>Норма</th><th>Опасно</th></tr>
+    <tr><td>Состав</td><td>21% O₂, 79% N₂</td><td>O₂ ниже 16 кПа — удушье</td></tr>
+    <tr><td>Давление</td><td>~101 кПа</td><td>ниже 50 кПа — тревога, ниже 20 — урон; выше 325 — тревога, выше 550 — урон</td></tr>
+    <tr><td>Температура</td><td>20 °C (293 K)</td><td>ниже −13 °C или выше 87 °C — урон</td></tr>
+    <tr><td>Примеси</td><td>нет</td><td>плазма — яд в любом количестве, CO₂ выше 10 кПа — удушье, N₂O — усыпляет</td></tr>
+  </table></div>
+  <p>Не все дышат кислородом: воксы дышат азотом, плазмолюди — плазмой. Им нужны свои баллоны, отсек под них не меняют.</p>
+
+  <h2 id="air-fix">Пошагово: вернуть воздух в отсек</h2>
+  <ol class="do-list">
+    <li><div><b>Маска и баллон.</b> Без них в отсек не входить. Проверить воздух газоанализатором или по панели воздушной тревоги у двери.<span class="s">Пожарные двери держат воздух соседних отсеков — не открывайте их, пока дыра не закрыта.</span></div></li>
+    <li><div><b>Найти пробоину.</b> Ветер и разлетающиеся предметы тянет к дыре. Сразу закрыть проём голографическим барьером (атмос-холопроектор), если он есть.</div></li>
+    <li><div><b>Залатать корпус.</b> Стержни → каркас, плитка → настил → пол (инструкция «Пробоина в корпусе»). Разбитые окна — заново (решётка + стекло).</div></li>
+    <li><div><b>Огонь и плазма — сначала.</b> Если в отсеке горит или есть плазма, сначала потушить и выкачать: тревога в режим «Panic Siphon» или «Contaminated».<span class="s">Закачивать кислород в горящий отсек — подливать масла в огонь.</span></div></li>
+    <li><div><b>Воздушная тревога.</b> Разблокировать ID (доступ атмоса). Проверить, что вентиляции и скрубберы включены и не сломаны, режим «Refill» — вентиляции качают быстрее.</div></li>
+    <li><div><b>Есть ли что подавать.</b> Если вентиляции молчат — пуста подача (distro). В атмосе: насос из смесителя воздуха в distro включён, в камерах O₂ и N₂ есть газ, трубы до отсека целы (анализатором по трубе).</div></li>
+    <li><div><b>Быстро: канистра.</b> Канистру «Air» прикатить в отсек, открыть вентиль, давление выпуска — 101 кПа. Можно подключить ключом к порту, тогда газ уйдёт в трубы.<span class="s">Чистый кислород из канистры — только понемногу: богатая O₂ смесь горит от любой искры.</span></div></li>
+    <li><div><b>Довести до нормы.</b> Ждать ~101 кПа и 21% O₂, потом тревогу вернуть в «Filtering». Холодно после разгерметизации — нагреватель или подождать.</div></li>
+    <li><div><b>Открыть отсек.</b> Сбросить пожарную тревогу (кнопка на стене или ID), пожарные двери откроются. Отчитаться в инж. канал.</div></li>
+  </ol>
+
+  <h2 id="air-alarm">Режимы воздушной тревоги</h2>
+  <div class="tbl"><table>
+    <tr><th>Режим</th><th>Что делает</th><th>Когда</th></tr>
+    <tr><td>Filtering</td><td>Обычный: вентиляция держит давление, скрубберы убирают CO₂</td><td>Всегда, когда всё в норме</td></tr>
+    <tr><td>Contaminated</td><td>Скрубберы ловят все вредные газы, быстрее</td><td>Плазма, N₂O, миазмы в отсеке</td></tr>
+    <tr><td>Draught</td><td>Скрубберы выкачивают, вентиляция подаёт</td><td>Проветрить отсек</td></tr>
+    <tr><td>Refill</td><td>Вентиляция качает с тройным давлением</td><td>Закачать воздух после пробоины</td></tr>
+    <tr><td>Cycle / Replace</td><td>Выкачать всё, затем закачать заново</td><td>Воздух испорчен целиком</td></tr>
+    <tr><td>Siphon</td><td>Выкачать воздух, вентиляция выключена</td><td>Опустошить отсек</td></tr>
+    <tr><td>Panic Siphon</td><td>Выкачать всё максимально быстро</td><td>Пожар, плазма — люди уже в масках</td></tr>
+    <tr><td>Off</td><td>Всё выключено</td><td>Ремонт труб</td></tr>
+  </table></div>
+
+  <h2 id="air-mix">Смешивание газов</h2>
+  <h3>Смеситель (gas mixer)</h3>
+  <ol class="do-list">
+    <li><div><b>Два входа, один выход.</b> Подвести трубы с газами к двум входам смесителя, выход — в канистру, порт или distro.</div></li>
+    <li><div><b>Доли.</b> В интерфейсе задать процент каждого входа (Node 1 / Node 2) и давление на выходе.<span class="s">Какой вход — какой, проще проверить газоанализатором по выходной трубе, чем угадывать по стрелкам.</span></div></li>
+    <li><div><b>Проверить.</b> Анализатором по выходу — состав и давление. Подстроить доли.</div></li>
+  </ol>
+  <h3>Готовые смеси</h3>
+  <div class="tbl"><table>
+    <tr><th>Смесь</th><th>Доли</th><th>Зачем</th></tr>
+    <tr><td>Воздух</td><td>21% O₂ + 79% N₂ (на смесителе: 21 / 79)</td><td>Дышать, distro станции</td></tr>
+    <tr><td>Охладитель СМ</td><td>чистый N₂, холодный</td><td>Контур суперматерии</td></tr>
+    <tr><td>Охладитель РБМК</td><td>N₂ или воздух через охладитель</td><td>Вход реактора</td></tr>
+    <tr><td>Топливо РБМК</td><td>плазма + O₂</td><td>Модератор, мощность</td></tr>
+  </table></div>
+  <h3>Фильтр и канистры</h3>
+  <ul>
+    <li>Фильтр (gas filter): выбранный газ уходит в боковой выход, остальное — прямо. Так вытаскивают продукт реакции из смеси.</li>
+    <li>Канистра: ключом к порту (connector) — газ уходит в трубы или из них. Без порта — вентиль и давление выпуска в интерфейсе.</li>
+    <li>Цвета канистр: синяя — O₂, красная — N₂, серая — воздух, оранжевая — плазма, чёрная — CO₂, бело-красная — N₂O.</li>
+    <li>Нагреватель и охладитель (thermomachine) — греют или остужают газ, который течёт через них.</li>
+  </ul>
+
+  <h2 id="air-cook">Варка газов: реакции</h2>
+  <p>Общий порядок: собрать смесь в камере или канистре → довести до нужной температуры нагревателем, поджогом или охладителем → снять продукт фильтром.</p>
+  <div class="warn">Варите в отдельной камере атмоса со сбросом в космос. Горячие реакции разрывают канистры, а смесь с кислородом и плазмой может полыхнуть по трубам на всю станцию.</div>
+  <div class="tbl"><table>
+    <tr><th>Продукт</th><th>Что смешать</th><th>Условия</th><th>Заметки</th></tr>
+    <tr><td>Тритий</td><td>плазма + очень много O₂</td><td>горение, O₂ больше плазмы в 96+ раз</td><td>Вместо CO₂ плазма сгорает в тритий</td></tr>
+    <tr><td>CO₂</td><td>плазма + O₂</td><td>горение выше 100 °C</td><td>Обычный пожар плазмы</td></tr>
+    <tr><td>BZ</td><td>N₂O ≥ 10 моль + плазма ≥ 10 моль</td><td>низкое давление (~10 кПа)</td><td>Плазмы вдвое больше N₂O. Греет смесь</td></tr>
+    <tr><td>Плюоксий</td><td>O₂ : CO₂ : тритий = 2 : 1 : 0,01</td><td>от −223 до 0 °C (50–273 K)</td><td>Дыхательный газ, замена O₂</td></tr>
+    <tr><td>Фреон</td><td>плазма : CO₂ : BZ = 6 : 3 : 1</td><td>выше ~200 °C</td><td>Поглощает тепло</td></tr>
+    <tr><td>Хилиум</td><td>фреон : BZ ≈ 11 : 1</td><td>25–300 K</td><td>Лечебный газ</td></tr>
+    <tr><td>Нитрил</td><td>O₂ ≥ 20 + N₂ ≥ 20 + N₂O ≥ 5</td><td>выше ~9 300 K</td><td>Поглощает тепло. Ускоряет выгорание стержней РБМК</td></tr>
+    <tr><td>Гипер-ноблий</td><td>N₂ ≥ 10 + тритий ≥ 5</td><td>ниже 15 K</td><td>Больше 5 моль — гасит любые реакции</td></tr>
+    <tr><td>Нитрий</td><td>тритий ≥ 20 + N₂ ≥ 10 + BZ ≥ 5</td><td>выше 1 500 K</td><td>Распадается при контакте с O₂</td></tr>
+    <tr><td>Прото-нитрат</td><td>плюоксий + водород</td><td>5 000–10 000 K</td><td>—</td></tr>
+    <tr><td>Стимулум</td><td>тритий 30, плазма 10, BZ 20, нитрил 30</td><td>выше 50 000 K</td><td>Редкий, сложный</td></tr>
+    <tr><td>Заукер</td><td>гипер-ноблий + нитрий</td><td>50 000–75 000 K</td><td>Смертельно ядовит</td></tr>
+    <tr><td>Синтез</td><td>плазма ≥ 250, CO₂ ≥ 250, тритий ≥ 1</td><td>выше 10 000 K</td><td>Огромная энергия и радиация</td></tr>
+  </table></div>
+  <div class="tip">Водяной пар ниже 40 °C оседает водой на пол — скользко. Миазмы (трупный запах) обеззараживаются нагревом выше 170 °C.</div>
+
+  <h2 id="air-gases">Газы коротко</h2>
+  <div class="tbl"><table>
+    <tr><th>Газ</th><th>Чем опасен / чем полезен</th></tr>
+    <tr><td>O₂</td><td>Дышать. Без него не горит ничего, с избытком горит всё</td></tr>
+    <tr><td>N₂</td><td>Основа воздуха, инертный. Охладитель двигателей</td></tr>
+    <tr><td>CO₂</td><td>Выше 10 кПа — удушье. Убирают скрубберы</td></tr>
+    <tr><td>Плазма</td><td>Ядовита, горит. Топливо двигателей и турбины</td></tr>
+    <tr><td>N₂O</td><td>Усыпляет. Сырьё для BZ и нитрила</td></tr>
+    <tr><td>Тритий</td><td>Горит, радиоактивен</td></tr>
+    <tr><td>BZ</td><td>Галлюцинации; для генетики и реакций</td></tr>
+    <tr><td>Водяной пар</td><td>Конденсируется в лужи</td></tr>
+  </table></div>
+</div></div>
+<div class="layout" id="layout">
   <nav class="guides" id="side" aria-label="Инструкции"></nav>
   <main class="main" id="main">
     <div class="head">
@@ -223,6 +364,29 @@ function renderKeys() {
   $('keys').innerHTML = html;
 }
 
+// ---------- Вкладки ----------
+// Пульт открывает вкладки отдельными пунктами меню: ?only=guides или ?only=air, без полосы вкладок
+const only = { guides: 'guides', air: 'air' }[new URLSearchParams(location.search).get('only')] || null;
+let tab = 'guides';
+function setTab(t) {
+  if (only) t = only;
+  tab = t === 'air' ? 'air' : 'guides';
+  document.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  $('layout').hidden = tab !== 'guides';
+  $('doc').hidden = tab !== 'air';
+  if (!only) try { localStorage.setItem('engineer.tab', tab); } catch (e) { /* */ }
+}
+document.querySelectorAll('[data-tab]').forEach((b) => { b.onclick = () => setTab(b.dataset.tab); });
+if (only) { document.querySelector('.tabs').style.display = 'none'; setTab(only); }
+else try { setTab(localStorage.getItem('engineer.tab') || 'guides'); } catch (e) { setTab('guides'); }
+// Оглавление справки листает только её, не трогая адрес страницы
+$('doc').addEventListener('click', (e) => {
+  const a = e.target.closest('.toc a'); if (!a) return;
+  e.preventDefault();
+  const el = document.getElementById(a.getAttribute('href').slice(1));
+  if (el) el.scrollIntoView({ block: 'start' });
+});
+
 // ---------- Управление ----------
 const ACTIONS = {
   next: () => (si >= guide().steps.length ? switchGuide(1) : step(1)),
@@ -248,13 +412,14 @@ const KEYMAP = { ArrowRight: 'next', ' ': 'next', ArrowLeft: 'prev', PageDown: '
 document.addEventListener('keydown', (e) => {
   if (e.altKey || e.ctrlKey || e.metaKey) return;
   if (e.key === 'Escape' && !$('pop').hidden) { $('pop').hidden = true; return; }
-  let a = KEYMAP[e.key];
+  if (only === 'air') return;
+  let a = tab === 'guides' ? KEYMAP[e.key] : null;
   if (!a) for (const k in hotkeys) if (hotkeys[k].toLowerCase() === e.key.toLowerCase() && ACTIONS[k]) a = k;
-  if (a && ACTIONS[a] && !(e.key === ' ' && e.target.closest('button'))) { e.preventDefault(); ACTIONS[a](); }
+  if (a && ACTIONS[a] && !(e.key === ' ' && e.target.closest('button'))) { e.preventDefault(); setTab('guides'); ACTIONS[a](); }
 });
 window.addEventListener('message', (e) => {
   if (e.origin !== location.origin || !e.data) return;
-  if (e.data.type === 'pult-hotkey' && ACTIONS[e.data.action]) ACTIONS[e.data.action]();
+  if (e.data.type === 'pult-hotkey' && ACTIONS[e.data.action]) { setTab('guides'); ACTIONS[e.data.action](); }
   if (e.data.type === 'pult-hotkeys-state') { globalKeys = true; failedKeys = e.data.failed || []; renderKeys(); }
 });
 
@@ -267,7 +432,7 @@ fetch('guides.json', { cache: 'no-store' })
     load();
     render();
     renderKeys();
-    if (inPult) window.parent.postMessage({ type: 'pult-hotkeys', keys: hotkeys }, location.origin);
+    if (inPult && only !== 'air') window.parent.postMessage({ type: 'pult-hotkeys', keys: hotkeys }, location.origin);
   })
   .catch((err) => { $('do').textContent = 'Не удалось прочитать guides.json: ' + err.message; });
 </script>
