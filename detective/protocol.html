@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Протокол допроса</title>
+<style>
+/* Протокол допроса — отдельное окно Детектива: в Пульт.exe своё окно поверх игры, в браузере — всплывающее окно,
+   на телефоне — панель поверх Детектива. Протоколы хранятся в localStorage (detective.protocols) и общие для всех окон. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#8a6542; --accent-fg:#ffffff; --navy:#1d3766; --q:#2f5fb3; --a:#2e8a4b; --n:#9a6a12;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#d0a070; --accent-fg:#22160a; --navy:#8eafee; --q:#7fa8f0; --a:#5ec587; --n:#e6b54a;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#d0a070; --accent-fg:#22160a; --navy:#8eafee; --q:#7fa8f0; --a:#5ec587; --n:#e6b54a;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--font-b);display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:1px}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:4px 10px;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+.btn.ic{padding:4px 8px}
+.btn[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+header{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:15px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timer{font:600 13px var(--font-m);padding:2px 8px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);cursor:pointer;font-variant-numeric:tabular-nums}
+.timer.warn{color:var(--warn);border-color:var(--warn)} .timer.bad{color:var(--bad);border-color:var(--bad)}
+
+.scroll{flex:1;overflow:auto;padding:8px 10px 10px;display:flex;flex-direction:column;gap:8px}
+details{background:var(--panel);border:1px solid var(--line);border-radius:9px}
+summary{cursor:pointer;padding:6px 10px;font-weight:600;font-size:13px;list-style:none;display:flex;gap:6px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸";color:var(--faint);transition:transform .15s}
+details[open]>summary::before{transform:rotate(90deg)}
+summary small{font-weight:400;color:var(--muted);margin-left:auto}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px;padding:2px 10px 10px}
+.fields label{display:grid;gap:1px;font-size:11.5px;color:var(--muted)}
+.fields label.w{grid-column:1/-1}
+.fields input,.fields select{border:1px solid var(--line2);background:var(--panel2);border-radius:6px;padding:3px 7px;font-size:13px;color:var(--fg);width:100%}
+.checks{display:grid;gap:3px;padding:2px 10px 10px;font-size:13px}
+.checks label{display:flex;gap:7px;align-items:flex-start;cursor:pointer}
+.checks input{accent-color:var(--accent);margin-top:3px}
+.checks small{color:var(--faint)}
+
+.log{display:flex;flex-direction:column;gap:4px;min-height:80px}
+.empty{color:var(--faint);font-size:13px;text-align:center;padding:18px 6px;border:1px dashed var(--line2);border-radius:9px}
+.e{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:6px;align-items:start;padding:4px 6px;border-radius:7px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c)}
+.e.q{--c:var(--q)} .e.a{--c:var(--a)} .e.n{--c:var(--n);background:color-mix(in srgb,var(--n) 7%,var(--panel))}
+.e .k{font:700 12px var(--font-m);color:var(--c);padding-top:2px;text-align:center}
+.e .t{white-space:pre-wrap;word-break:break-word;outline:none;min-height:1.4em;border-radius:4px}
+.e .t:focus{background:var(--panel2)}
+.e .m{display:flex;gap:2px;align-items:center;font:11px var(--font-m);color:var(--faint)}
+.e .x{border:0;background:none;color:var(--faint);cursor:pointer;padding:0 3px;font-size:14px;line-height:1}
+.e .x:hover{color:var(--bad)}
+.e.flag{box-shadow:inset 0 0 0 1px var(--bad)}
+.e .f{border:0;background:none;cursor:pointer;padding:0 2px;font-size:12px;opacity:.35}
+.e.flag .f,.e .f:hover{opacity:1}
+textarea.notes{width:100%;min-height:64px;resize:vertical;border:0;border-top:1px solid var(--line);background:transparent;padding:6px 10px;font-size:13px;color:var(--fg);outline:none}
+
+.entry{border-top:1px solid var(--line);background:var(--panel);padding:8px 10px;display:grid;gap:6px}
+.who{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.who .btn{padding:2px 9px;font-size:12.5px}
+.who .btn[data-k="q"][aria-pressed="true"]{background:var(--q);border-color:var(--q);color:#fff}
+.who .btn[data-k="a"][aria-pressed="true"]{background:var(--a);border-color:var(--a);color:#fff}
+.who .btn[data-k="n"][aria-pressed="true"]{background:var(--n);border-color:var(--n);color:#fff}
+.who .hint{margin-left:auto;font-size:11px;color:var(--faint)}
+.entry textarea{width:100%;resize:none;border:1px solid var(--line2);background:var(--panel2);border-radius:7px;padding:6px 8px;font-size:13.5px;color:var(--fg);min-height:38px;max-height:140px}
+.entry textarea:focus{border-color:var(--accent);outline:none}
+.qs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+.qs button{border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:1px 9px;font-size:12px;cursor:pointer;white-space:nowrap;color:var(--muted)}
+.qs button:hover{color:var(--fg);border-color:var(--q)}
+.acts{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.acts select{border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:3px 6px;font-size:12.5px;max-width:150px}
+.acts .sp{flex:1}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:5px 12px;border-radius:7px;font-size:12.5px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:.95}
+.inline-close{display:none}
+.inline .inline-close{display:inline-block}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="ttl">Протокол допроса</h1>
+  <span class="timer" id="timer" title="С начала допроса. По НРП СБ (10.21) без предъявления доказательств задержанного держат не дольше 5 минут; с 10-й минуты каждая минута снижает срок (10.25). Нажмите — пауза/продолжить.">00:00</span>
+  <button class="btn ic" id="pin" type="button" hidden title="Поверх всех окон">📌</button>
+  <button class="btn ic inline-close" id="close" type="button" title="Закрыть">✕</button>
+</header>
+
+<div class="scroll" id="scroll">
+  <details id="dHead" open>
+    <summary>Шапка протокола <small id="headSum"></small></summary>
+    <div class="fields" id="fields"></div>
+  </details>
+  <details id="dPlan">
+    <summary>Ход допроса <small id="planSum"></small></summary>
+    <div class="checks" id="checks"></div>
+  </details>
+  <div class="log" id="log"></div>
+  <details id="dNotes" open>
+    <summary>Зацепки и противоречия <small>для себя, в протокол — по желанию</small></summary>
+    <textarea class="notes" id="notes" placeholder="Что не сходится, что проверить сканером, кого опросить ещё…"></textarea>
+  </details>
+</div>
+
+<div class="entry">
+  <div class="who" id="who">
+    <button class="btn" type="button" data-k="q" aria-pressed="true" title="Вопрос (Alt+1)">Вопрос</button>
+    <button class="btn" type="button" data-k="a" aria-pressed="false" title="Ответ (Alt+2)">Ответ</button>
+    <button class="btn" type="button" data-k="n" aria-pressed="false" title="Пометка: поведение, предъявлено доказательство… (Alt+3)">Пометка</button>
+    <span class="hint">Enter — записать, Shift+Enter — перенос</span>
+  </div>
+  <textarea id="inp" rows="1" placeholder="Вопрос…"></textarea>
+  <div class="qs" id="qs"></div>
+  <div class="acts">
+    <button class="btn" type="button" id="copyTxt" title="Скопировать протокол текстом">Текст</button>
+    <button class="btn" type="button" id="copySs" title="Скопировать с тегами бумаги SS13 (профиль Папируса)">SS13</button>
+    <button class="btn pri" type="button" id="toPap" hidden title="Открыть протокол в Папирусе">В Папирус</button>
+    <span class="sp"></span>
+    <select id="arch" title="Сохранённые протоколы"></select>
+    <button class="btn" type="button" id="new" title="Начать новый протокол (старый сохранится)">Новый</button>
+    <button class="btn ic" type="button" id="del" title="Удалить этот протокол">🗑</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEY='detective.protocols';
+const host=window.chrome&&window.chrome.webview; // своё окно в Пульт.exe
+const INLINE=new URLSearchParams(location.search).has('inline'); // панель поверх Детектива (телефон, заблокированное окно)
+if(INLINE)document.documentElement.classList.add('inline');
+
+const STATUS=['Подозреваемый','Свидетель','Потерпевший','Задержанный','Неустановленное лицо'];
+const FIELDS=[['num','Дело №'],['time','Станционное время'],['who','Допрашиваемый','w'],['job','Должность'],['status','Статус','',STATUS],
+  ['by','Допрашивает'],['present','Присутствуют'],['subject','По делу о','w'],['rec','Диктофон','',['Ведётся','Не ведётся']]];
+// Ход допроса: модель PEACE (британская полиция) + требования НРП СБ
+const PLAN=[
+  ['intro','Представился, назвал причину и статус допрашиваемого','Engage'],
+  ['rec','Включил диктофон и назвал время, место, участников','НРП: допрос — под запись'],
+  ['charges','Озвучил статьи / суть подозрения','НРП 10.21: 5 минут'],
+  ['free','Дал свободный рассказ без перебивания','Account'],
+  ['clar','Уточнил детали: где, когда, с кем, что видел','Account'],
+  ['evid','Предъявил доказательства и спросил объяснение','Challenge'],
+  ['contr','Указал на противоречия','Challenge'],
+  ['sum','Пересказал показания, допрашиваемый подтвердил','Closure'],
+  ['end','Сообщил итог: обвинение, свобода, ожидание','Closure + Evaluate'],
+];
+// Быстрые вопросы — открытые формулировки (когнитивное интервью и PEACE)
+const QUICK=['Расскажите по порядку, что произошло.','Где вы были в это время?','Кто может это подтвердить?','Что было дальше?',
+  'Опишите этого человека.','Что вы слышали?','Откуда у вас этот предмет?','Почему на нём ваши отпечатки?','Как вы объясните это?',
+  'Расскажите то же самое с конца.','Что ещё вы можете добавить?','Правильно ли я записал ваши слова?'];
+
+const blank=()=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),created:Date.now(),
+  f:{num:'Д-'+String(Math.floor(100+Math.random()*900)),time:'',who:'',job:'',status:STATUS[0],by:'',present:'',subject:'',rec:'Ведётся'},
+  plan:{},log:[],notes:'',t0:null,tPaused:0,paused:null});
+let DB=load();
+function load(){let d=null;try{d=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  if(!d||!Array.isArray(d.list)||!d.list.length){const p=blank();d={cur:p.id,list:[p],by:''}}
+  if(!d.list.some(p=>p.id===d.cur))d.cur=d.list[0].id;return d}
+let saving=false;
+function save(){try{saving=true;localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}finally{saving=false}}
+const P=()=>DB.list.find(p=>p.id===DB.cur);
+let kind='q';
+
+/* ---------- шапка и ход ---------- */
+function renderHead(){const p=P();
+  $('#fields').innerHTML=FIELDS.map(([k,n,w,opts])=>`<label class="${w||''}">${n}${opts?`<select data-k="${k}">${opts.map(o=>`<option${o===p.f[k]?' selected':''}>${o}</option>`).join('')}</select>`:`<input data-k="${k}" value="${esc(p.f[k]||'')}">`}</label>`).join('');
+  headSum()}
+function headSum(){const p=P();$('#headSum').textContent=[p.f.who,p.f.status].filter(Boolean).join(' · ');
+  $('#ttl').textContent='Протокол '+(p.f.num||'')+(p.f.who?' — '+p.f.who:'');document.title=$('#ttl').textContent;
+  if(host)host.postMessage('title:'+document.title)}
+function renderPlan(){const p=P();
+  $('#checks').innerHTML=PLAN.map(([k,t,s])=>`<label><input type="checkbox" data-c="${k}"${p.plan[k]?' checked':''}><span>${t} <small>· ${s}</small></span></label>`).join('');
+  planSum()}
+function planSum(){const p=P(),n=PLAN.filter(([k])=>p.plan[k]).length;$('#planSum').textContent=n+' / '+PLAN.length}
+$('#fields').addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;P().f[k]=e.target.value;if(k==='by')DB.by=e.target.value;headSum();save()});
+$('#checks').addEventListener('change',e=>{const k=e.target.dataset.c;if(!k)return;P().plan[k]=e.target.checked;
+  if(k==='rec'&&e.target.checked)startTimer();planSum();save()});
+
+/* ---------- записи ---------- */
+const K={q:'В',a:'О',n:'!'};
+function renderLog(){const p=P();
+  $('#log').innerHTML=p.log.length?p.log.map((e,i)=>`<div class="e ${e.k}${e.flag?' flag':''}" data-i="${i}"><span class="k">${K[e.k]}</span><div class="t" contenteditable="plaintext-only" spellcheck="false">${esc(e.t)}</div><span class="m"><button class="f" type="button" title="Отметить: противоречие / важно">⚑</button>${elapsed(e.at)}<button class="x" type="button" title="Удалить запись">×</button></span></div>`).join('')
+    :'<div class="empty">Записей пока нет. Пишите вопрос внизу и жмите Enter — дальше поле само переключится на ответ.</div>';
+  $('#notes').value=p.notes||''}
+function elapsed(at){const p=P();if(!p.t0||!at)return'';const s=Math.max(0,Math.round((at-p.t0)/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function add(){const t=$('#inp').value.trim();if(!t)return;const p=P();
+  if(!p.t0)startTimer();
+  if(!p.log.length)$('#dHead').open=false; // первая запись — шапку прячем, место под ход допроса
+  p.log.push({k:kind,t,at:Date.now()});
+  $('#inp').value='';fit();
+  if(kind==='q')setKind('a');else if(kind==='a')setKind('q');
+  renderLog();save();const sc=$('#scroll');sc.scrollTop=sc.scrollHeight}
+function setKind(k){kind=k;[...$('#who').querySelectorAll('[data-k]')].forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));
+  $('#inp').placeholder={q:'Вопрос…',a:'Ответ допрашиваемого…',n:'Пометка: предъявил улику, нервничает, отказался отвечать…'}[k]}
+$('#who').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b){setKind(b.dataset.k);$('#inp').focus()}});
+const fit=()=>{const t=$('#inp');t.style.height='auto';t.style.height=Math.min(140,t.scrollHeight+2)+'px'};
+$('#inp').addEventListener('input',fit);
+$('#inp').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();add()}
+  else if(e.key==='Tab'&&!e.shiftKey&&!$('#inp').value){e.preventDefault();setKind(kind==='q'?'a':kind==='a'?'n':'q')}});
+document.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&['Digit1','Digit2','Digit3'].includes(e.code)){e.preventDefault();setKind(['q','a','n'][+e.code.slice(5)-1]);$('#inp').focus()}});
+$('#qs').innerHTML=QUICK.map(q=>`<button type="button">${esc(q)}</button>`).join('');
+$('#qs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setKind('q');$('#inp').value=b.textContent;fit();$('#inp').focus()});
+$('#log').addEventListener('input',e=>{const r=e.target.closest('.e');if(!r)return;P().log[+r.dataset.i].t=e.target.innerText;save()});
+$('#log').addEventListener('click',e=>{const r=e.target.closest('.e');if(!r)return;const p=P(),i=+r.dataset.i;
+  if(e.target.closest('.x')){p.log.splice(i,1);renderLog();save()}
+  else if(e.target.closest('.f')){p.log[i].flag=!p.log[i].flag;r.classList.toggle('flag',!!p.log[i].flag);save()}});
+$('#notes').addEventListener('input',e=>{P().notes=e.target.value;save()});
+
+/* ---------- таймер ---------- */
+function startTimer(){const p=P();if(p.t0)return;p.t0=Date.now();p.tPaused=0;p.paused=null;save()}
+function secs(){const p=P();if(!p.t0)return 0;const now=p.paused||Date.now();return Math.max(0,Math.floor((now-p.t0-p.tPaused)/1000))}
+function tick(){const s=secs(),el=$('#timer');el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')+(P().paused?' ⏸':'');
+  el.classList.toggle('warn',s>=240&&s<600);el.classList.toggle('bad',s>=600)}
+$('#timer').addEventListener('click',()=>{const p=P();if(!p.t0){startTimer();tick();return}
+  if(p.paused){p.tPaused+=Date.now()-p.paused;p.paused=null}else p.paused=Date.now();save();tick()});
+setInterval(tick,1000);
+
+/* ---------- экспорт ---------- */
+// Правила бумаги SS13 — активный профиль Папируса (общее хранилище Пульта), без него «Классика». Как в Панели АВД.
+const PAPIRUS_CLASSIC={name:'Классика',useBr:false,limit:3072,cmds:{bold:['[b]','[/b]'],italic:['[i]','[/i]'],large:['[large]','[/large]'],small:['[small]','[/small]'],center:['[center]','[/center]'],h1:['[h1]','[/h1]'],hr:['[hr]',''],br:['[br]',''],sign:['[sign]','']}};
+function papirusProfile(){try{const s=JSON.parse(localStorage.getItem('papirus.settings')||'null');const p=s&&s.profiles&&(s.profiles[s.active]||Object.values(s.profiles)[0]);if(p&&p.cmds)return p}catch(e){}return PAPIRUS_CLASSIC}
+function build(ss13){const p=P(),pr=papirusProfile(),c=k=>(pr.cmds&&pr.cmds[k])||['',''],has=k=>!!(c(k)[0]||c(k)[1]);
+  const w=(k,s)=>ss13&&s&&has(k)?c(k)[0]+s+c(k)[1]:s,B=s=>w('bold',s),I=s=>w('italic',s),v=k=>(p.f[k]||'').trim()||'—',L=[];
+  L.push(ss13?w('center',w('small','СЛУЖБА БЕЗОПАСНОСТИ · ДЕТЕКТИВ')):'СЛУЖБА БЕЗОПАСНОСТИ · ДЕТЕКТИВ');
+  L.push(ss13?w('center',has('h1')?w('h1','ПРОТОКОЛ ДОПРОСА № '+v('num')):B(w('large','ПРОТОКОЛ ДОПРОСА № '+v('num')))):'ПРОТОКОЛ ДОПРОСА № '+v('num'));
+  if(ss13&&c('hr')[0])L.push(c('hr')[0]);L.push('');
+  const line=(a,b)=>L.push(B(a+':')+' '+b);
+  line('Станционное время',v('time'));line('Допрашиваемый',v('who')+(p.f.job?', '+p.f.job:''));line('Статус',v('status'));
+  if(p.f.subject)line('По делу о',v('subject'));line('Допрашивает',v('by'));if(p.f.present)line('Присутствуют',v('present'));
+  line('Аудиозапись',v('rec').toLowerCase());if(p.t0)line('Длительность',Math.ceil(secs()/60)+' мин.');
+  L.push('');L.push(B('Ход допроса:'));
+  p.log.forEach(e=>{const t=e.t.trim().replace(/\n+/g,' ');if(!t)return;
+    if(e.k==='q')L.push(B('В:')+' '+t);else if(e.k==='a')L.push('О: '+t+(e.flag?' '+B('[!]'):''));else L.push(I('('+t+')'))});
+  if(!p.log.length)L.push('—');
+  const fl=p.log.filter(e=>e.flag&&e.t.trim());
+  if(fl.length){L.push('');L.push(B('Отмечено:'));fl.forEach(e=>L.push('— '+e.t.trim().replace(/\n+/g,' ')))}
+  L.push('');L.push(I('С моих слов записано верно, мною прочитано.'));
+  L.push('Допрашиваемый: '+(ss13&&c('sign')[0]?c('sign')[0]:'______________'));
+  L.push('Допрашивающий: '+v('by')+'  '+(ss13&&c('sign')[0]?c('sign')[0]:'______________'));
+  let s=L.join('\n');if(ss13&&pr.useBr)s=s.replace(/\n/g,c('br')[0]||'\n');
+  return{code:s,title:'Протокол допроса № '+v('num'),limit:+pr.limit||0}}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>el.classList.remove('on'),1600)}
+async function copy(t,msg){try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(_){}a.remove()}toast(msg)}
+$('#copyTxt').addEventListener('click',()=>copy(build(false).code,'Протокол скопирован'));
+$('#copySs').addEventListener('click',()=>{const b=build(true);copy(b.code,'Скопировано для бумаги'+(b.limit&&b.code.length>b.limit?` — ${b.code.length} / ${b.limit} симв., не влезет на лист`:''))});
+// «В Папирус»: в exe — через окно программы, в браузере — через окно Пульта, открывшее протокол, на телефоне — через оболочку
+const shellWin=()=>{try{if(window.opener&&window.opener.location.origin===location.origin)return window.opener}catch(e){}return INLINE&&window.top!==window?window.top:null};
+if(host||shellWin())$('#toPap').hidden=false;
+$('#toPap').addEventListener('click',()=>{const b=build(true),msg={type:'pult-send',to:'papirus',code:b.code,title:b.title};
+  if(host)host.postMessage('send:'+JSON.stringify(msg));else{const w=shellWin();if(w)w.postMessage(msg,location.origin)}
+  toast('Отправлено в Папирус')});
+
+/* ---------- архив ---------- */
+function renderArch(){$('#arch').innerHTML=DB.list.slice().sort((a,b)=>b.created-a.created).map(p=>`<option value="${p.id}"${p.id===DB.cur?' selected':''}>${esc((p.f.num||'')+' '+(p.f.who||'без имени'))}</option>`).join('')}
+function renderAll(){renderHead();renderPlan();renderLog();renderArch();tick()}
+$('#arch').addEventListener('change',e=>{DB.cur=e.target.value;save();renderAll()});
+$('#new').addEventListener('click',()=>{const p=blank();p.f.by=DB.by||'';DB.list.push(p);if(DB.list.length>30)DB.list.splice(0,DB.list.length-30);DB.cur=p.id;save();renderAll();setKind('q');$('#dHead').open=true;$('#fields input[data-k="who"]').focus()});
+$('#del').addEventListener('click',()=>{const p=P();if((p.log.length||p.f.who)&&!confirm('Удалить протокол «'+(p.f.num||'')+' '+(p.f.who||'')+'»?'))return;
+  DB.list=DB.list.filter(x=>x!==p);
+  if(!DB.list.length){const n=blank();n.f.by=DB.by||'';DB.list.push(n)}
+  DB.cur=DB.list[DB.list.length-1].id;save();renderAll()});
+
+/* ---------- окно ---------- */
+// Протокол может быть открыт в двух окнах — подхватываем чужие изменения, пока это окно не в фокусе
+addEventListener('storage',e=>{if(e.key===KEY&&!document.hasFocus()){DB=load();renderAll()}});
+$('#close').addEventListener('click',()=>{try{parent.postMessage({type:'detective-protocol-close'},location.origin)}catch(e){}});
+if(host){
+  $('#pin').hidden=false;
+  host.addEventListener('message',e=>{const d=e.data||{};if(typeof d.pinned==='boolean'){$('#pin').setAttribute('aria-pressed',d.pinned);$('#pin').title=d.pinned?'Открепить: обычное окно':'Поверх всех окон'}});
+  $('#pin').addEventListener('click',()=>host.postMessage('pin:'+($('#pin').getAttribute('aria-pressed')==='true'?'0':'1')));
+  host.postMessage('hello');
+}
+renderAll();setKind('q');
+if(!P().f.by&&DB.by){P().f.by=DB.by;renderHead()}
+$('#inp').focus();
+</script>
+</body>
+</html>

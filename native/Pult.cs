@@ -135,6 +135,8 @@ class MainForm : Form
 
     readonly WebView2 web;
     readonly WindowPrefs state = new WindowPrefs();
+    CoreWebView2Environment env;
+    ProtocolForm protocol;
     bool compact;
     bool dark = true;
 
@@ -357,6 +359,7 @@ class MainForm : Form
     {
         foreach (int id in hotkeys.Keys) UnregisterHotKey(Handle, id);
         RememberBounds();
+        if (protocol != null && !protocol.IsDisposed) protocol.RememberBounds();
         state["mode"] = Key;
         state.Save();
         base.OnFormClosing(e);
@@ -365,22 +368,28 @@ class MainForm : Form
     // ---------- Тема заголовка окна ----------
 
     // Тёмный системный заголовок окна (Windows 10 20H1+ и Windows 11)
-    void ApplyCaption()
+    void ApplyCaption() { ApplyCaption(Handle, dark); }
+
+    public static void ApplyCaption(IntPtr hwnd, bool dark)
     {
         int on = dark ? 1 : 0;
         try
         {
-            if (DwmSetWindowAttribute(Handle, 20, ref on, 4) != 0)
-                DwmSetWindowAttribute(Handle, 19, ref on, 4); // старые сборки Windows 10
+            if (DwmSetWindowAttribute(hwnd, 20, ref on, 4) != 0)
+                DwmSetWindowAttribute(hwnd, 19, ref on, 4); // старые сборки Windows 10
         }
         catch { }
     }
+
+    public bool Dark { get { return dark; } }
+    public WindowPrefs Prefs { get { return state; } }
 
     void SetTheme(bool isDark)
     {
         if (isDark == dark) return;
         dark = isDark;
         ApplyCaption();
+        if (protocol != null && !protocol.IsDisposed) ApplyCaption(protocol.Handle, dark);
         // Windows перерисовывает рамку только при смене размера — слегка «пошевелим» окно
         if (WindowState == FormWindowState.Normal) { Width += 1; Width -= 1; }
         state["theme"] = dark ? "dark" : "light";
@@ -397,40 +406,11 @@ class MainForm : Form
         {
             Program.Extract("WebView2Loader.dll", Path.Combine(binDir, "WebView2Loader.dll"));
             CoreWebView2Environment.SetLoaderDllFolderPath(binDir);
-            CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(baseDir, "data"));
+            env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(baseDir, "data"));
             await web.EnsureCoreWebView2Async(env);
 
             CoreWebView2 core = web.CoreWebView2;
-            core.Settings.AreDevToolsEnabled = false;
-            core.Settings.IsStatusBarEnabled = false;
-            core.Settings.AreBrowserAcceleratorKeysEnabled = false;
-
-            // Оболочка и приложения — из ресурсов exe, без кэша (после обновления сразу видна новая версия)
-            core.AddWebResourceRequestedFilter("https://" + Host + "/*", CoreWebView2WebResourceContext.All);
-            core.WebResourceRequested += (s, a) =>
-            {
-                string path = Uri.UnescapeDataString(new Uri(a.Request.Uri).AbsolutePath).TrimStart('/');
-                if (path.Length == 0 || path.EndsWith("/")) path += "index.html";
-                byte[] data = Program.Resource("web/" + path);
-                if (data == null)
-                {
-                    a.Response = env.CreateWebResourceResponse(null, 404, "Not Found", "");
-                    return;
-                }
-                a.Response = env.CreateWebResourceResponse(new MemoryStream(data), 200, "OK",
-                    "Content-Type: " + MimeType(path) + "\r\nCache-Control: no-store");
-            };
-
-            // Внешние ссылки — в обычный браузер; ни окно, ни приложения внутри не уходят со своих страниц
-            core.NewWindowRequested += (s, a) => { a.Handled = true; OpenExternal(a.Uri); };
-            core.NavigationStarting += (s, a) =>
-            {
-                if (!IsOwn(a.Uri)) { a.Cancel = true; OpenExternal(a.Uri); }
-            };
-            core.FrameNavigationStarting += (s, a) =>
-            {
-                if (!IsOwn(a.Uri)) { a.Cancel = true; OpenExternal(a.Uri); }
-            };
+            Serve(core);
 
             core.WebMessageReceived += (s, a) =>
             {
@@ -446,6 +426,7 @@ class MainForm : Form
                 else if (msg == "theme:light") SetTheme(false);
                 else if (msg.StartsWith("title:")) Text = msg.Substring(6);
                 else if (msg.StartsWith("hotkeys:")) SetHotkeys(msg.Substring(8));
+                else if (msg == "window:protocol") OpenProtocol();
             };
 
             core.Navigate("https://" + Host + "/index.html");
@@ -464,6 +445,66 @@ class MainForm : Form
             MessageBox.Show("Не удалось запустить Пульт:\n\n" + ex.Message, Title, MessageBoxButtons.OK, MessageBoxIcon.Error);
             Close();
         }
+    }
+
+    // Настройки, страницы из ресурсов и запрет ухода со своих страниц — общие для всех окон Пульта
+    public void Serve(CoreWebView2 core)
+    {
+        core.Settings.AreDevToolsEnabled = false;
+        core.Settings.IsStatusBarEnabled = false;
+        core.Settings.AreBrowserAcceleratorKeysEnabled = false;
+
+        // Оболочка и приложения — из ресурсов exe, без кэша (после обновления сразу видна новая версия)
+        core.AddWebResourceRequestedFilter("https://" + Host + "/*", CoreWebView2WebResourceContext.All);
+        core.WebResourceRequested += (s, a) =>
+        {
+            string path = Uri.UnescapeDataString(new Uri(a.Request.Uri).AbsolutePath).TrimStart('/');
+            if (path.Length == 0 || path.EndsWith("/")) path += "index.html";
+            byte[] data = Program.Resource("web/" + path);
+            if (data == null)
+            {
+                a.Response = env.CreateWebResourceResponse(null, 404, "Not Found", "");
+                return;
+            }
+            a.Response = env.CreateWebResourceResponse(new MemoryStream(data), 200, "OK",
+                "Content-Type: " + MimeType(path) + "\r\nCache-Control: no-store");
+        };
+
+        // Внешние ссылки — в обычный браузер; ни окно, ни приложения внутри не уходят со своих страниц
+        core.NewWindowRequested += (s, a) => { a.Handled = true; OpenExternal(a.Uri); };
+        core.NavigationStarting += (s, a) =>
+        {
+            if (!IsOwn(a.Uri)) { a.Cancel = true; OpenExternal(a.Uri); }
+        };
+        core.FrameNavigationStarting += (s, a) =>
+        {
+            if (!IsOwn(a.Uri)) { a.Cancel = true; OpenExternal(a.Uri); }
+        };
+    }
+
+    public CoreWebView2Environment Env { get { return env; } }
+    public string PageUrl(string path) { return "https://" + Host + "/" + path; }
+
+    // ---------- Протокол допроса ----------
+    // Отдельное окно Детектива: живёт само по себе (не сворачивается с Пультом), по умолчанию поверх игры.
+
+    void OpenProtocol()
+    {
+        if (protocol == null || protocol.IsDisposed) { protocol = new ProtocolForm(this); protocol.Show(); }
+        else
+        {
+            if (protocol.WindowState == FormWindowState.Minimized) protocol.WindowState = FormWindowState.Normal;
+            protocol.Activate();
+        }
+    }
+
+    // Протокол просит передать документ приложению (В Папирус) — отдаём оболочке, как её собственное pult-send
+    public void ForwardSend(string json)
+    {
+        if (web.CoreWebView2 == null) return;
+        try { web.CoreWebView2.PostWebMessageAsJson("{\"send\":" + json + "}"); } catch { return; }
+        if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+        Activate();
     }
 
     static bool IsOwn(string uri)
@@ -493,5 +534,96 @@ class MainForm : Form
     {
         if (url.StartsWith("http://") || url.StartsWith("https://"))
             try { Process.Start(url); } catch { }
+    }
+}
+
+// Окно протокола допроса (Детектив). Та же среда WebView2, что у Пульта, поэтому протоколы в localStorage общие.
+class ProtocolForm : Form
+{
+    readonly MainForm main;
+    readonly WebView2 web;
+
+    public ProtocolForm(MainForm main)
+    {
+        this.main = main;
+        Text = "Протокол допроса";
+        StartPosition = FormStartPosition.Manual;
+        try { Icon = main.Icon; } catch { }
+        BackColor = main.Dark ? Color.FromArgb(15, 17, 21) : Color.FromArgb(233, 235, 238);
+        MinimumSize = new Size(340, 420);
+        ShowInTaskbar = true;
+
+        Rectangle wa = Screen.PrimaryScreen.WorkingArea;
+        Rectangle? saved = main.Prefs.Rect("protocol");
+        Rectangle r = new Rectangle(wa.Left + 20, wa.Top + (wa.Height - Math.Min(760, wa.Height - 60)) / 2, 480, Math.Min(760, wa.Height - 60));
+        if (saved.HasValue)
+            foreach (Screen s in Screen.AllScreens)
+            {
+                Rectangle i = Rectangle.Intersect(s.WorkingArea, saved.Value);
+                if (i.Width >= 120 && i.Height >= 80) { r = saved.Value; break; }
+            }
+        Bounds = r;
+        TopMost = main.Prefs["protocolPin"] != "0"; // поверх игры, пока не открепят
+
+        web = new WebView2();
+        web.Dock = DockStyle.Fill;
+        Controls.Add(web);
+
+        HandleCreated += (s, e) => MainForm.ApplyCaption(Handle, main.Dark);
+        Load += async (s, e) => await InitAsync();
+    }
+
+    async Task InitAsync()
+    {
+        try
+        {
+            await web.EnsureCoreWebView2Async(main.Env);
+            CoreWebView2 core = web.CoreWebView2;
+            main.Serve(core);
+            core.WebMessageReceived += (s, a) =>
+            {
+                string msg;
+                try { msg = a.TryGetWebMessageAsString(); } catch { return; }
+                if (msg == null) return;
+                if (msg == "hello") PostState();
+                else if (msg == "pin:1") SetPinned(true);
+                else if (msg == "pin:0") SetPinned(false);
+                else if (msg.StartsWith("title:")) Text = msg.Substring(6);
+                else if (msg.StartsWith("send:")) main.ForwardSend(msg.Substring(5));
+            };
+            core.Navigate(main.PageUrl("apps/detective/protocol.html"));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Не удалось открыть протокол:\n\n" + ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Close();
+        }
+    }
+
+    void SetPinned(bool on)
+    {
+        TopMost = on;
+        main.Prefs["protocolPin"] = on ? "1" : "0";
+        main.Prefs.Save();
+        PostState();
+    }
+
+    void PostState()
+    {
+        if (web.CoreWebView2 != null)
+            web.CoreWebView2.PostWebMessageAsJson("{\"pinned\":" + (TopMost ? "true" : "false") + "}");
+    }
+
+    public void RememberBounds()
+    {
+        if (WindowState == FormWindowState.Minimized) return;
+        main.Prefs.SetRect("protocol", WindowState == FormWindowState.Normal ? Bounds : RestoreBounds);
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        RememberBounds();
+        main.Prefs.Save();
+        base.OnFormClosing(e);
     }
 }

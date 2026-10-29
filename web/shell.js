@@ -1,5 +1,5 @@
 'use strict';
-// Пульт — оболочка для шестнадцати приложений: стартовое радиальное меню, переключение приложений
+// Пульт — оболочка для восемнадцати приложений: стартовое радиальное меню, переключение приложений
 // и два режима окна (компактный и расширенный). Работает в Пульт.exe, Пульт.apk и в браузере. Приложения открываются в iframe с того же
 // адреса, поэтому оболочка может подключить к ним стили компактного режима.
 
@@ -30,6 +30,8 @@ const ICONS = {
   gem: '<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12"/>',
   pick: '<path d="M4 7c4-4 12-4 16 0"/><path d="M12 4.5 11 20a1 1 0 0 0 2 0z"/>',
   shuttle: '<path d="M12 2c3 2.5 4.5 6 4.5 10v5h-9v-5C7.5 8 9 4.5 12 2z"/><path d="M7.5 13 4 16v3h3.5M16.5 13l3.5 3v3h-3.5"/><path d="M10 20.5h4"/><circle cx="12" cy="9" r="1.5"/>',
+  lens: '<circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6"/><path d="M7.2 8.4a3.2 3.2 0 0 1 2.4-1.6"/>',
+  virus: '<circle cx="12" cy="12" r="5.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M18.4 5.6l-1.9 1.9M7.5 16.5l-1.9 1.9"/><circle cx="10.2" cy="10.8" r="1"/><circle cx="14" cy="13.4" r="1"/>',
 };
 const svg = (name, extra = '') =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONS[name]}</svg>`;
@@ -73,6 +75,12 @@ const APPS = [
     src: 'apps/cargo/index.html?only=mine', color: '#b5653a', icon: 'pick', hscroll: '.subnav, .chips', css: false },
   { id: 'cargoev', name: 'Ивенты шаттла', short: 'Ивенты', sub: 'События снабжения', desc: 'Займ шаттла, капсулы, пираты, инспекция',
     src: 'apps/cargo/index.html?only=events', color: '#d9a03a', icon: 'shuttle', hscroll: '.subnav', css: false },
+  // Детектив — второе приложение СБ; протокол допроса открывается отдельным окном (см. «Отдельные окна»)
+  { id: 'detective', name: 'Детектив', sub: 'Улики и допрос', desc: 'Инструменты, расследование, протокол допроса',
+    src: 'apps/detective/index.html', color: '#a0785a', icon: 'lens', hscroll: '.subnav', css: false },
+  // Вирусология — второе приложение медотдела после Алхимика и Химзавода; своей клавиши нет
+  { id: 'viro', name: 'Вирусология', sub: 'Вирусы и эпидемии', desc: 'Статы, полезные вирусы, лечение, разумный вирус',
+    src: 'apps/viro/index.html', color: '#4aa8d8', icon: 'virus', hscroll: 'nav, .subnav, .chips', css: false },
 ];
 // Клавиша приложения: Alt+1…9, дальше — Alt+-, Alt+=, Alt+\
 const EXTRA_KEYS = [['Minus', '-'], ['Equal', '='], ['Backslash', '\\']];
@@ -84,12 +92,12 @@ const byId = Object.fromEntries(APPS.map((a) => [a.id, a]));
 // открывает его сразу, с несколькими — показывает второй круг с выбором приложения.
 const DEPTS = [
   { id: 'gen', name: 'Общее', sub: 'Для любой роли', color: '#5b8def', icon: 'badge', apps: ['papirus', 'character'] },
-  { id: 'sec', name: 'Служба безопасности', short: 'СБ', sub: 'Закон и рапорты', color: '#d63c45', icon: 'shield', apps: ['brig'] },
+  { id: 'sec', name: 'Служба безопасности', short: 'СБ', sub: 'Закон, рапорты, детектив', color: '#d63c45', icon: 'shield', apps: ['brig', 'detective'] },
   { id: 'law', name: 'Юридический отдел', short: 'Юр. отдел', sub: 'АВД и Представитель', color: '#b8863b', icon: 'scales', apps: ['avd'] },
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
   { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
   { id: 'sci', name: 'Наука', sub: 'Исследования и схемы', color: '#2fb5a5', icon: 'atom', apps: ['circuits'] },
-  { id: 'med', name: 'Медицина', sub: 'Химия и фармацевтика', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod'] },
+  { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
   { id: 'srv', name: 'Сервис', sub: 'Повар и бармен', color: '#e07a3f', icon: 'cloche', apps: ['kitchen'] },
   { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev'] },
 ];
@@ -488,13 +496,33 @@ document.addEventListener('keydown', onKey, true);
 // Приложение просит отправить данные другому: {type: 'pult-send', to, code, title}. Открываем получателя
 // и, когда он загрузится, отдаём ему {type: 'pult-import', code, title} (Бриг → Папирус: документ в окно импорта).
 window.addEventListener('message', (e) => {
-  const d = e.data;
-  if (e.origin !== location.origin || !d || d.type !== 'pult-send' || !byId[d.to] || typeof d.code !== 'string') return;
+  if (e.origin === location.origin) toApp(e.data);
+});
+function toApp(d) {
+  if (!d || d.type !== 'pult-send' || !byId[d.to] || typeof d.code !== 'string') return;
   open(d.to);
   const f = frames[d.to];
   const go = () => f.contentWindow.postMessage({ type: 'pult-import', code: d.code, title: d.title || '' }, location.origin);
   if (f.dataset.loaded) go();
   else f.addEventListener('load', () => setTimeout(go, 50), { once: true });
+}
+
+// ---------- Отдельные окна ----------
+// Приложение просит открыть свою страницу отдельным окном: {type: 'pult-window', page} (Детектив → протокол допроса).
+// В программе это своё окно поверх игры, в браузере — всплывающее окно; на телефоне окон нет, и приложение
+// получает {type: 'pult-window-inline'} и показывает страницу панелью у себя.
+const WINDOWS = { protocol: 'apps/detective/protocol.html' };
+const popups = {};
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (e.origin !== location.origin || !d || d.type !== 'pult-window' || !WINDOWS[d.page]) return;
+  const inline = () => e.source.postMessage({ type: 'pult-window-inline', page: d.page }, location.origin);
+  if (host) { send('window:' + d.page); return; }
+  if (android) { inline(); return; }
+  const w = popups[d.page];
+  if (w && !w.closed) { w.focus(); return; }
+  popups[d.page] = window.open(WINDOWS[d.page], 'pult-' + d.page, 'popup,width=480,height=760');
+  if (!popups[d.page]) inline(); // окно заблокировано браузером
 });
 
 // ---------- Хоткеи Инженера ----------
@@ -516,6 +544,7 @@ if (host) {
     if (d.mode === 'compact' || d.mode === 'expanded') setMode(d.mode === 'compact', true);
     if (d.hotkey) engineerHotkey(d.hotkey);
     if (Array.isArray(d.hotkeysFailed)) toEngineer({ type: 'pult-hotkeys-state', failed: d.hotkeysFailed });
+    if (d.send) toApp(d.send); // из отдельного окна (протокол допроса → Папирус)
   });
   // Инженер сообщает свои клавиши (guides.json), программа занимает их поверх игры и присылает нажатия
   window.addEventListener('message', (e) => {

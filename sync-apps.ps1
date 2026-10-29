@@ -58,4 +58,12 @@ Copy-Item (Join-Path $root 'command\index.html') $dst
 $dst = Join-Path $apps 'cargo'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'cargo\index.html') $dst
 
+# Детектив — живёт в Пульте (detective\): справочник и окно протокола допроса; НРП берёт у Панели АВД (..\avd\nrp.js)
+$dst = Join-Path $apps 'detective'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'detective\index.html'), (Join-Path $root 'detective\protocol.html') $dst
+
+# Вирусология — живёт в Пульте (viro\): статы болезней, рецепты полезных вирусов, лечение, разумный вирус
+$dst = Join-Path $apps 'viro'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'viro\index.html') $dst
+
 "Приложения скопированы в $apps"
