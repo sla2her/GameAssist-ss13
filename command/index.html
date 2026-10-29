@@ -42,6 +42,7 @@ nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px so
 nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
 nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 main{padding-top:14px}
+.single nav{display:none}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
 .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .muted{color:var(--muted)}
@@ -218,7 +219,7 @@ details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--nav
 <body>
 <div class="wrap">
 <header>
-  <div class="brand"><div class="badge">КОМ</div><div><h1>Панель Командования</h1><small id="rev">Глава Персонала · ИИ · Капитан</small></div></div>
+  <div class="brand"><div class="badge" id="badge">КОМ</div><div><h1 id="ttl">Панель Командования</h1><small id="rev">Глава Персонала · ИИ · Капитан</small></div></div>
   <nav role="tablist">
     <button role="tab" id="tab-hop" data-tab="hop" aria-selected="true">Глава Персонала</button>
     <button role="tab" id="tab-ai" data-tab="ai" aria-selected="false">ИИ</button>
@@ -279,7 +280,10 @@ details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--nav
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const N=window.NRP||{depts:[]};
-const dept=id=>N.depts.find(d=>d.id===id);
+// ?only=hop|ai|cap — одна часть панели (так её открывает Пульт: три приложения во втором круге «Командования»).
+// У каждой части своё хранилище: открытые рядом, они не перезаписывают состояние друг друга.
+const PART=(()=>{const p=new URLSearchParams(location.search).get('only');return ['hop','ai','cap'].includes(p)?p:null})();
+const KEY='command.state'+(PART?'.'+PART:'');const dept=id=>N.depts.find(d=>d.id===id);
 const role=(id,re)=>{const d=dept(id);return d?d.roles.find(r=>re.test(r.t)):null};
 const KIND={duty:'Обязан',ban:'Запрещено',right:'Имеет право',rule:'Положения'};
 function plural(n,a,b,c){n=Math.abs(n)%100;const m=n%10;return n>10&&n<20?c:m===1?a:m>1&&m<5?b:c}
@@ -335,12 +339,12 @@ const DOC0={tpl:'grant',fmt:'txt',num:'ГП-0101',time:'',hop:'',who:'',job:'',n
 const ANN0={tpl:'start',cap:'',code:'Синий',reason:'',name:'',post:'',goal:'bsa',text:''};
 const S0={tab:'hop',sub:{hop:'docs',ai:'laws',cap:'goals'},heads:{cap:true,hos:true,ce:true,cmo:true,rd:true,qm:true,rep:true},alert:'Зелёный',emerg:false,acting:false,self:false,
   acc:[],law:0,goal:'bsa',check:{},log:[],doc:DOC0,ann:ANN0};
-const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem('command.state')||'null')}catch(e){}
+const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
   s=Object.assign({},S0,s&&typeof s==='object'?s:{});
   ['sub','heads','doc','ann'].forEach(k=>{s[k]=Object.assign({},S0[k],s[k]||{})});
   if(!Array.isArray(s.acc))s.acc=[];s.acc=s.acc.filter(a=>REGOF[a]);if(!Array.isArray(s.log))s.log=[];if(!s.check||typeof s.check!=='object')s.check={};
   return s})();
-function save(){try{localStorage.setItem('command.state',JSON.stringify(S))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 /* ===================== ОБЩИЕ ПОМОЩНИКИ ===================== */
 // Карточка раздела НРП: kinds — какие группы показать, re — фильтр по названию группы
@@ -759,10 +763,11 @@ function renderCapAlert(){
 const TABS=['hop','ai','cap'];
 const RENDER={hop:{docs:renderDocs,acc:renderHopAcc,work:renderHopWork},ai:{laws:renderAiLaws,ctrl:renderAiCtrl,cases:renderAiCases},cap:{goals:renderCapGoals,shift:renderCapShift,ann:renderCapAnn,alert:renderCapAlert}};
 function go(t,sub){
+  if(PART)t=PART;
   if(sub)S.sub[t]=sub;S.tab=t;
   TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
   subSeg(t);SUBS[t].forEach(([id])=>{$('#'+t+'-'+id).hidden=id!==S.sub[t]});
-  RENDER[t][S.sub[t]]();save();setHash(t+'-'+S.sub[t]);window.scrollTo(0,0)}
+  RENDER[t][S.sub[t]]();save();setHash(t+'/'+S.sub[t]);window.scrollTo(0,0)} // не «t-sub»: это id раздела, браузер прокрутил бы к нему
 function setHash(h){try{history.replaceState(null,'','#'+h)}catch(e){}}
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
 document.querySelectorAll('[data-subs]').forEach(el=>el.addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(b)go(el.dataset.subs,b.dataset.sub)}));
@@ -771,10 +776,14 @@ function copy(text,msg){
   const fb=()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();toast(ok?msg:'Не удалось скопировать: выделите текст вручную')};
   try{navigator.clipboard.writeText(text).then(()=>toast(msg),fb)}catch(e){fb()}}
 
-if(N.rev)$('#rev').textContent='Глава Персонала · ИИ · Капитан · НРП '+N.rev;
-// #hop, #ai-laws, #cap-goals… — сразу вкладка и раздел
-const [h0,h1]=(location.hash||'').slice(1).split('-');
-if(TABS.includes(h0))go(h0,SUBS[h0].some(([id])=>id===h1)?h1:null);else go(TABS.includes(S.tab)?S.tab:'hop');
+const PARTS={hop:['ГП','Глава Персонала','Допуски, кадры, порядок работы'],ai:['ИИ','Панель ИИ','Законы, управление, ситуации'],cap:['КАП','Панель Капитана','Цели станции, смена, объявления']};
+if(PART){const p=PARTS[PART];document.documentElement.classList.add('single');
+  $('#badge').textContent=p[0];$('#ttl').textContent=p[1];document.title=p[1];$('#rev').textContent=p[2]+(N.rev?' · НРП '+N.rev:'')}
+else if(N.rev)$('#rev').textContent='Глава Персонала · ИИ · Капитан · НРП '+N.rev;
+// #hop, #ai/laws, #cap/goals… — сразу вкладка и раздел
+const [h0,h1]=(location.hash||'').slice(1).split(/[\/-]/);
+const t0=PART||(TABS.includes(h0)?h0:null);
+if(t0)go(t0,h0===t0&&SUBS[t0].some(([id])=>id===h1)?h1:null);else go(TABS.includes(S.tab)?S.tab:'hop');
 </script>
 </body>
 </html>
