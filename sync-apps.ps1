@@ -66,4 +66,8 @@ Copy-Item (Join-Path $root 'detective\index.html'), (Join-Path $root 'detective\
 $dst = Join-Path $apps 'viro'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'viro\index.html') $dst
 
+# Робототехник — живёт в Пульте (robo\): сборка киборгов, мехов и ботов, оверлей; НРП берёт у Панели АВД (..\avd\nrp.js)
+$dst = Join-Path $apps 'robo'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'robo\index.html') $dst
+
 "Приложения скопированы в $apps"

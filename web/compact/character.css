@@ -18,7 +18,13 @@
 .pult-compact .CharacterSetup__tabs .Tab { flex: 1 0 auto; min-width: 0; padding: 0 .4em; }
 /* У вкладки нужна именно высота: её содержимое растягивается на 100% и при одной min-height схлопывается в 0 */
 .pult-compact .CharacterSetup__content { flex: none; height: 65vh; min-height: 0; }
-.pult-compact .CharacterSetup__preview { height: 60vh; }
+/* Превью: блок по содержимому (панель режимов + холст), холсту — своя высота. При фиксированной высоте блока
+   панель режимов съедала почти всё место и фигура сжималась до пары пикселей. */
+.pult-compact .CharacterSetup__preview { height: auto; }
+.pult-compact .CharacterSetup__preview > .Section__rest { flex: none; }
+.pult-compact .CharacterSetup__preview > .Section__rest > .Section__content { position: relative; inset: auto; }
+.pult-compact .CharacterSetup__preview-map { flex: none; height: clamp(280px, 60vh, 560px); }
+.pult-compact .CharacterSetup__preview-toolbar { padding: .3rem 0 .4rem; }
 .pult-compact .CharacterSetup__slots { height: 42vh; }
 .pult-compact .CharacterSetup__settings-grid,
 .pult-compact .CharacterSetup__settings-grid--compact { columns: 1; }

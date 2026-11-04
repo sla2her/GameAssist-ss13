@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Робототехник</title>
+<style>
+/* Робототехник: пошаговая сборка киборгов, мехов, ботов и синтетиков с оверлеем поверх игры (F10),
+   советы по игре, НРП из avd/nrp.js. Вёрстка как у Вирусологии, карточка шага — как у Инженера. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#8c6ad8; --accent-fg:#ffffff; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#a68cf0; --accent-fg:#160c2c; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#a68cf0; --accent-fg:#160c2c; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav.tabs{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav.tabs button{border:0;background:none;padding:7px 14px;border-radius:7px;color:var(--muted);font-weight:500;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)}
+
+.seg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:7px;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.subnav{margin-bottom:14px;display:inline-flex}
+
+/* ---------- Сборка ---------- */
+.build{display:grid;grid-template-columns:270px minmax(0,1fr);gap:14px;align-items:start}
+.glist{position:sticky;top:70px;max-height:calc(100vh - 86px);overflow-y:auto;padding:4px 0 8px}
+.glist h4{margin:0;padding:10px 14px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+.glist button{display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;background:none;padding:6px 14px;font-size:14px}
+.glist button:hover{background:var(--panel2)}
+.glist button.on{color:var(--accent);font-weight:600;box-shadow:inset 3px 0 var(--accent);background:var(--panel2)}
+.glist button .c{margin-left:auto;color:var(--faint);font-size:12px;font-variant-numeric:tabular-nums}
+.glist button .w{font-size:10.5px;font-weight:600;color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 45%,transparent);border-radius:5px;padding:0 4px}
+.gpick{display:none;width:100%;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);margin-bottom:10px}
+
+.gmain{display:grid;gap:12px;min-width:0}
+.ghead{padding:14px 16px;display:grid;gap:8px}
+.ghead h2{margin:0;font-size:19px;line-height:1.25}
+.ghead h2 small{display:block;font-size:12.5px;font-weight:400;color:var(--muted);margin-top:3px}
+.meta{display:grid;gap:4px;font-size:13.5px}
+.meta div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px}
+.meta b{color:var(--muted);font-weight:600;font-size:12.5px;padding-top:1px}
+.warnline{font-size:13px;padding:7px 10px;border-radius:8px;background:color-mix(in srgb,var(--bad) 10%,var(--panel));border-left:3px solid var(--bad)}
+
+.stepbox{padding:14px 16px;display:grid;gap:10px}
+.counter{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.counter .grow{flex:1}
+.progress{display:flex;gap:2px;height:6px}
+.progress i{flex:1;border-radius:2px;background:var(--line);cursor:pointer}
+.progress i.done{background:var(--accent)}
+.progress i.cur{background:var(--fg)}
+.card{border:2px solid var(--accent);border-radius:10px;background:var(--panel2);padding:14px 16px;display:grid;gap:6px;transition:border-color .12s}
+.card.flash{border-color:var(--fg)}
+.card.fin{border-color:var(--ok)}
+.tool{justify-self:start;font-weight:700;font-size:15px;line-height:1.2;padding:3px 10px;border-radius:7px;border:1px solid var(--tc,var(--accent));background:color-mix(in srgb,var(--tc,var(--accent)) 18%,var(--panel))}
+.do{font-size:17px;line-height:1.4}
+.note{color:var(--muted);font-size:13.5px}
+.note::before{content:"💡 "}
+.upnext{color:var(--faint);font-size:12.5px}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:7px 12px;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.grow{flex:1}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.sm{font-weight:400;font-size:13px;padding:5px 10px;color:var(--muted)}
+.keys{font-size:12px;color:var(--faint)}
+.keys .err{color:var(--bad);display:block}
+kbd{font:12px var(--font-m);background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;white-space:nowrap}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+
+.steps{list-style:none;margin:0;padding:6px 8px 10px;display:grid;gap:2px}
+.steps li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer}
+.steps li:hover{background:var(--panel2)}
+.steps li .n{color:var(--faint);font:12px var(--font-m);text-align:right;padding-top:3px}
+.steps li .t{display:inline-block;font-weight:600;font-size:12.5px;padding:0 7px;border-radius:5px;border:1px solid var(--tc,var(--accent));background:color-mix(in srgb,var(--tc,var(--accent)) 14%,var(--panel));margin-right:6px}
+.steps li .s{color:var(--muted);font-size:13px;margin-top:2px}
+.steps li.done{opacity:.5}
+.steps li.cur{background:var(--panel2);box-shadow:inset 3px 0 var(--accent)}
+.sechead{margin:0;padding:12px 16px 0;font-size:14px}
+
+/* ---------- Советы ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.gcard{overflow:hidden}
+.gcard>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.gcard>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.gcard .body{padding:10px 16px 14px;font-size:14px}
+.gcard .body p{margin:0 0 8px}
+.gcard .body p:last-child{margin-bottom:0}
+.bul{margin:0;padding:10px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.olist{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.olist li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.olist li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.tip{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.tip.bad{--kc:var(--bad)} .tip.ok{--kc:var(--ok)} .tip.warn{--kc:var(--warn)}
+.wide{grid-column:1/-1}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+.nrp{padding:4px 16px 12px;display:grid;gap:6px;font-size:14px}
+.nrp .it{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px}
+.nrp .it .n{font:12px var(--font-m);color:var(--faint);padding-top:2px}
+.nrphd{padding:10px 16px 0;font-weight:600;font-size:13.5px}
+.k-duty{--kc:var(--navy)} .k-ban{--kc:var(--bad)} .k-right{--kc:var(--ok)}
+.phrase{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line)}
+.phrase:last-child{border-bottom:0}
+.phrase span{flex:1}
+.phrase button{border:1px solid var(--line2);background:var(--panel2);border-radius:6px;padding:2px 8px;font-size:12px;color:var(--muted)}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+
+/* ---------- Оверлей поверх игры: только текущий шаг ---------- */
+html.ov-on,html.ov-on body{overflow:hidden}
+#ov{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column}
+#ov .ovbar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--panel);border-bottom:2px solid var(--accent)}
+#ov .ovbar b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+#ov .ovbar .cnt{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#ov .ovbar .btn{padding:3px 9px}
+#ov .progress{margin:0;height:4px;border-radius:0}
+#ov .ovbody{flex:1;overflow:auto;padding:10px;display:grid;align-content:start;gap:8px}
+#ov .card{padding:12px 14px}
+#ov .do{font-size:18px}
+#ov .ovfoot{padding:4px 8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--faint);display:flex;gap:4px 10px;flex-wrap:wrap}
+#ov .ovfoot .err{color:var(--bad)}
+
+@media (max-width:820px){
+  .build{grid-template-columns:minmax(0,1fr)}
+  .glist{display:none}
+  .gpick{display:block}
+}
+@media (max-width:560px){
+  .brand small{display:none} nav.tabs{margin-left:0;width:100%} nav.tabs button{flex:1;padding:7px 6px}
+  .meta div{grid-template-columns:minmax(0,1fr);gap:0}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav.tabs{margin-left:0;width:100%}
+.pult-compact nav.tabs button{flex:1;padding:5px 6px}
+.pult-compact .subnav{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .build{grid-template-columns:minmax(0,1fr)}
+.pult-compact .glist{display:none}
+.pult-compact .gpick{display:block}
+.pult-compact .grid{grid-template-columns:minmax(0,1fr)}
+.pult-compact .meta div{grid-template-columns:minmax(0,1fr);gap:0}
+.pult-compact .ghead,.pult-compact .stepbox,.pult-compact .gcard>h3,.pult-compact .gcard .body,.pult-compact .olist,.pult-compact .tbl,.pult-compact .nrp,.pult-compact .nrphd{padding-left:10px;padding-right:10px}
+.pult-compact .bul{padding-left:28px;padding-right:10px}
+.pult-compact .tip{margin-left:10px;margin-right:10px}
+.pult-compact .foot{display:none}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">РОБ</div><div><h1>Робототехник</h1><small>Сборка киборгов, мехов и ботов · Советы · НРП</small></div></div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="build" aria-selected="true">Сборка</button>
+    <button role="tab" data-tab="tips" aria-selected="false">Советы и НРП</button>
+  </nav>
+</header>
+
+<main>
+<section id="v-build">
+  <select class="gpick" id="gpick" aria-label="Инструкция"></select>
+  <div class="build">
+    <nav class="panel glist" id="glist" aria-label="Инструкции"></nav>
+    <div class="gmain">
+      <div class="panel ghead" id="ghead"></div>
+      <div class="panel stepbox">
+        <div class="counter"><span id="counter"></span><span class="grow"></span><button class="btn sm" id="restart">Сначала</button><button class="btn pri" id="ovBtn" title="Окно покажет только текущий шаг (F10)">⧉ Оверлей <kbd>F10</kbd></button></div>
+        <div class="progress" id="progress"></div>
+        <section class="card" id="card" aria-live="polite"></section>
+        <div class="btns">
+          <button class="btn" id="prev">◀ Назад</button>
+          <button class="btn pri grow" id="next">Дальше ▶</button>
+        </div>
+        <div class="keys" id="keys"></div>
+      </div>
+      <div class="panel"><h3 class="sechead">Все шаги</h3><ol class="steps" id="steps"></ol></div>
+    </div>
+  </div>
+</section>
+
+<section id="v-tips" hidden>
+  <div class="seg subnav" id="tipnav">
+    <button data-sub="play" aria-pressed="true">Как играть</button>
+    <button data-sub="mechs" aria-pressed="false">Мехи и киборги</button>
+    <button data-sub="nrp" aria-pressed="false">НРП</button>
+    <button data-sub="own" aria-pressed="false">От себя</button>
+  </div>
+  <div id="s-play"></div>
+  <div id="s-mechs" hidden></div>
+  <div id="s-nrp" hidden></div>
+  <div id="s-own" hidden></div>
+</section>
+</main>
+<p class="foot">Шаги сборки, материалы и исследования — по коду MOLOT-BlueMoon-Station: <code>mecha_construction_paths.dm</code>,
+<code>mechfabricator_designs.dm</code>, <code>robot_parts.dm</code>, <code>bot/construction.dm</code>, <code>ai_core.dm</code>, <code>ipc_constructor.dm</code>.
+Листы материалов округлены вверх (1 лист = 2000 ед.). НРП — из базы Панели АВД.</p>
+</div>
+
+<div id="ov" hidden>
+  <div class="ovbar">
+    <b id="ovName"></b><span class="cnt" id="ovCnt"></span>
+    <button class="btn" id="ovPrev" title="Предыдущий шаг (F7)">◀</button>
+    <button class="btn pri" id="ovNext" title="Следующий шаг (F8)">▶</button>
+    <button class="btn" id="ovClose" title="Выйти из оверлея (Esc)">✕</button>
+  </div>
+  <div class="progress" id="ovProg"></div>
+  <div class="ovbody"><section class="card" id="ovCard"></section><div class="upnext" id="ovNextStep"></div></div>
+  <div class="ovfoot" id="ovFoot"></div>
+</div>
+
+<script src="../avd/nrp.js"></script>
+<script>
+'use strict';
+const $=(id)=>document.getElementById(id);
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const inPult=window.parent!==window;
+const store={get(k){try{return localStorage.getItem('robo.'+k)}catch(e){return null}},set(k,v){try{localStorage.setItem('robo.'+k,v)}catch(e){}}};
+
+/* ===================== Инструкции ===================== */
+// Шаг: t — чем действовать, d — что сделать, n — заметка
+const S=(t,d,n)=>({t,d,n:n||''});
+const TOOL_COLORS=[['ключ','#e0a92e'],['отвёртк','#4f8fe0'],['кусачк','#d9534f'],['сварк','#ef7d32'],['лом','#9a6ad6'],['кабель','#d4b82a'],['мультитул','#2fb5a5'],['id','#2fb5a5'],['плат','#3fa66b'],['мехфаб','#8c6ad8'],['принтер','#8c6ad8'],['гудок','#e05aa0'],['ммп','#c9a227'],['ммч','#c9a227'],['мозг','#c9a227']];
+function toolColor(t){t=String(t).toLowerCase();for(const [k,c] of TOOL_COLORS) if(t.includes(k)) return c;return ''}
+
+// Общие шаги мехов (get_frame_steps … get_outer_plating_steps)
+function mech(o){
+  const s=[
+    S('Мехфаб',`Напечатать шасси и детали в разделе «${o.fab}»: ${o.parts}.`,`Нужно: ${o.mat}. Детали печатаются по очереди — поставьте всё в очередь сразу.`),
+    S('Принтер плат',`Напечатать платы: ${o.boards}.`,'Принтер плат (circuit imprinter) ОИР, раздел Exosuit Modules. Стекло и немного золота.'),
+    S('Шасси','Положить шасси на пол и вставить в него все детали — порядок любой.','Осмотр шасси (Shift+клик) покажет, каких деталей не хватает.'),
+  ];
+  if(o.custom) return s.concat(o.custom,o.fin===false?[]:FIN(o));
+  s.push(
+    S('Гаечный ключ','Подключить гидравлику.'),
+    S('Отвёртка','Включить гидравлику.'),
+    S('Кабель ×5','Проложить проводку.'),
+    S('Кусачки','Подогнать проводку.'),
+    S('Плата',`Вставить центральный модуль (${o.main}).`),
+    S('Отвёртка','Закрепить центральный модуль.'),
+    S('Плата',`Вставить модуль периферии (${o.peri}).`),
+    S('Отвёртка','Закрепить модуль периферии.'));
+  if(o.weap) s.push(S('Плата',`Вставить модуль наведения (${o.weap}).`),S('Отвёртка','Закрепить модуль наведения.'));
+  s.push(...(o.stock||STOCK));
+  s.push(...(o.inner||[S(o.innerItem||'Металл ×5','Положить внутреннюю обшивку.'),S('Гаечный ключ','Затянуть внутреннюю обшивку.'),S('Сварка','Приварить внутреннюю обшивку.')]));
+  s.push(...(o.outer||[S(o.outerItem,'Установить внешнюю броню.'),S('Гаечный ключ','Затянуть внешнюю броню.'),S('Сварка','Приварить внешнюю броню — мех собран.')]));
+  return s.concat(FIN(o));
+}
+const STOCK=[
+  S('Сканер','Вставить сканирующий модуль (scanning module).','Разряд деталей переходит в мех: сканер и конденсатор лучше брать улучшенные. RPED тоже работает — кликните им по меху на шаге детали.'),
+  S('Отвёртка','Закрепить сканер.'),
+  S('Конденсатор','Вставить конденсатор.'),
+  S('Отвёртка','Закрепить конденсатор.'),
+  S('Батарея','Вставить батарею.','Своя батарея меха удаляется — стоит та, что вставите. Чем ёмче, тем дольше мех без зарядки.'),
+  S('Отвёртка','Закрепить батарею.'),
+];
+function FIN(o){
+  const s=[S('Маячок','Прицепить к меху маячок слежения (Exosuit Tracking Beacon).','Обязанность по п. 5.1 НРП. Печатается в мехфабе.')];
+  if(o.equip) s.push(S('Снаряжение',`Навесить оборудование: кликнуть модулем по меху. ${o.equip}`,'Модули печатаются в мехфабе, раздел Exosuit Equipment.'));
+  s.push(S('ДНК','Сесть в мех и в его интерфейсе включить ДНК-блокировку на себя.','П. 5.1 НРП: блокировка — с конца сборки до доставки в отдел. У получателя сбросьте блокировку и отдайте мех.'));
+  return s;
+}
+
+const GUIDES=[
+  // ---------- Синтетики ----------
+  {id:'borg',g:'Киборги и ИИ',name:'Киборг',sub:'Эндоскелет + ММИ или позитронный мозг',
+    res:'Стартовый узел Cyborg Construction',mat:'~50 листов металла, 2 вспышки, 1 кабель, батарея, ММИ с мозгом',
+    steps:[
+      S('Мехфаб','Напечатать в разделе Cyborg: эндоскелет, торс, голову, две руки и две ноги.','Металл: эндоскелет 7,5, торс 20, голова 2,5, конечности по 5 листов.'),
+      S('Кабель ×1','Провести проводку в торс киборга.'),
+      S('Батарея','Вставить в торс батарею.','Ставьте высокоёмкую или лучше — штатная садится быстро. Без батареи скелет не примет ММИ.'),
+      S('Вспышка ×2','Вставить в голову две вспышки (flash).','Вспышки печатаются в мехфабе, раздел Cyborg. В голове не должно быть органов.'),
+      S('Эндоскелет','Поставить эндоскелет на пол и вставить: руки, ноги, торс, голову.','Торс без проводки и батареи и голова без вспышек не встанут.'),
+      S('Мультитул','(По желанию) Мультитулом по скелету — имя, мастер-ИИ, порты законов и ИИ, сервоприводы, замок панели.','Закрывать порты законов и ИИ без приказа Капитана или Директора ОИР нельзя — п. 5.10 НРП.'),
+      S('ММИ','Вставить ММИ с мозгом (или позитронный мозг) — последним.','Скелет должен стоять на полу. Мозг живой, игрок в сети — иначе «mind is inactive».'),
+      S('Проверка','Киборг выбирает модуль. Проверить законы и связь с ИИ, сообщить ИИ о новом юните.','Модули: Standard, Engineering, Medical, Miner, Cargo, Service, Peacekeeper; Security — только с повышенного кода тревоги.'),
+    ]},
+  {id:'mmi',g:'Киборги и ИИ',name:'ММИ и позитронный мозг',sub:'Мозг для киборга, ИИ, меха или IPC',
+    res:'ММИ — стартовый узел; позитронный мозг — Positronic Brain (через Neural Programming)',mat:'ММИ: металл и стекло; мозг — от тела',
+    steps:[
+      S('Мехфаб','Напечатать в мехфабе ММИ (Man-Machine Interface).'),
+      S('Мозг','Вставить мозг в ММИ: кликнуть мозгом по ММИ.','Мозг достаёт хирург (или вы — п. 5.7 даёт право на операции). Труп — только с согласия по НРП и записи.'),
+      S('Проверка','Осмотреть ММИ: мозг жив и в сознании (у игрока есть клиент).','Пустой или «спящий» мозг скелет киборга не примет.'),
+      S('Позитронный мозг','Нет мозга? Изучите Positronic Brain, напечатайте позитронный мозг и активируйте его в руке.','Мозг ждёт желающего призрака. Загорелся — готов, ставится туда же, куда и ММИ.'),
+    ]},
+  {id:'ai',g:'Киборги и ИИ',name:'Ядро ИИ',sub:'Новый ИИ из ММИ или позитронного мозга',
+    res:'Artificial Intelligence (плата AI Core и модули законов)',mat:'4 листа пластали, плата ядра ИИ, 5 кабеля, 2 листа укреплённого стекла, ММИ',
+    warn:'Новый ИИ — решение командования: согласуйте с Капитаном или Директором ОИР.',
+    steps:[
+      S('Пласталь ×4','Собрать каркас ядра ИИ (рецепт пластали «AI core»).'),
+      S('Гаечный ключ','Закрепить каркас на полу.','Незакреплённый каркас разбирается сваркой.'),
+      S('Плата','Вставить плату ядра ИИ (AI Core).','Печатается в принтере плат после узла Artificial Intelligence.'),
+      S('Отвёртка','Закрепить плату.'),
+      S('Кабель ×5','Проложить проводку.'),
+      S('ММИ','Вставить ММИ с мозгом или позитронный мозг.','Нужен разум: пустой мозг даст «неактивный» ИИ.'),
+      S('Модуль законов','(По желанию) Вставить модули законов — до стекла.','Только если у мозга стандартные законы. Ставит законы командование, не вы.'),
+      S('Укр. стекло ×2','Установить стеклянную панель.'),
+      S('Отвёртка','Подключить монитор — ИИ включается.'),
+    ]},
+  {id:'ipc',g:'Киборги и ИИ',name:'Синтетик IPC',sub:'Synthetic Constructor собирает IPC вокруг мозга',
+    res:'Positronic Brain (плата Synthetic Constructor, шасси головы и торса IPC)',mat:'~70 листов стали, 30 стекла, 15 пластика (стандартный размер); детали IPC из мехфаба',
+    steps:[
+      S('Принтер плат','Напечатать плату Synthetic Constructor и построить машину.','Детали машины: 5 матрёшек материи, 2 конденсатора, 2 манипулятора, 2 микролазера, 2 кабеля, 2 стекла.'),
+      S('Мехфаб','Напечатать в разделе Cybernetics: головное и торсовое шасси IPC и семь органов IPC.','Органы: гидронасос, охлаждение, реагентный процессор, энергоячейка, оптика, аудио, голосовой синтезатор.'),
+      S('Мехфаб','Напечатать руки и ноги киборга (Cyborg).','Конечности не обязательны, но без них IPC выйдет без рук и ног.'),
+      S('Материалы','Загрузить в конструктор сталь, стекло и пластик.','Сколько нужно — видно в интерфейсе: зависит от выбранного размера тела.'),
+      S('Детали','Загрузить голову, торс, конечности и все органы IPC.','Голова и торс должны быть пустыми — без органов.'),
+      S('Мозг','Вставить когнитивное ядро: позитронный мозг или ММИ с разумом.','Пустой позитронный мозг — IPC выйдет ролью для призрака.'),
+      S('Импланты','(По желанию) Загрузить импланты и кибер-импланты — встанут при сборке.'),
+      S('Сборка','Задать имя и экран, начать сборку. Машина заблокируется на ~70 секунд и больше.','Пока идёт сборка, панель и загрузка закрыты.'),
+    ]},
+  {id:'borgfix',g:'Киборги и ИИ',name:'Ремонт и улучшение киборга',sub:'Обслуживание юнита',
+    res:'Улучшения — узлы Cyborg Upgrades (Utility, Medical, Combat)',mat:'Сварка, кабель, лом, ID с доступом робототехники',
+    steps:[
+      S('ID','Провести ID по киборгу — разблокировать крышку.','Нужен доступ робототехники. Киборг стоит смирно — предупредите его в чате.'),
+      S('Лом','Открыть крышку.'),
+      S('Батарея','Проверить и при надобности заменить батарею.'),
+      S('Улучшение','Вставить платы улучшений (при открытой крышке).','Сброс модуля (Reset) возвращает выбор модуля. Нелегальные модули — только при Красном коде, п. 5.8.'),
+      S('Сварка','Заварить механические повреждения (brute).'),
+      S('Кабель','Заменить проводку — ожоги (burn).'),
+      S('Лом','Закрыть крышку.'),
+      S('ID','Заблокировать крышку ID.'),
+    ]},
+
+  // ---------- Рабочие мехи ----------
+  {id:'ripley',g:'Рабочие мехи',name:'Ripley MK-I / MK-II',sub:'Погрузчик для карго и шахты',
+    res:'Стартовый узел Mechanical Exosuits',mat:'50 листов металла, 4 стекла; при сборке 5 кабеля, 5 металла, 10 прутьев или 10 пластали',
+    steps:mech({fab:'Ripley',parts:'шасси, торс, две руки, две ноги',mat:'50 листов металла и 4 стекла',boards:'Ripley Central Control, Ripley Peripherals',
+      main:'Ripley Central Control',peri:'Ripley Peripherals',equip:'Клешня (hydraulic clamp) и бур — для карго и шахты.',
+      outer:[S('Прутья ×10 / пласталь ×10','Внешняя обшивка кабины: 10 прутьев — MK-I (решётка), 10 листов пластали — MK-II (герметичная кабина).','MK-I быстрый (задержка 1,5) и лёгкий, MK-II медленнее, но герметичен и прочнее (250).'),S('Сварка','Приварить обшивку кабины — мех собран.')]})},
+  {id:'firefighter',g:'Рабочие мехи',name:'Firefighter',sub:'Пожарный Ripley для инженеров',
+    res:'Стартовый узел Mechanical Exosuits',mat:'50 листов металла, 4 стекла; пожарный костюм, 10 пластали',
+    steps:mech({fab:'Firefighter',parts:'шасси Firefighter, торс, две руки и две ноги Ripley',mat:'50 листов металла и 4 стекла',boards:'Ripley Central Control, Ripley Peripherals',
+      main:'Ripley Central Control',peri:'Ripley Peripherals',equip:'Огнетушитель и клешня — для инженеров.',
+      inner:[S('Пожарный костюм','Положить пожарный костюм как внутреннюю обшивку.'),S('Гаечный ключ','Затянуть обшивку.'),S('Сварка','Приварить обшивку.')],
+      outer:[S('Пласталь ×10','Установить внешнюю обшивку.'),S('Сварка','Приварить обшивку — мех собран.')]})},
+  {id:'odysseus',g:'Рабочие мехи',name:'Odysseus',sub:'Медицинский мех',
+    res:'EXOSUIT: Odysseus (2500 очков)',mat:'32 листа металла, 5 стекла; при сборке 5 кабеля, 5 металла, 5 пластали',
+    steps:mech({fab:'Odysseus',parts:'шасси, торс, голова, две руки, две ноги',mat:'32 листа металла и 5 стекла',boards:'Odysseus Central Control, Odysseus Peripherals',
+      main:'Odysseus Central Control',peri:'Odysseus Peripherals',outerItem:'Пласталь ×5',equip:'Носилки (sleeper), шприцемёт, медсканер — для медотдела.'})},
+  {id:'powerarmor',g:'Рабочие мехи',name:'Силовая броня',sub:'Полный экзоскелет — скафандр, не мех',
+    res:'Full Body Exoskeleton (7500 очков; Adv. Biotech + Adv. Bluespace + Adv. Robotics)',mat:'~78 листов металла, 33 плазмы, 15 титана, 3 стекла; 5 блюспейс-кристаллов, квадратный конденсатор, 10 кабеля',
+    steps:mech({fab:'Power Armor',parts:'скелет, торс, шлем, две руки, две ноги',mat:'~78 металла, 33 плазмы, 15 титана, 3 стекла',boards:'плат не нужно',fin:false,
+      custom:[S('Гаечный ключ','Закрепить детали.'),S('Сварка','Приварить детали к шасси.'),S('БС-кристаллы ×5','Вставить пять блюспейс-кристаллов.'),S('Гаечный ключ','Закрепить гнёзда кристаллов.'),
+        S('Конденсатор','Вставить квадратный конденсатор (4-й разряд).'),S('Гаечный ключ','Закрепить конденсатор.'),S('Кабель ×10','Проложить проводку.'),S('Отвёртка','Подключить проводку к конечностям.'),S('Сварка','Приварить внешнюю броню — готов скафандр.')]})},
+
+  // ---------- Боевые мехи ----------
+  {id:'gygax',g:'Боевые мехи',name:'Gygax',sub:'Быстрый боевой мех',combat:true,
+    res:'EXOSUIT: Gygax (Advanced Exosuits + Weapon Development)',mat:'63 листа металла, 8 стекла, 10 алмазов, 5 титана (вместе с бронёй); 5 кабеля, 5 металла',
+    steps:mech({fab:'Gygax',parts:'шасси, торс, голова, две руки, две ноги, броня Gygax',mat:'63 металла, 8 стекла, 10 алмазов, 5 титана',boards:'Gygax Central Control, Peripherals, Weapon Control and Targeting',
+      main:'Gygax Central Control',peri:'Gygax Peripherals',weap:'Gygax Weapon Control and Targeting',outerItem:'Броня Gygax'})},
+  {id:'medigax',g:'Боевые мехи',name:'Medical Gygax',sub:'Медицинская версия Gygax',
+    res:'EXOSUIT: Medical-Spec Gygax (нужны Gygax и Odysseus)',mat:'63 листа металла, 8 стекла, 10 алмазов, 5 титана; платы Gygax',
+    steps:mech({fab:'Medical-Spec Gygax',parts:'шасси, торс, голова, руки, ноги, броня',mat:'63 металла, 8 стекла, 10 алмазов, 5 титана',boards:'три платы Gygax (своих плат нет)',
+      main:'Gygax Central Control',peri:'Gygax Peripherals',weap:'Gygax Weapon Control and Targeting',outerItem:'Броня Medical Gygax',equip:'Медицинские модули — как у Odysseus.'})},
+  {id:'durand',g:'Боевые мехи',name:'Durand',sub:'Тяжёлый мех со щитом',combat:true,
+    res:'EXOSUIT: Durand (Advanced Exosuits + Advanced Weapon Development)',mat:'70 листов металла, 13 стекла, 14 серебра, 13 урана, 10 титана; 5 кабеля, 5 металла',
+    steps:mech({fab:'Durand',parts:'шасси, торс, голова, две руки, две ноги, броня Durand',mat:'70 металла, 13 стекла, 14 серебра, 13 урана, 10 титана',boards:'Durand Central Control, Peripherals, Weapon Control and Targeting',
+      main:'Durand Central Control',peri:'Durand Peripherals',weap:'Durand Weapon Control and Targeting',outerItem:'Броня Durand'})},
+  {id:'savannah',g:'Боевые мехи',name:'Savannah-Ivanov',sub:'Тяжёлый боевой мех (BlueMoon)',combat:true,
+    res:'EXOSUIT: Savannah-Ivanov (5000 очков; Advanced Exosuits + Weaponry + Experimental Tools)',mat:'70 листов металла, 13 стекла, 14 серебра, 13 урана, 10 титана; 5 кабеля, 10 пластали',
+    steps:mech({fab:'Savannah-Ivanov',parts:'шасси, торс, голова, две руки, две ноги, броня',mat:'70 металла, 13 стекла, 14 серебра, 13 урана, 10 титана',boards:'Savannah-Ivanov Central Control, Peripherals, Targeting',
+      main:'Savannah-Ivanov Central Control',peri:'Savannah-Ivanov Peripherals',weap:'Savannah-Ivanov Targeting',innerItem:'Пласталь ×10',outerItem:'Броня Savannah-Ivanov'})},
+  {id:'phazon',g:'Боевые мехи',name:'Phazon',sub:'Проходит сквозь стены',combat:true,
+    res:'EXOSUIT: Phazon (Advanced Exosuits + Weaponry + Advanced Bluespace)',mat:'88 листов металла, 8 стекла, 45 плазмы, 10 титана; 5 пластали, 5+5 кабеля, БС-кристалл, ядро блюспейс-аномалии',
+    steps:mech({fab:'Phazon',parts:'шасси, торс, голова, две руки, две ноги, броня Phazon',mat:'88 металла, 8 стекла, 45 плазмы, 10 титана',boards:'Phazon Central Control, Peripherals, Weapon Control and Targeting',
+      main:'Phazon Central Control',peri:'Phazon Peripherals',weap:'Phazon Weapon Control and Targeting',innerItem:'Пласталь ×5',
+      stock:[STOCK[0],STOCK[1],STOCK[2],STOCK[3],S('БС-кристалл ×1','Вставить блюспейс-кристалл.'),S('Кабель ×5','Подключить кристалл.'),S('Отвёртка','Запустить кристалл.'),STOCK[4],STOCK[5]],
+      outer:[S('Броня Phazon','Установить внешнюю броню.'),S('Гаечный ключ','Затянуть броню.'),S('Сварка','Приварить броню.'),S('Ядро аномалии','Вставить ядро блюспейс-аномалии — мех собран.','Ядро — из блюспейс-аномалии (сигнальщиком) или у ксенобиологов/исследователей. Без него Phazon не собрать.')]})},
+  {id:'honk',g:'Боевые мехи',name:'H.O.N.K',sub:'Мех клоуна',combat:true,
+    res:'Clown Technology',mat:'60 листов металла, 8 стекла, 18 бананиума; велосипедный гудок, маска и ботинки клоуна',
+    steps:mech({fab:'H.O.N.K',parts:'шасси, торс, голова, две руки, две ноги',mat:'60 металла, 8 стекла, 18 бананиума',boards:'H.O.N.K Central Control, Peripherals, Weapon Control and Targeting',
+      custom:[S('Гудок','Хонкнуть велосипедным гудком по шасси.'),S('Плата','Вставить H.O.N.K Central Control.'),S('Гудок','Хонк!'),S('Плата','Вставить H.O.N.K Peripherals.'),S('Гудок','Хонк!'),
+        S('Плата','Вставить H.O.N.K Weapon Control and Targeting.'),S('Гудок','Хонк!'),S('Сканер','Вставить сканирующий модуль.'),S('Гудок','Хонк!'),S('Конденсатор','Вставить конденсатор.'),S('Гудок','Хонк!'),
+        S('Батарея','Вставить батарею.'),S('Гудок','Хонк!'),S('Маска клоуна','Надеть на мех маску клоуна.'),S('Гудок','Хонк!'),S('Ботинки клоуна','Обуть мех в ботинки клоуна.'),S('Гудок','Последний хонк — мех собран.','Инструменты здесь не нужны вовсе — только гудок.')]})},
+
+  // ---------- Боты ----------
+  {id:'cleanbot',g:'Боты',name:'Уборщик (Cleanbot)',sub:'Моет полы',res:'Не нужны',mat:'Ведро, датчик движения, рука киборга',
+    steps:[S('Датчик движения','Положить датчик движения (proximity sensor) в пустое ведро.'),S('Рука киборга','Добавить руку киборга — бот готов.')]},
+  {id:'floorbot',g:'Боты',name:'Ремонтник полов (Floorbot)',sub:'Кладёт плитку и латает пол',res:'Не нужны',mat:'Пустой ящик для инструментов, 10 плиток пола, датчик движения, рука киборга',
+    steps:[S('Плитка ×10','Положить 10 плиток пола в пустой ящик для инструментов.','Ящик должен быть совсем пустым.'),S('Датчик движения','Добавить датчик движения.'),S('Рука киборга','Добавить руку киборга — бот готов.')]},
+  {id:'medbot',g:'Боты',name:'Медбот',sub:'Лечит раненых',res:'Не нужны',mat:'Пустая аптечка, рука киборга, анализатор здоровья, датчик движения',
+    steps:[S('Рука киборга','Кликнуть рукой киборга по пустой аптечке.','Вид аптечки (ожоговая, токсины, кислород, травмы) — облик бота.'),S('Анализатор','Добавить анализатор здоровья.'),S('Датчик движения','Добавить датчик движения — бот готов.','Заправьте медбота лекарствами и настройте порог лечения через его панель.')]},
+  {id:'firebot',g:'Боты',name:'Пожарный бот',sub:'Тушит огонь',res:'Не нужны',mat:'Огнетушитель, рука киборга, красная каска, датчик движения',
+    steps:[S('Рука киборга','Кликнуть рукой киборга по огнетушителю.'),S('Красная каска','Добавить красную пожарную каску.'),S('Датчик движения','Добавить датчик движения — бот готов.')]},
+  {id:'secbot',g:'Боты',name:'Секьюритрон',sub:'Бот СБ (Бипски)',res:'Не нужны',mat:'Шлем СБ, сигнальщик, датчик движения, рука киборга, электродубинка',warn:'Бот СБ — согласуйте с ГСБ, отдайте в бриг.',
+    steps:[S('Сигнальщик','Собранный (secured) сигнальщик — по шлему СБ.','На шлеме не должно быть фонарика.'),S('Сварка','Проплавить в шлеме отверстие.'),S('Датчик движения','Добавить датчик движения.'),S('Рука киборга','Добавить руку киборга.'),S('Дубинка','Добавить электродубинку — бот готов.','Отвёртка на любом шаге снимает последнюю деталь.')]},
+  {id:'ed209',g:'Боты',name:'ED-209',sub:'Тяжёлый бот СБ',combat:true,res:'Не нужны',mat:'Эндоскелет киборга, лист металла, 2 ноги киборга, бронежилет, шлем, датчик движения, кабель, продвинутый тазер, батарея',
+    warn:'Боевой бот: только по запросу СБ и с разрешения командования.',
+    steps:[S('Металл ×1','Пустой эндоскелет киборга + лист металла — заготовка ED-209.'),S('Нога киборга','Добавить первую ногу.'),S('Нога киборга','Добавить вторую ногу.'),S('Бронежилет','Добавить бронежилет.','Красная/синяя лазертаг-броня делает лазертаг-версию — дальше нужны шлем и пушка того же цвета.'),
+      S('Сварка','Приварить жилет.'),S('Шлем','Добавить шлем.'),S('Датчик движения','Добавить датчик движения.'),S('Кабель ×1','Провести проводку.'),S('Тазер','Добавить продвинутый тазер (advanced taser).'),S('Отвёртка','Закрепить оружие.'),S('Батарея','Вставить батарею — бот готов.')]},
+  {id:'honkbot',g:'Боты',name:'Хонкбот',sub:'Бот клоуна',res:'Не нужны',mat:'Пустая коробка клоуна, рука киборга, датчик движения, велосипедный гудок',
+    steps:[S('Рука киборга','Кликнуть рукой киборга по пустой коробке клоуна.'),S('Датчик движения','Добавить датчик движения.'),S('Гудок','Добавить велосипедный гудок — бот готов. Хонк!')]},
+];
+GUIDES.forEach((g)=>{g.steps.forEach((s)=>{s.c=toolColor(s.t)})});
+
+/* ===================== Состояние ===================== */
+let gi=0,si=0,ov=false,globalKeys=false,failedKeys=[];
+try{const st=JSON.parse(store.get('state')||'null');if(st){const i=GUIDES.findIndex((g)=>g.id===st.guide);if(i>=0){gi=i;si=st.step||0}}}catch(e){}
+const guide=()=>GUIDES[gi];
+const save=()=>store.set('state',JSON.stringify({guide:guide().id,step:si}));
+
+function step(d){const n=guide().steps.length;const v=Math.max(0,Math.min(n,si+d));if(v!==si){si=v;render(true);save()}}
+function goto(i){si=i;render(true);save()}
+function pickGuide(i){gi=(i+GUIDES.length)%GUIDES.length;si=0;render(true);save()}
+const ACTIONS={
+  next:()=>(si>=guide().steps.length?pickGuide(gi+1):step(1)),
+  prev:()=>step(-1),
+  next_guide:()=>pickGuide(gi+1),
+  prev_guide:()=>pickGuide(gi-1),
+};
+
+/* ===================== Отрисовка ===================== */
+function cardHtml(g,i){
+  const n=g.steps.length;
+  if(i>=n) return {fin:true,html:`<div class="tool" style="--tc:var(--ok)">✓ Готово</div><div class="do">${esc(g.name)} — все шаги пройдены.</div><div class="upnext">Дальше — следующая инструкция</div>`};
+  const s=g.steps[i],nx=g.steps[i+1];
+  return {fin:false,html:`<div class="tool"${s.c?` style="--tc:${s.c}"`:''}>${esc(s.t)}</div><div class="do">${esc(s.d)}</div>`+(s.n?`<div class="note">${esc(s.n)}</div>`:'')+
+    `<div class="upnext">${nx?'дальше: '+esc(nx.t)+' — '+esc(nx.d):'это последний шаг'}</div>`};
+}
+function progressHtml(g){return g.steps.map((s,i)=>`<i class="${i<si?'done':i===si?'cur':''}" data-i="${i}" title="${i+1}. ${esc(s.t)}"></i>`).join('')}
+
+function render(flash){
+  const g=guide(),n=g.steps.length;
+  si=Math.max(0,Math.min(n,si));
+  // Список инструкций
+  let html='',grp=null,opts='',ogrp=null;
+  GUIDES.forEach((x,i)=>{
+    if(x.g!==grp){grp=x.g;html+=`<h4>${esc(grp)}</h4>`}
+    html+=`<button data-g="${i}" class="${i===gi?'on':''}">${esc(x.name)}${x.combat?' <span class="w" title="Боевой — п. 5.9 НРП">бой</span>':''}<span class="c">${x.steps.length}</span></button>`;
+    if(x.g!==ogrp){if(ogrp)opts+='</optgroup>';ogrp=x.g;opts+=`<optgroup label="${esc(ogrp)}">`}
+    opts+=`<option value="${i}"${i===gi?' selected':''}>${esc(x.name)}</option>`;
+  });
+  $('glist').innerHTML=html;$('gpick').innerHTML=opts+'</optgroup>';
+  // Шапка
+  $('ghead').innerHTML=`<h2>${esc(g.name)}<small>${esc(g.sub)}</small></h2><div class="meta">`+
+    `<div><b>Исследование</b><span>${esc(g.res)}</span></div><div><b>Понадобится</b><span>${esc(g.mat)}</span></div></div>`+
+    (g.combat?`<div class="warnline">Боевой: в Зелёный код строить нельзя — только с разрешения Капитана или Директора ОИР и по запросу карго. Боевой мех не держать в робототехнике дольше 10 минут (п. 5.9 НРП).</div>`:'')+
+    (g.warn?`<div class="warnline">${esc(g.warn)}</div>`:'');
+  // Текущий шаг
+  $('counter').textContent=si>=n?'Готово':`Шаг ${si+1} из ${n}`;
+  $('progress').innerHTML=progressHtml(g);
+  const c=cardHtml(g,si);
+  $('card').innerHTML=c.html;$('card').classList.toggle('fin',c.fin);
+  $('prev').disabled=si===0;
+  $('next').textContent=si>=n?'Следующая инструкция ▶':'Дальше ▶';
+  // Все шаги
+  $('steps').innerHTML=g.steps.map((s,i)=>`<li class="${i<si?'done':i===si?'cur':''}" data-i="${i}"><span class="n">${i+1}</span><div><span class="t"${s.c?` style="--tc:${s.c}"`:''}>${esc(s.t)}</span>${esc(s.d)}`+
+    (s.n?`<div class="s">${esc(s.n)}</div>`:'')+'</div></li>').join('');
+  if(flash){$('card').classList.add('flash');setTimeout(()=>$('card').classList.remove('flash'),120)}
+  renderOv(flash);renderKeys();
+}
+
+function renderOv(flash){
+  $('ovBtn').classList.toggle('pri',!ov);
+  if(!ov) return;
+  const g=guide(),n=g.steps.length;
+  $('ovName').textContent=g.name;
+  $('ovCnt').textContent=si>=n?'готово':`${si+1} / ${n}`;
+  $('ovProg').innerHTML=progressHtml(g);
+  const c=cardHtml(g,si);
+  // В оверлее «дальше» показываем ниже карточки, чтобы карточка была короче
+  $('ovCard').innerHTML=c.html.replace(/<div class="upnext">[\s\S]*<\/div>$/,'');
+  $('ovCard').classList.toggle('fin',c.fin);
+  const nx=g.steps[si+1];
+  $('ovNextStep').textContent=si>=n?'':nx?'дальше: '+nx.t+' — '+nx.d:'это последний шаг';
+  $('ovPrev').disabled=si===0;
+  if(flash){$('ovCard').classList.add('flash');setTimeout(()=>$('ovCard').classList.remove('flash'),120)}
+}
+const KEYS={toggle:'F10',next:'F8',prev:'F7',next_guide:'F9',prev_guide:'F6'};
+function renderKeys(){
+  const k=`<kbd>F10</kbd> оверлей · <kbd>F8</kbd>/<kbd>F7</kbd> шаг · <kbd>F9</kbd>/<kbd>F6</kbd> инструкция`;
+  const where=ov?(globalKeys?' · работают и поверх игры':inPult?'':' · пока активно окно'):' · <kbd>←</kbd>/<kbd>→</kbd> внутри окна';
+  const err=failedKeys.length?`<span class="err">Не удалось занять: ${esc(failedKeys.join(', '))} — заняты другой программой</span>`:'';
+  $('keys').innerHTML=k+where+err;
+  $('ovFoot').innerHTML=(globalKeys?'<kbd>F10</kbd> скрыть окно · ':'')+'<kbd>F8</kbd> дальше · <kbd>F7</kbd> назад · <kbd>F9</kbd>/<kbd>F6</kbd> инструкция · <kbd>Esc</kbd> выйти'+err;
+}
+
+/* ===================== Оверлей ===================== */
+// Пока оверлей включён, Пульт занимает клавиши поверх игры (как у Инженера и Алхимика)
+function setOv(on){
+  ov=!!on;
+  document.documentElement.classList.toggle('ov-on',ov);
+  $('ov').hidden=!ov;
+  if(!ov){globalKeys=false;failedKeys=[]}
+  if(inPult) window.parent.postMessage({type:'pult-hotkeys',keys:ov?KEYS:{}},location.origin);
+  if(ov) setTab('build');
+  render();
+}
+$('ovBtn').onclick=()=>setOv(!ov);
+$('ovClose').onclick=()=>setOv(false);
+$('ovNext').onclick=ACTIONS.next;
+$('ovPrev').onclick=ACTIONS.prev;
+$('ovProg').onclick=(e)=>{const i=e.target.closest('i');if(i)goto(+i.dataset.i)};
+$('ov').addEventListener('wheel',(e)=>{if(e.target.closest('.ovbody')&&e.target.closest('.card')){e.preventDefault();step(e.deltaY>0?1:-1)}},{passive:false});
+
+/* ===================== Управление ===================== */
+$('next').onclick=ACTIONS.next;
+$('prev').onclick=ACTIONS.prev;
+$('restart').onclick=()=>goto(0);
+$('gpick').onchange=(e)=>pickGuide(+e.target.value);
+$('glist').onclick=(e)=>{const b=e.target.closest('[data-g]');if(b)pickGuide(+b.dataset.g)};
+$('steps').onclick=(e)=>{const li=e.target.closest('li');if(li)goto(+li.dataset.i)};
+$('progress').onclick=(e)=>{const i=e.target.closest('i');if(i)goto(+i.dataset.i)};
+
+const FKEYS={F8:'next',F7:'prev',F9:'next_guide',F6:'prev_guide'};
+document.addEventListener('keydown',(e)=>{
+  if(e.altKey||e.ctrlKey||e.metaKey) return;
+  const typing=/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'');
+  if(e.key==='Escape'&&ov){e.preventDefault();setOv(false);return}
+  if(e.key==='F10'){e.preventDefault();setOv(!ov);return}
+  if(FKEYS[e.key]){e.preventDefault();setTab('build');ACTIONS[FKEYS[e.key]]();return}
+  if(typing||tab!=='build') return;
+  if(e.key==='ArrowRight'){e.preventDefault();ACTIONS.next()}
+  else if(e.key==='ArrowLeft'){e.preventDefault();ACTIONS.prev()}
+  else if(e.key==='PageDown'){e.preventDefault();ACTIONS.next_guide()}
+  else if(e.key==='PageUp'){e.preventDefault();ACTIONS.prev_guide()}
+});
+window.addEventListener('message',(e)=>{
+  if(e.origin!==location.origin||!e.data) return;
+  const d=e.data;
+  if(d.type==='pult-hotkey'){
+    if(d.action==='toggle'){if(!ov)setOv(true);return} // само окно прячет и показывает программа
+    if(ACTIONS[d.action]){setTab('build');ACTIONS[d.action]()}
+  }
+  if(d.type==='pult-hotkeys-state'){globalKeys=true;failedKeys=d.failed||[];renderKeys()}
+  if(d.type==='pult-hotkeys-lost'){globalKeys=false;failedKeys=[];renderKeys()}
+});
+
+/* ===================== Вкладки ===================== */
+let tab='build',sub='play';
+function setTab(t){
+  tab=t==='tips'?'tips':'build';
+  document.querySelectorAll('nav.tabs [data-tab]').forEach((b)=>b.setAttribute('aria-selected',b.dataset.tab===tab));
+  $('v-build').hidden=tab!=='build';$('v-tips').hidden=tab!=='tips';
+  store.set('tab',tab);
+}
+function setSub(s){
+  sub=['play','mechs','nrp','own'].includes(s)?s:'play';
+  document.querySelectorAll('#tipnav [data-sub]').forEach((b)=>b.setAttribute('aria-pressed',b.dataset.sub===sub));
+  ['play','mechs','nrp','own'].forEach((k)=>{$('s-'+k).hidden=k!==sub});
+  store.set('sub',sub);
+}
+document.querySelectorAll('nav.tabs [data-tab]').forEach((b)=>{b.onclick=()=>setTab(b.dataset.tab)});
+document.querySelectorAll('#tipnav [data-sub]').forEach((b)=>{b.onclick=()=>setSub(b.dataset.sub)});
+
+/* ===================== Советы ===================== */
+const card=(h,inner,kc,cls)=>`<div class="panel gcard${cls?' '+cls:''}"${kc?` style="--kc:${kc}"`:''}><h3>${h}</h3>${inner}</div>`;
+const bul=(a)=>`<ul class="bul">${a.map((x)=>`<li>${x}</li>`).join('')}</ul>`;
+const ol=(a)=>`<ol class="olist">${a.map((x)=>`<li><div>${x}</div></li>`).join('')}</ol>`;
+const tip=(t,k)=>`<div class="tip${k?' '+k:''}">${t}</div>`;
+const body=(t)=>`<div class="body">${t}</div>`;
+
+$('s-play').innerHTML='<div class="grid">'+
+  card('Начало смены <small>первые 10 минут</small>',ol([
+    '<b>Материалы.</b> Загрузите в мехфаб металл и стекло из шкафов отдела. Попросите у шахтёров или карго серебро, золото, алмазы, уран, титан и плазму — без них дальше Ripley не уйти.',
+    '<b>Мехфаб и принтер плат.</b> Проекты приходят из общей сети исследований: новый мех появится в мехфабе, как только учёные откроют его узел. Попросите Директора ОИР или учёных открыть нужные узлы.',
+    '<b>Заготовки.</b> Напечатайте 1–2 набора деталей киборга и пару вспышек — когда принесут мозг, киборг соберётся за минуту.',
+    '<b>Зарядка.</b> Проверьте станции зарядки киборгов и мехов (mech bay: порт, зарядник, консоль).',
+    '<b>Объявите.</b> Коротко в канал науки: робототехника открыта, что можете сделать (см. «От себя»).',
+  ]))+
+  card('Приоритеты работы',bul([
+    '<b>Синтетики и протезы.</b> Ремонт IPC, киборгов и протезов — обязанность (п. 5.3–5.5): на вызов по радио или ПДА — идти в отдел.',
+    '<b>Мёртвые и мозги.</b> Принесли тело синтетика — явиться в отдел (п. 5.4). Мозг из морга — в киборга, только с согласия и по правилам смены.',
+    '<b>Улучшения юнитов.</b> Ставить киборгам доступные модули, если есть материалы (п. 5.2).',
+    '<b>Рабочие мехи по запросу.</b> Ripley — карго и шахте, Odysseus — медикам, Firefighter — инженерам (п. 5.6). Каждый мех — с маячком и ДНК-блокировкой (п. 5.1).',
+    '<b>Боевые мехи</b> — только с разрешения и не в Зелёный код (п. 5.9).',
+  ]))+
+  card('Мехфаб: как не тратить материалы',bul([
+    'Ставьте в очередь весь набор деталей меха сразу — фабрикатор печатает их подряд.',
+    'Сначала проверьте, хватает ли редких материалов на броню: броня Gygax, Durand и Phazon — самая дорогая деталь.',
+    'Улучшенные детали самого мехфаба экономят материалы и ускоряют печать — попросите учёных поставить их первыми.',
+    'Сначала печатайте то, что уже просили, а не «про запас»: редкие материалы нужны и другим отделам.',
+  ]),'var(--ok)')+
+  card('Ремонт мехов',bul([
+    'Внешние повреждения — сварка снаружи меха.',
+    'Внутренние поломки (утечка, короткое замыкание) видны в интерфейсе пилота. ID по меху открывает панель обслуживания: доступы, режим обслуживания, давление баллона.',
+    'Зарядка — mech bay: мех встаёт на порт, зарядник рядом, консоль показывает заряд.',
+    'Батарея садится от каждого шага и модуля — для дальних вылазок ставьте ёмкую батарею ещё при сборке.',
+  ]),'var(--warn)')+
+  card('Безопасность отдела',bul([
+    'Боевой мех без пилота в отделе — приглашение для антагониста. Сразу передавайте по назначению.',
+    'Неизвестный в отделе с ID робототехники — повод вызвать СБ: из отдела можно достать вспышки, мехов и мозги.',
+    'Эмагнутый киборг ведёт себя странно или игнорирует законы — сообщите ИИ и СБ, не открывайте его сами.',
+    'Не отдавайте позитронный мозг и ММИ незнакомым — их можно поставить в чужого меха или ИИ.',
+  ]),'var(--bad)')+
+'</div>';
+
+const MECHS=[
+  ['Ripley MK-I','рабочий','200','1,5','Самый быстрый из рабочих. Клешня, бур, сканер руды.'],
+  ['Ripley MK-II','рабочий','250','4','Герметичная кабина — можно в космос и на Лаваленд.'],
+  ['Firefighter','рабочий','250','4','Огнеупорный Ripley для инженеров.'],
+  ['Odysseus','медицинский','120','2','Хрупкий, но быстрый. Носилки и шприцемёт.'],
+  ['Medical Gygax','медицинский','250','2','Прочнее Odysseus, нужны алмазы и титан.'],
+  ['Gygax','боевой','250','3','Быстрый, есть ускорение (overload).'],
+  ['Durand','боевой','500','4','Самый прочный, ставит щит перед собой.'],
+  ['Phazon','боевой','100','2','Хрупкий, умеет проходить сквозь стены.'],
+  ['H.O.N.K','клоунский','140','3','Хонк-оружие, бананиум.'],
+];
+const UPG=[
+  ['Utility','Лава-защита, двигатели (полёт в космосе), саморемонт, расширение, RPED, швабра'],
+  ['Medical','Улучшенный анализатор, пробивающий гипоспрей, синтезатор, пинпоинтер, хирургический процессор'],
+  ['Combat','VTEC (скорость), охладитель дизейблера'],
+  ['Без узла','Сброс модуля (Reset), переименование (Rename) — доступны со старта'],
+];
+$('s-mechs').innerHTML='<div class="grid">'+
+  card('Мехи: что строить <small>прочность, задержка шага (меньше — быстрее)</small>',
+    `<div class="tbl"><table><tr><th>Мех</th><th>Тип</th><th class="n">Прочность</th><th class="n">Шаг</th><th>Чем хорош</th></tr>`+
+    MECHS.map((m)=>`<tr><td><b>${m[0]}</b></td><td>${m[1]}</td><td class="n">${m[2]}</td><td class="n">${m[3]}</td><td>${m[4]}</td></tr>`).join('')+'</table></div>'+
+    tip('Из кода <code>_mecha.dm</code>: <code>max_integrity</code> и <code>movedelay</code>. Броня, снаряжение и батарея меняют картину сильнее, чем цифры.'),'','wide')+
+  card('Модули киборгов',bul([
+    '<b>Standard</b> — понемногу всего; для новичков.',
+    '<b>Engineering</b> — инструменты, материалы, ремонт. Самый востребованный.',
+    '<b>Medical</b> — гипоспрей, хирургия, носилки.',
+    '<b>Miner / Cargo</b> — шахта и склад.',
+    '<b>Service</b> — бар и кухня.',
+    '<b>Peacekeeper</b> — мирный модуль поддержки СБ.',
+    '<b>Security</b> — только с повышенного кода тревоги.',
+  ]))+
+  card('Улучшения киборгов <small>печатаются в мехфабе</small>',
+    `<div class="tbl"><table><tr><th>Узел</th><th>Что даёт</th></tr>${UPG.map((u)=>`<tr><td><b>${u[0]}</b></td><td>${u[1]}</td></tr>`).join('')}</table></div>`+
+    tip('Плата улучшения ставится при открытой крышке (ID → лом). Нелегальные модули — только при Красном коде (п. 5.8).','warn'))+
+  card('Законы и связь с ИИ',bul([
+    'Новый киборг по умолчанию синхронизируется с ИИ станции и получает его законы.',
+    'Закрыть порты законов или ИИ мультитулом, загружать свои законы — только по приказу Капитана или Директора ОИР (п. 5.10).',
+    'ММИ с собственными законами (не стандартными) отвязывает киборга от ИИ автоматически — проверяйте, что вставляете.',
+    'В BlueMoon консоль управления роботами и консоль загрузки законов киборгов в принтерах отключены — по законам работает ИИ и командование.',
+  ]),'var(--navy)')+
+'</div>';
+
+/* ===================== НРП ===================== */
+function renderNrp(){
+  const N=window.NRP,el=$('s-nrp');
+  const sci=N&&N.depts.find((d)=>d.roles.some((r)=>r.t==='Робототехник'));
+  if(!sci){el.innerHTML='<div class="grid">'+card('НРП не найдено',body('Нет базы <code>avd/nrp.js</code> — она приходит вместе с Панелью АВД.'))+'</div>';return}
+  const items=(arr)=>`<div class="nrp">${arr.map((it)=>`<div class="it"><span class="n">${esc(it.n||'')}</span><span>${esc(it.t)}</span></div>`).join('')}</div>`;
+  const roleCard=(r,title,filter,wide)=>{
+    const groups=r.groups.map((g)=>({g,list:filter?g.items.filter((it)=>filter.test(it.t)):g.items})).filter((x)=>x.list.length);
+    if(!groups.length) return '';
+    return card(title,(r.intro&&r.intro.length&&!filter?body(esc(r.intro.join(' '))):'')+
+      groups.map((x)=>`<div class="nrphd k-${x.g.k||''}" style="color:var(--kc,var(--fg))">${esc(x.g.t||'')}</div>${items(x.list)}`).join(''),'',wide?'wide':'');
+  };
+  const robo=sci.roles.find((r)=>r.t==='Робототехник');
+  const gen=sci.roles.find((r)=>r.t==='Общие положения');
+  const rd=sci.roles.find((r)=>r.t==='Директор ОИР');
+  const sil=N.depts.find((d)=>d.id==='ai');
+  const KW=/мех|экзокост|киборг|робот|синтет|юнит|ИИ\b|закон/i;
+  let html='<div class="grid">'+roleCard(robo,'НРП: Робототехник',null,true);
+  if(gen) html+=roleCard(gen,'ОИР: общие положения',null);
+  if(rd) html+=roleCard(rd,'Директор ОИР <small>пункты о мехах и синтетиках</small>',KW);
+  if(sil) sil.roles.forEach((r)=>{html+=roleCard(r,'Силиконы: '+esc(r.t)+' <small>о киборгах</small>',/киборг|юнит|борг|робот|модул/i)});
+  html+='</div>';
+  el.innerHTML=html+`<p class="foot">${esc(N.rev||'')} · Номера пунктов — порядковые внутри отдела, как в Панели АВД.</p>`;
+}
+
+/* ===================== От себя ===================== */
+const PHRASES=[
+  'Робототехника открыта: собираем киборгов, ремонтируем синтетиков и протезы, строим рабочие мехи по запросу. Заходите или пишите на канал науки.',
+  'Ripley для карго/шахты готов, ДНК-блокировка на мне. Кто примет — подойдите в робототехнику, сниму блокировку при вас.',
+  'ИИ, к вам подключён новый киборг {имя}, модуль {модуль}. Законы синхронизированы.',
+  'Нужны материалы для меха: {серебро/алмазы/уран/титан} — шахтёры, занесите в робототехнику, пожалуйста.',
+  'Медотдел: Odysseus собран и ждёт пилота в робототехнике.',
+];
+$('s-own').innerHTML='<div class="grid">'+
+  card('Как стать хорошим робототехником',bul([
+    '<b>Будьте мастерской, а не складом мехов.</b> Ваша главная ценность — киборги и ремонт синтетиков. Мех — по запросу, а не «на всякий случай».',
+    '<b>Журнал выдачи.</b> Записывайте, кому отдали мех, когда и с каким маячком. Пропал мех — консоль слежения и журнал найдут его быстрее СБ.',
+    '<b>Согласие на роботизацию.</b> Перед тем как вставить чужой мозг в киборга, получите согласие и оформите документ (Папирус → бумага). Это спасает от споров с АВД.',
+    '<b>Запас под рукой.</b> 2 вспышки, высокоёмкая батарея и набор конечностей — киборг собирается, пока хирург ещё моет руки.',
+    '<b>Сначала проверьте ММИ.</b> Шесть минут на сборку зря, если игрок мозга уже вышел из раунда.',
+    '<b>Общайтесь с ИИ.</b> Сообщайте о каждом новом юните — ИИ ведёт учёт и раздаёт задачи.',
+  ]))+
+  card('Отыгрыш (RP)',bul([
+    'Робототехник — инженер-хирург: говорит про сервоприводы, калибровку и прошивки, а не «щас кликну».',
+    'Объясняйте синтетикам, что делаете с их телом, — для IPC вы врач.',
+    'Новый киборг растерян: помогите выбрать модуль, расскажите про законы и куда идти.',
+    'Ведите «паспорт» меха: имя, модель, кто пилот, что навешено. Отдаёте мех — передайте паспорт.',
+    'Испытания — в отделе, не в коридорах. Тестовый проход меха через людную зону — повод для жалобы.',
+  ]),'var(--ok)')+
+  card('Готовые фразы <small>для радио</small>',`<div class="body">${PHRASES.map((p,i)=>`<div class="phrase"><span>${esc(p)}</span><button data-copy="${i}">Копировать</button></div>`).join('')}</div>`,'var(--navy)','wide')+
+  card('Частые ошибки',bul([
+    'Мех без маячка и без ДНК-блокировки отдали «на минутку» — нарушение п. 5.1.',
+    'Durand «для защиты отдела» в Зелёный код — нарушение п. 5.9.',
+    'Батарея в торсе разряжена — киборг «умирает» через пять минут после рождения.',
+    'Мультитулом закрыли порт законов «чтобы не взломали» — без приказа это нарушение п. 5.10.',
+    'ED-209 и секьюритроны для своего отдела — только через СБ и командование.',
+  ]),'var(--bad)')+
+'</div>';
+$('s-own').addEventListener('click',(e)=>{
+  const b=e.target.closest('[data-copy]');if(!b)return;
+  const t=PHRASES[+b.dataset.copy];
+  const done=()=>{b.textContent='Скопировано';setTimeout(()=>{b.textContent='Копировать'},1200)};
+  try{navigator.clipboard.writeText(t).then(done,()=>{})}catch(err){}
+});
+
+/* ===================== Запуск ===================== */
+renderNrp();
+setTab(store.get('tab')||'build');
+setSub(store.get('sub')||'play');
+render();
+</script>
+</body>
+</html>

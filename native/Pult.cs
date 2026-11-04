@@ -19,8 +19,8 @@ using Microsoft.Web.WebView2.WinForms;
 [assembly: AssemblyProduct("Пульт — Алхимик, Терминал Брига, Папирус")]
 [assembly: AssemblyCompany("Sla2her")]
 [assembly: AssemblyCopyright("Made by: Sla2her for BlueMoon")]
-[assembly: AssemblyVersion("0.0.5.0")]
-[assembly: AssemblyFileVersion("0.0.5.0")]
+[assembly: AssemblyVersion("0.0.8.0")]
+[assembly: AssemblyFileVersion("0.0.8.0")]
 
 static class Program
 {
@@ -157,8 +157,68 @@ class MainForm : Form
         web.DefaultBackgroundColor = Color.Transparent;
         Controls.Add(web);
 
-        HandleCreated += (s, e) => { ApplyCaption(); EnableAlpha(); };
+        HandleCreated += (s, e) => { ApplyCaption(); EnableAlpha(Handle); };
         Load += async (s, e) => await InitAsync();
+        // Закрыли в оверлее — в оверлее и запускаемся
+        Shown += (s, e) => { if (state["overlay"] == "1") BeginInvoke((Action)(() => EnterOverlay(false))); };
+    }
+
+    // ---------- Оверлей ----------
+    // Пульт сворачивается в полупрозрачную круглую кнопку поверх всех окон (OverlayForm), а главное
+    // окно прячется вместе со всеми открытыми приложениями. Кнопка раскрывается в радиальное меню.
+
+    OverlayForm overlay;
+    bool overlayOn;
+
+    public void EnterOverlay(bool openMenu)
+    {
+        if (!overlayOn)
+        {
+            overlayOn = true;
+            RememberBounds();
+            state["overlay"] = "1";
+            state.Save();
+            hiddenByHotkey = false;
+            Hide();
+        }
+        if (overlay == null || overlay.IsDisposed) overlay = new OverlayForm(this);
+        overlay.ShowOverlay(openMenu);
+    }
+
+    // Выход из оверлея: главное окно возвращается, appId — какое приложение в нём открыть
+    public void ExitOverlay(string appId)
+    {
+        if (overlayOn)
+        {
+            overlayOn = false;
+            state["overlay"] = "0";
+            state.Save();
+            if (overlay != null && !overlay.IsDisposed) overlay.HideOverlay();
+        }
+        ShowFront();
+        if (appId != null) PostOpen(appId);
+    }
+
+    void ShowFront()
+    {
+        hiddenByHotkey = false;
+        Show();
+        ShowWindow(Handle, 5); // SW_SHOW: окно могли спрятать хоткеем в обход WinForms
+        if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+        Activate();
+    }
+
+    void PostOpen(string appId)
+    {
+        if (web.CoreWebView2 != null && IsId(appId))
+            web.CoreWebView2.PostWebMessageAsJson("{\"open\":\"" + appId + "\"}");
+    }
+
+    static bool IsId(string s)
+    {
+        if (string.IsNullOrEmpty(s) || s.Length > 32) return false;
+        foreach (char c in s) if (!(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '_')) return false;
+        return true;
     }
 
     // ---------- Режимы окна ----------
@@ -249,20 +309,21 @@ class MainForm : Form
     [DllImport("gdi32.dll")]
     static extern bool DeleteObject(IntPtr h);
 
-    void EnableAlpha()
+    public static void EnableAlpha(IntPtr hwnd)
     {
         try
         {
             IntPtr rgn = CreateRectRgn(0, 0, -1, -1); // пустая область: без размытия, только альфа
             var bb = new DWM_BLURBEHIND { dwFlags = 1 | 2, fEnable = true, hRgnBlur = rgn }; // DWM_BB_ENABLE | DWM_BB_BLURREGION
-            DwmEnableBlurBehindWindow(Handle, ref bb);
+            DwmEnableBlurBehindWindow(hwnd, ref bb);
             DeleteObject(rgn);
         }
         catch { }
     }
 
-    // ---------- Хоткеи Инженера поверх игры ----------
-    // Инженер присылает «next=F8;prev=F7;…» из guides.json. Клавиши занимаются глобально (как в
+    // ---------- Хоткеи приложений поверх игры ----------
+    // Приложение присылает «next=F8;prev=F7;…» (Инженер — из guides.json, Алхимик — оверлей
+    // рецепта). Клавиши занимаются глобально (как в
     // engineer-helper): работают, пока активно окно игры, и пропадают для неё, пока Пульт запущен.
 
     [DllImport("user32.dll")]
@@ -306,7 +367,73 @@ class MainForm : Form
                 string.Join(",", failedHotkeys.ConvertAll(k => "\"" + k + "\"").ToArray()) + "]}");
     }
 
-    // Те же названия клавиш, что понимал engineer.pyw: F1–F24, Numpad0–9, PageUp, Home, буквы и цифры, ctrl+/alt+/shift+/win+
+    // ---------- Общие хоткеи из настроек Пульта ----------
+    // Страница присылает «overlay=Ctrl+Alt+O;menu=…;app:engineer=Ctrl+Alt+E». Работают поверх любых программ.
+
+    const int GlobalBase = 1000;
+    readonly Dictionary<int, string> globalKeys = new Dictionary<int, string>();
+    readonly List<string> failedGlobal = new List<string>();
+    string globalSpec;
+
+    void SetGlobalHotkeys(string spec)
+    {
+        if (spec != globalSpec)
+        {
+            globalSpec = spec;
+            foreach (int id in globalKeys.Keys) UnregisterHotKey(Handle, id);
+            globalKeys.Clear();
+            failedGlobal.Clear();
+            int next = GlobalBase;
+            foreach (string pair in spec.Split(';'))
+            {
+                int i = pair.IndexOf('=');
+                if (i <= 0) continue;
+                string action = pair.Substring(0, i), key = pair.Substring(i + 1);
+                if (action != "overlay" && action != "menu" && action != "showhide" &&
+                    !(action.StartsWith("app:") && IsId(action.Substring(4)))) continue;
+                uint mods, vk;
+                if (ParseKey(key, out mods, out vk) && RegisterHotKey(Handle, next, mods | MOD_NOREPEAT, vk))
+                    globalKeys[next++] = action;
+                else
+                    failedGlobal.Add(action);
+            }
+        }
+        if (web.CoreWebView2 != null)
+            web.CoreWebView2.PostWebMessageAsJson("{\"globalFailed\":[" +
+                string.Join(",", failedGlobal.ConvertAll(k => "\"" + k + "\"").ToArray()) + "]}");
+    }
+
+    void OnGlobalHotkey(string action)
+    {
+        if (action == "overlay")
+        {
+            if (overlayOn) ExitOverlay(null); else EnterOverlay(false);
+        }
+        else if (action == "menu")
+        {
+            if (overlayOn) overlay.ToggleMenu(); else EnterOverlay(true);
+        }
+        else if (action == "showhide")
+        {
+            if (overlayOn) overlay.Visible = !overlay.Visible;
+            else
+            {
+                hiddenByHotkey = !hiddenByHotkey;
+                ShowWindow(Handle, hiddenByHotkey ? 0 : 4); // без захвата фокуса — игра остаётся активной
+            }
+        }
+        else if (action.StartsWith("app:"))
+        {
+            string id = action.Substring(4);
+            if (overlayOn || hiddenByHotkey || !Visible) ExitOverlay(id);
+            // Окно на экране — страница сама решает: открыть приложение или, если оно уже открыто, свернуться в оверлей
+            else if (web.CoreWebView2 != null)
+                web.CoreWebView2.PostWebMessageAsJson("{\"appkey\":\"" + id + "\"}");
+        }
+    }
+
+    // Те же названия клавиш, что понимал engineer.pyw: F1–F24, Numpad0–9, PageUp, Home, буквы и цифры, ctrl+/alt+/shift+/win+,
+    // а ещё знаки (- = \ ` [ ] ; ' , . /), Space и NumpadAdd/Subtract/Multiply/Divide/Decimal
     static bool ParseKey(string spec, out uint mods, out uint vk)
     {
         mods = 0; vk = 0;
@@ -314,7 +441,25 @@ class MainForm : Form
         {
             string p = raw;
             int n;
-            if (p == "alt") mods |= 0x1;
+            if (p.Length == 0) continue;
+            if (p == "space") vk = 0x20;
+            else if (p == "-") vk = 0xBD;
+            else if (p == "=") vk = 0xBB;
+            else if (p == "\\") vk = 0xDC;
+            else if (p == "`") vk = 0xC0;
+            else if (p == "[") vk = 0xDB;
+            else if (p == "]") vk = 0xDD;
+            else if (p == "semicolon" || p == ";") vk = 0xBA;
+            else if (p == "'") vk = 0xDE;
+            else if (p == ",") vk = 0xBC;
+            else if (p == ".") vk = 0xBE;
+            else if (p == "/") vk = 0xBF;
+            else if (p == "numpadadd") vk = 0x6B;
+            else if (p == "numpadsubtract") vk = 0x6D;
+            else if (p == "numpadmultiply") vk = 0x6A;
+            else if (p == "numpaddivide") vk = 0x6F;
+            else if (p == "numpaddecimal") vk = 0x6E;
+            else if (p == "alt") mods |= 0x1;
             else if (p == "ctrl") mods |= 0x2;
             else if (p == "shift") mods |= 0x4;
             else if (p == "win") mods |= 0x8;
@@ -340,15 +485,27 @@ class MainForm : Form
     protected override void WndProc(ref Message m)
     {
         string action;
+        if (m.Msg == WM_HOTKEY && globalKeys.TryGetValue(m.WParam.ToInt32(), out action))
+        {
+            OnGlobalHotkey(action);
+            return;
+        }
         if (m.Msg == WM_HOTKEY && hotkeys.TryGetValue(m.WParam.ToInt32(), out action))
         {
+            // В оверлее «скрыть/показать» прячет и показывает кнопку оверлея
+            if (overlayOn)
+            {
+                if (action == "toggle") overlay.Visible = !overlay.Visible;
+                else ExitOverlay(null); // шаг листается в главном окне — показываем его
+            }
             // Окно показываем без захвата фокуса — игра остаётся активной
-            if (action == "toggle" || hiddenByHotkey)
+            else if (action == "toggle" || hiddenByHotkey)
             {
                 hiddenByHotkey = !hiddenByHotkey;
                 ShowWindow(Handle, hiddenByHotkey ? 0 : 4); // SW_HIDE / SW_SHOWNOACTIVATE
             }
-            if (action != "toggle" && web.CoreWebView2 != null)
+            // «toggle» тоже уходит на страницу: приложение знает, что окно снова показалось (оверлей Алхимика)
+            if (web.CoreWebView2 != null)
                 web.CoreWebView2.PostWebMessageAsJson("{\"hotkey\":\"" + action + "\"}");
             return;
         }
@@ -358,6 +515,8 @@ class MainForm : Form
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         foreach (int id in hotkeys.Keys) UnregisterHotKey(Handle, id);
+        foreach (int id in globalKeys.Keys) UnregisterHotKey(Handle, id);
+        if (overlay != null && !overlay.IsDisposed) overlay.SavePosition();
         RememberBounds();
         if (protocol != null && !protocol.IsDisposed) protocol.RememberBounds();
         state["mode"] = Key;
@@ -426,6 +585,9 @@ class MainForm : Form
                 else if (msg == "theme:light") SetTheme(false);
                 else if (msg.StartsWith("title:")) Text = msg.Substring(6);
                 else if (msg.StartsWith("hotkeys:")) SetHotkeys(msg.Substring(8));
+                else if (msg.StartsWith("globalkeys:")) SetGlobalHotkeys(msg.Substring(11));
+                else if (msg == "overlay:on") EnterOverlay(false);
+                else if (msg == "front") ShowFront();
                 else if (msg == "window:protocol") OpenProtocol();
             };
 
@@ -625,5 +787,196 @@ class ProtocolForm : Form
         RememberBounds();
         main.Prefs.Save();
         base.OnFormClosing(e);
+    }
+}
+
+// Оверлей: круглое окно без рамки поверх всех окон. В свёрнутом виде — полупрозрачная кнопка,
+// по нажатию — радиальное меню той же оболочки (index.html?overlay=1) без фона и панели.
+// Окно обрезано по кругу, поэтому щелчки мимо круга уходят окну под ним.
+class OverlayForm : Form
+{
+    const int Btn = 64;    // окно кнопки
+    const int MenuSize = 460;  // окно меню
+
+    [DllImport("user32.dll")]
+    static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool redraw);
+    [DllImport("gdi32.dll")]
+    static extern IntPtr CreateEllipticRgn(int l, int t, int r, int b);
+
+    readonly MainForm main;
+    readonly WebView2 web;
+    readonly Timer dragTimer = new Timer { Interval = 10 };
+    Point btnPos, dragCursor, dragLoc;
+    bool menu;
+
+    public OverlayForm(MainForm main)
+    {
+        this.main = main;
+        Text = "Пульт";
+        FormBorderStyle = FormBorderStyle.None;
+        ShowInTaskbar = false;
+        TopMost = true;
+        StartPosition = FormStartPosition.Manual;
+        BackColor = Color.Black; // как у главного окна: при включённой альфе чёрный фон прозрачен
+        MinimumSize = new Size(1, 1);
+        try { Icon = main.Icon; } catch { }
+
+        Rectangle wa = Screen.PrimaryScreen.WorkingArea;
+        btnPos = new Point(wa.Right - Btn - 24, wa.Top + wa.Height / 3);
+        string s = main.Prefs["overlayPos"];
+        if (s != null)
+        {
+            string[] p = s.Split(',');
+            int x, y;
+            if (p.Length == 2 && int.TryParse(p[0], out x) && int.TryParse(p[1], out y)) btnPos = new Point(x, y);
+        }
+        Bounds = Clamp(new Rectangle(btnPos, new Size(Btn, Btn)));
+        btnPos = Location;
+
+        web = new WebView2();
+        web.Dock = DockStyle.Fill;
+        web.DefaultBackgroundColor = Color.Transparent;
+        Controls.Add(web);
+
+        dragTimer.Tick += (s2, e) => DragTick();
+        HandleCreated += (s2, e) => { MainForm.EnableAlpha(Handle); Shape(); };
+        Load += async (s2, e) => await InitAsync();
+        // Ушли в другое окно — меню сворачивается обратно в кнопку
+        Deactivate += (s2, e) => { if (menu && !dragTimer.Enabled) { SetMenu(false); Post("{\"ovl\":\"button\"}"); } };
+    }
+
+    // Не в Alt+Tab и без захвата фокуса при появлении
+    protected override CreateParams CreateParams
+    {
+        get { CreateParams cp = base.CreateParams; cp.ExStyle |= 0x80; return cp; } // WS_EX_TOOLWINDOW
+    }
+    protected override bool ShowWithoutActivation { get { return true; } }
+
+    async Task InitAsync()
+    {
+        try
+        {
+            await web.EnsureCoreWebView2Async(main.Env);
+            CoreWebView2 core = web.CoreWebView2;
+            main.Serve(core);
+            core.WebMessageReceived += (s, a) =>
+            {
+                string msg;
+                try { msg = a.TryGetWebMessageAsString(); } catch { return; }
+                if (msg == null) return;
+                if (msg == "hello") Post("{\"ovl\":\"" + (menu ? "menu" : "button") + "\"}");
+                else if (msg == "ovl:menu") { SetMenu(true); Activate(); }
+                else if (msg == "ovl:button") SetMenu(false);
+                else if (msg == "ovl:drag") StartDrag();
+                else if (msg == "ovl:restore") main.ExitOverlay(null);
+                else if (msg.StartsWith("ovl:open:")) main.ExitOverlay(msg.Substring(9));
+                else if (msg == "ovl:context") ShowContext();
+            };
+            core.Navigate(main.PageUrl("index.html?overlay=1"));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Не удалось открыть оверлей:\n\n" + ex.Message, "Пульт", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            main.ExitOverlay(null);
+        }
+    }
+
+    void Post(string json)
+    {
+        if (web.CoreWebView2 != null) try { web.CoreWebView2.PostWebMessageAsJson(json); } catch { }
+    }
+
+    public void ShowOverlay(bool openMenu)
+    {
+        if (!Visible) { SetMenu(false); Show(); }
+        Post("{\"ovl\":\"show\"}"); // страница перечитывает тему — её могли сменить в главном окне
+        if (openMenu)
+        {
+            SetMenu(true);
+            Activate();
+            Post("{\"ovl\":\"menu\"}");
+        }
+    }
+
+    public void HideOverlay()
+    {
+        dragTimer.Stop();
+        SetMenu(false);
+        Post("{\"ovl\":\"button\"}");
+        Hide();
+    }
+
+    public void ToggleMenu()
+    {
+        if (!Visible) Show();
+        if (menu) { SetMenu(false); Post("{\"ovl\":\"button\"}"); }
+        else ShowOverlay(true);
+    }
+
+    // Меню раскрывается вокруг центра кнопки, но не вылезает за край экрана
+    void SetMenu(bool on)
+    {
+        menu = on;
+        Rectangle r = on
+            ? new Rectangle(btnPos.X + Btn / 2 - MenuSize / 2, btnPos.Y + Btn / 2 - MenuSize / 2, MenuSize, MenuSize)
+            : new Rectangle(btnPos, new Size(Btn, Btn));
+        Bounds = Clamp(r);
+        Shape();
+    }
+
+    void Shape()
+    {
+        if (!IsHandleCreated) return;
+        // Область переходит во владение системы — удалять её не нужно
+        SetWindowRgn(Handle, CreateEllipticRgn(0, 0, Width + 1, Height + 1), true);
+    }
+
+    static Rectangle Clamp(Rectangle r)
+    {
+        Rectangle wa = Screen.FromPoint(new Point(r.X + r.Width / 2, r.Y + r.Height / 2)).WorkingArea;
+        int x = Math.Max(wa.Left, Math.Min(r.X, wa.Right - r.Width));
+        int y = Math.Max(wa.Top, Math.Min(r.Y, wa.Bottom - r.Height));
+        return new Rectangle(x, y, r.Width, r.Height);
+    }
+
+    // ---------- Перетаскивание ----------
+    // Страница сообщает, что кнопку потянули; дальше окно само идёт за курсором, пока зажата левая кнопка мыши.
+
+    void StartDrag()
+    {
+        dragCursor = Cursor.Position;
+        dragLoc = Location;
+        dragTimer.Start();
+    }
+
+    void DragTick()
+    {
+        if ((MouseButtons & MouseButtons.Left) == 0)
+        {
+            dragTimer.Stop();
+            Bounds = Clamp(Bounds);
+            btnPos = menu ? new Point(Left + Width / 2 - Btn / 2, Top + Height / 2 - Btn / 2) : Location;
+            SavePosition();
+            return;
+        }
+        Point c = Cursor.Position;
+        Location = new Point(dragLoc.X + c.X - dragCursor.X, dragLoc.Y + c.Y - dragCursor.Y);
+    }
+
+    public void SavePosition()
+    {
+        main.Prefs["overlayPos"] = btnPos.X + "," + btnPos.Y;
+        main.Prefs.Save();
+    }
+
+    void ShowContext()
+    {
+        var cm = new ContextMenuStrip();
+        cm.Items.Add("Развернуть Пульт", null, (s, e) => main.ExitOverlay(null));
+        cm.Items.Add("Радиальное меню", null, (s, e) => { SetMenu(true); Activate(); Post("{\"ovl\":\"menu\"}"); });
+        cm.Items.Add(new ToolStripSeparator());
+        cm.Items.Add("Закрыть Пульт", null, (s, e) => main.Close());
+        cm.Closed += (s, e) => BeginInvoke((Action)(() => cm.Dispose()));
+        cm.Show(Cursor.Position);
     }
 }

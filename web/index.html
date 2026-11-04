@@ -9,6 +9,8 @@
   // Режим прошлого запуска ставим до отрисовки, чтобы меню не прыгало
   try { if (localStorage.getItem('pult.mode') === 'compact') document.documentElement.classList.add('compact'); } catch (e) {}
   if (!(window.chrome && window.chrome.webview)) document.documentElement.classList.add('nohost');
+  // Окно оверлея (Пульт.exe): кнопка и радиальное меню без фона, панели и приложений
+  if (/[?&]overlay\b/.test(location.search)) document.documentElement.classList.add('ovl', 'compact');
   // Android-приложение: на телефоне всегда компактный режим, на планшете можно переключать
   if (window.PultAndroid) {
     document.documentElement.classList.add('mobile');
@@ -30,6 +32,7 @@
       </div>
     </div>
     <button class="ibtn" id="pinBtn" hidden aria-pressed="false"></button>
+    <button class="ibtn" id="ovlBarBtn" hidden></button>
     <button class="ibtn" id="modeBtn"></button>
   </header>
 
@@ -42,10 +45,17 @@
     </div>
     <p class="homefoot">
       <label class="opac opacbox" id="opacityHomeWrap" hidden>Фон <input type="range" id="opacityHome" aria-label="Непрозрачность фона"><span class="opacval"></span></label>
-      <span class="keys"><kbd>Alt</kbd>+<kbd>1</kbd>…<kbd>9</kbd>, <kbd>-</kbd>, <kbd>=</kbd>, <kbd>\</kbd> — приложения · <kbd>Alt</kbd>+<kbd>0</kbd> — меню · <kbd>Alt</kbd>+<kbd>M</kbd> — режим</span>
+      <span class="keys" id="homeKeys"></span>
       <span class="credit">made by: Sla2her for BlueMoon</span>
     </p>
   </section>
+
+  <!-- Оверлей: свёрнутая кнопка (только в окне оверлея) -->
+  <button class="ovlbtn" id="ovlBtn" title="Пульт: нажмите — меню, тяните — переместить, ПКМ — ещё" aria-label="Открыть меню Пульта"></button>
+
+  <!-- Настройки: оформление и клавиши -->
+  <button class="gearbtn" id="gearBtn" title="Настройки: цвета и клавиши" aria-label="Настройки"></button>
+  <section class="settings" id="settings" hidden aria-label="Настройки"></section>
 </div>
 <script src="shell.js"></script>
 </body>

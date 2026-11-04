@@ -241,6 +241,143 @@ html.nohost.compact:not(.mobile) #win {
 .phone .rstack { --d: min(390px, calc(100vw - 20px), calc(100vh - 90px)); }
 .mobile .lab .ico { min-width: 36px; min-height: 36px; }
 
+/* ---------- Темы ---------- */
+/* Цвета темы ставит shell.js прямо на <html>; в «монохромных» темах сектора и значки берут цвет темы */
+html[data-mono] .sec, html[data-mono] .lab, html[data-mono] .hub, html[data-mono] .switch button { --c: var(--focus) !important; }
+html[data-mono] { --app: var(--focus) !important; }
+body { font-family: var(--font); }
+
+/* ---------- Оверлей (окно ?overlay=1 в Пульт.exe) ---------- */
+html.ovl, html.ovl body { background: transparent !important; }
+html.ovl #win { width: 100% !important; height: 100% !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; }
+html.ovl #bar, html.ovl #stage, html.ovl .homefoot, html.ovl #gearBtn, html.ovl #settings { display: none !important; }
+html.ovl .home { background: none !important; backdrop-filter: none !important; padding: 0; }
+html.ovl.compact .rstack { --d: calc(100vmin - 18px); }
+html.ovl:not(.ovl-menu) .home { display: none; }
+html.ovl.ovl-menu .ovlbtn { display: none; }
+html.ovl .hub { cursor: grab; }
+.ovlbtn { display: none; }
+html.ovl .ovlbtn {
+  display: grid; place-items: center;
+  position: fixed; inset: 0; margin: auto; width: 48px; height: 48px; padding: 0;
+  border-radius: 50%; border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .35);
+  opacity: .55; cursor: grab; touch-action: none;
+  transition: opacity .15s, transform .15s var(--ease), background-color .15s;
+}
+html.ovl .ovlbtn:hover { opacity: 1; transform: scale(1.06); background: color-mix(in srgb, var(--surface) 92%, transparent); }
+html.ovl .ovlbtn:active { cursor: grabbing; }
+html.ovl .ovlbtn svg { width: 30px; height: 30px; }
+
+/* ---------- Кнопка настроек справа снизу ---------- */
+.gearbtn {
+  position: absolute; right: 10px; bottom: 10px; z-index: 20;
+  display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border-radius: 50%; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--muted);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .25);
+  opacity: .45; transition: opacity .15s, color .15s, transform .3s var(--ease);
+}
+.gearbtn:hover, .gearbtn[aria-expanded="true"], .home:not(.closed) ~ .gearbtn { opacity: 1; }
+.gearbtn:hover { color: var(--text); transform: rotate(45deg); }
+.gearbtn svg { width: 17px; height: 17px; }
+.compact .gearbtn { right: 6px; bottom: 6px; width: 28px; height: 28px; }
+.mobile .gearbtn { width: 38px; height: 38px; }
+
+/* ---------- Настройки ---------- */
+.settings {
+  position: absolute; inset: 0; z-index: 40;
+  display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(5px);
+}
+.compact .settings { padding: 0; }
+.setbox {
+  display: flex; flex-direction: column;
+  width: min(780px, 100%); max-height: min(860px, 100%); min-height: 0;
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.compact .setbox { border-radius: 0; height: 100%; max-height: none; border: 0; }
+.sethead { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.sethead h2 { margin: 0 8px 0 4px; font-size: 15px; font-weight: 650; }
+.compact .sethead h2 { display: none; }
+.settabs { display: flex; gap: 2px; }
+.settabs button {
+  padding: 5px 12px; border: 0; border-radius: 6px; background: none; color: var(--muted);
+}
+.settabs button:hover { color: var(--text); background: var(--surface2); }
+.settabs button[aria-selected="true"] { color: var(--text); background: color-mix(in srgb, var(--focus) 20%, var(--surface2)); }
+.sethead .grow { flex: 1; }
+.setbody { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px 18px; }
+.compact .setbody { padding: 10px 10px 16px; }
+.setbody h3 { margin: 14px 0 4px; font-size: 13px; font-weight: 650; color: var(--text); }
+.setbody h3:first-child { margin-top: 2px; }
+.setbody .hint { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
+
+.themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.compact .themes { grid-template-columns: repeat(2, 1fr); }
+.theme {
+  display: flex; flex-direction: column; gap: 6px; padding: 7px; text-align: left;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+}
+.theme:hover { border-color: var(--muted); }
+.theme[aria-pressed="true"] { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
+.tprev {
+  position: relative; height: 54px; border-radius: 6px; overflow: hidden;
+  background: var(--tb); border: 1px solid var(--tl); font-family: var(--tfont, inherit);
+}
+.tprev::before { /* панель */
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 11px; background: var(--tb2); border-bottom: 2px solid var(--tf);
+}
+.tprev i { position: absolute; display: block; border-radius: 50%; }
+.tprev i:nth-child(1) { left: 10px; top: 18px; width: 30px; height: 30px; border: 6px solid var(--tf); border-right-color: var(--ts); border-bottom-color: var(--ts2); }
+.tprev i:nth-child(2) { left: 50px; top: 20px; width: 56%; height: 7px; border-radius: 3px; background: var(--tt); opacity: .85; }
+.tprev i:nth-child(3) { left: 50px; top: 33px; width: 38%; height: 6px; border-radius: 3px; background: var(--tm); }
+.tprev.split { background: linear-gradient(135deg, #12151b 50%, #e9ecf1 50%); }
+.theme b { font-size: 12.5px; font-weight: 600; }
+.theme small { color: var(--faint); font-size: 11px; margin-top: -4px; }
+
+/* Клавиши */
+.keys-group { margin-bottom: 4px; }
+.krow {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+}
+.krow .kname { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; }
+.krow .kname svg { flex: none; width: 15px; height: 15px; color: var(--c, var(--muted)); }
+.krow .kname small { color: var(--faint); margin-left: 4px; }
+.khead { display: flex; gap: 8px; padding: 2px 0; color: var(--faint); font-size: 11px; }
+.khead span:first-child { flex: 1; }
+.khead span:not(:first-child), .kf { width: 168px; flex: none; }
+.compact .khead span:not(:first-child), .compact .kf { width: 118px; }
+.kf { display: flex; align-items: center; gap: 2px; }
+.kbtn {
+  flex: 1; min-width: 0; height: 26px; padding: 0 8px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--surface);
+  font: 12px Consolas, monospace; color: var(--text); text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.kbtn:hover { border-color: var(--muted); }
+.kbtn.empty { color: var(--faint); font-family: var(--font); font-style: italic; }
+.kbtn.capture { border-color: var(--focus); color: var(--focus); font-family: var(--font); animation: blink 1s infinite; }
+.kbtn.dup { border-color: #d6a03a; }
+.kbtn.fail { border-color: #d63c45; color: #ff8a8f; }
+@keyframes blink { 50% { border-color: transparent; } }
+.kx {
+  flex: none; width: 22px; height: 24px; padding: 0; border: 0; border-radius: 5px; background: none; color: var(--faint);
+  font-size: 13px; line-height: 1;
+}
+.kx:hover { background: var(--surface2); color: var(--text); }
+.kx[disabled] { visibility: hidden; }
+.kwarn { margin: 2px 0 0; font-size: 11.5px; color: #e0a34a; }
+.kwarn.bad { color: #ff8a8f; }
+.setfoot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.setfoot button, .keys-off {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
+}
+.setfoot button:hover { border-color: var(--focus); }
+.keys-off { display: block; font-size: 12px; color: var(--muted); background: var(--surface2); margin: 2px 0 8px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

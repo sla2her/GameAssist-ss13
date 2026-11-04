@@ -1,5 +1,5 @@
 'use strict';
-// Пульт — оболочка для восемнадцати приложений: стартовое радиальное меню, переключение приложений
+// Пульт — оболочка для девятнадцати приложений: стартовое радиальное меню, переключение приложений
 // и два режима окна (компактный и расширенный). Работает в Пульт.exe, Пульт.apk и в браузере. Приложения открываются в iframe с того же
 // адреса, поэтому оболочка может подключить к ним стили компактного режима.
 
@@ -31,6 +31,10 @@ const ICONS = {
   pick: '<path d="M4 7c4-4 12-4 16 0"/><path d="M12 4.5 11 20a1 1 0 0 0 2 0z"/>',
   shuttle: '<path d="M12 2c3 2.5 4.5 6 4.5 10v5h-9v-5C7.5 8 9 4.5 12 2z"/><path d="M7.5 13 4 16v3h3.5M16.5 13l3.5 3v3h-3.5"/><path d="M10 20.5h4"/><circle cx="12" cy="9" r="1.5"/>',
   lens: '<circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6"/><path d="M7.2 8.4a3.2 3.2 0 0 1 2.4-1.6"/>',
+  robot: '<rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 4v4M10 4h4"/><circle cx="9.5" cy="13" r="1.3"/><circle cx="14.5" cy="13" r="1.3"/><path d="M10 16.5h4M2.5 12v3M21.5 12v3"/>',
+  gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  bubble: '<circle cx="17" cy="17" r="4"/><path d="M4 4h9M4 4v9M4 4l8.5 8.5"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
   virus: '<circle cx="12" cy="12" r="5.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M18.4 5.6l-1.9 1.9M7.5 16.5l-1.9 1.9"/><circle cx="10.2" cy="10.8" r="1"/><circle cx="14" cy="13.4" r="1"/>',
 };
 const svg = (name, extra = '') =>
@@ -81,6 +85,9 @@ const APPS = [
   // Вирусология — второе приложение медотдела после Алхимика и Химзавода; своей клавиши нет
   { id: 'viro', name: 'Вирусология', sub: 'Вирусы и эпидемии', desc: 'Статы, полезные вирусы, лечение, разумный вирус',
     src: 'apps/viro/index.html', color: '#4aa8d8', icon: 'virus', hscroll: 'nav, .subnav, .chips', css: false },
+  // Робототехник — второе приложение науки; пошаговая сборка с оверлеем поверх игры (F10), своей клавиши нет
+  { id: 'robo', name: 'Робототехник', short: 'Робо', sub: 'Киборги, мехи, боты', desc: 'Пошаговая сборка, оверлей F10, советы и НРП',
+    src: 'apps/robo/index.html', color: '#8c6ad8', icon: 'robot', hscroll: 'nav, .subnav', css: false },
 ];
 // Клавиша приложения: Alt+1…9, дальше — Alt+-, Alt+=, Alt+\
 const EXTRA_KEYS = [['Minus', '-'], ['Equal', '='], ['Backslash', '\\']];
@@ -96,7 +103,7 @@ const DEPTS = [
   { id: 'law', name: 'Юридический отдел', short: 'Юр. отдел', sub: 'АВД и Представитель', color: '#b8863b', icon: 'scales', apps: ['avd'] },
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
   { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
-  { id: 'sci', name: 'Наука', sub: 'Исследования и схемы', color: '#2fb5a5', icon: 'atom', apps: ['circuits'] },
+  { id: 'sci', name: 'Наука', sub: 'Схемы и робототехника', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo'] },
   { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
   { id: 'srv', name: 'Сервис', sub: 'Повар и бармен', color: '#e07a3f', icon: 'cloche', apps: ['kitchen'] },
   { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev'] },
@@ -116,6 +123,8 @@ const home = $('home'), stage = $('stage'), bar = $('bar');
 const host = window.chrome && window.chrome.webview;
 const send = (msg) => { try { host && host.postMessage(msg); } catch (e) { /* открыто в браузере */ } };
 const android = window.PultAndroid; // мост Android-приложения (Пульт.apk), см. android/src
+// Эта же страница — окно оверлея Пульт.exe: только кнопка и радиальное меню, приложения открывает главное окно
+const OVERLAY = root.classList.contains('ovl');
 
 // Тактильная отдача на телефоне: лёгкий отклик на нажатия, посильнее — на смену приложения и меню
 let lastHaptic = 0;
@@ -201,7 +210,13 @@ function buildRadial() {
   buildRing($('radial'), DEPTS,
     `<div class="hub" data-i="0"><svg class="logo" viewBox="-12 -12 24 24" aria-hidden="true">${logoArcs(10, 3.2)}</svg>` +
     `<h1>Пульт</h1><button class="modepill" id="hubMode"></button></div>`, openDept);
-  $('hubMode').addEventListener('click', () => setMode(!compact));
+  if (OVERLAY) {
+    // В оверлее центр меню — развернуть Пульт обратно в окно; за сам центр меню можно перетаскивать
+    $('hubMode').innerHTML = svg('expand') + 'Развернуть';
+    $('hubMode').title = 'Развернуть Пульт в окно';
+    $('hubMode').addEventListener('click', () => { send('ovl:restore'); setOvl('button', true); });
+    dragHandle($('radial').querySelector('.hub'));
+  } else $('hubMode').addEventListener('click', () => setMode(!compact));
 }
 
 // Второй круг — приложения профессии поверх размытого первого
@@ -268,6 +283,7 @@ function showMenu() {
   if (first) first.focus({ preventScroll: true });
 }
 function hideMenu() {
+  if (OVERLAY) { setOvl('button'); return; }
   if (!current) return; // без открытого приложения меню — это стартовый экран
   home.classList.add('closed');
   focusApp();
@@ -296,6 +312,7 @@ function syncMenu() {
 function open(id) {
   const app = byId[id];
   if (!app) return;
+  if (OVERLAY) { send('ovl:open:' + id); setOvl('button', true); return; } // откроет главное окно
   haptic('switch');
   let frame = frames[id];
   if (!frame) {
@@ -389,10 +406,10 @@ function setMode(isCompact, fromHost) {
   const label = compact ? 'Компактный' : 'Расширенный';
   const next = compact ? 'Развернуть в расширенный режим' : 'Свернуть в компактный режим';
   $('modeBtn').innerHTML = svg(compact ? 'expand' : 'shrink');
-  $('modeBtn').title = next + ' (Alt+M)';
+  $('modeBtn').title = next + keyHint('win', 'mode');
   $('modeBtn').setAttribute('aria-label', next);
   const pill = $('hubMode');
-  if (pill) { pill.innerHTML = svg(compact ? 'shrink' : 'expand') + label; pill.title = next + ' (Alt+M)'; }
+  if (pill) { pill.innerHTML = svg(compact ? 'shrink' : 'expand') + label; pill.title = next + keyHint('win', 'mode'); }
   store.set('mode', compact ? 'compact' : 'expanded');
   if (bgAlpha < 1) setTimeout(fadeAll, 300); // после смены размера окна
   if (!fromHost) { haptic('tap'); send('mode:' + (compact ? 'compact' : 'expanded')); }
@@ -404,7 +421,7 @@ function showPin(on) {
   b.hidden = false;
   b.innerHTML = svg('pin');
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  b.title = on ? 'Открепить: обычное окно (Alt+P)' : 'Поверх всех окон (Alt+P)';
+  b.title = (on ? 'Открепить: обычное окно' : 'Поверх всех окон') + keyHint('win', 'pin');
 }
 $('pinBtn').addEventListener('click', () => send('pin:' + ($('pinBtn').getAttribute('aria-pressed') === 'true' ? '0' : '1')));
 $('modeBtn').addEventListener('click', () => setMode(!compact));
@@ -475,22 +492,162 @@ window.addEventListener('resize', () => { if (bgAlpha < 1) fadeAll(); });
 showOpacityValue(100);
 
 // ---------- Клавиши ----------
+// Все клавиши настраиваются (⚙ справа снизу) и хранятся в pult.keys как отличия от значений по умолчанию.
+// Группы: glob — поверх игры (занимает Пульт.exe), slide — шаги и слайды приложений (поверх игры),
+// win — в окне Пульта, app — открыть приложение в окне Пульта.
+const HK = {
+  glob: [
+    ['overlay', 'Свернуть в оверлей / развернуть', 'Ctrl+Alt+O'],
+    ['menu', 'Радиальное меню оверлея', 'Ctrl+Alt+Space'],
+    ['showhide', 'Скрыть / показать Пульт', ''],
+    ['app:engineer', 'Инженерная панель', 'Ctrl+Alt+E', 'engineer'],
+    ['app:robo', 'Робототехническая панель', 'Ctrl+Alt+R', 'robo'],
+    ['app:alchimik', 'Химическая панель', 'Ctrl+Alt+C', 'alchimik'],
+  ],
+  slide: [
+    ['next', 'Следующий шаг / слайд', 'F8'],
+    ['prev', 'Предыдущий шаг / слайд', 'F7'],
+    ['next_guide', 'Следующая инструкция', 'F9'],
+    ['prev_guide', 'Предыдущая инструкция', 'F6'],
+    ['toggle', 'Скрыть / показать окно с шагом', 'F10'],
+  ],
+  win: [
+    ['menu', 'Меню приложений', 'Alt+0'],
+    ['mode', 'Компактный / расширенный режим', 'Alt+M'],
+    ['pin', 'Поверх всех окон', 'Alt+P'],
+    ['overlay', 'Свернуть в оверлей', 'Alt+O'],
+    ['settings', 'Настройки', 'Alt+.'],
+  ],
+};
+// У шагов «по умолчанию» — это клавиши самого приложения (guides.json и т. п.), а не наши: их не трогаем
+const SLIDE_APP = '';
+let hkCfg = {};
+try { hkCfg = JSON.parse(store.get('keys') || '{}') || {}; } catch (e) { hkCfg = {}; }
+const hkRow = (g, k) => (HK[g] || []).find((r) => r[0] === k);
+function hkDefault(g, k) {
+  if (g === 'app') return appKey(APPS.findIndex((a) => a.id === k));
+  if (g === 'slide') return SLIDE_APP;
+  const r = hkRow(g, k);
+  return r ? r[2] : '';
+}
+function hkGet(g, k) {
+  const v = hkCfg[g] && hkCfg[g][k];
+  return typeof v === 'string' ? v : hkDefault(g, k);
+}
+function hkSet(g, k, v) {
+  hkCfg[g] = hkCfg[g] || {};
+  if (v === null || v === hkDefault(g, k)) delete hkCfg[g][k]; else hkCfg[g][k] = v;
+  store.set('keys', JSON.stringify(hkCfg));
+  applyKeys();
+}
+const keyHint = (g, k) => { const v = hkGet(g, k); return v ? ` (${v})` : ''; };
+
+// Имя клавиши по KeyboardEvent.code — те же имена понимает Пульт.exe (ParseKey)
+const CODE_NAMES = {
+  Minus: '-', Equal: '=', Backslash: '\\', Backquote: '`', BracketLeft: '[', BracketRight: ']',
+  Semicolon: 'Semicolon', Quote: "'", Comma: ',', Period: '.', Slash: '/', Space: 'Space',
+  ArrowLeft: 'Left', ArrowRight: 'Right', ArrowUp: 'Up', ArrowDown: 'Down', PageUp: 'PageUp', PageDown: 'PageDown',
+  Home: 'Home', End: 'End', Insert: 'Insert', Delete: 'Delete', Pause: 'Pause', ScrollLock: 'ScrollLock',
+  NumpadAdd: 'NumpadAdd', NumpadSubtract: 'NumpadSubtract', NumpadMultiply: 'NumpadMultiply',
+  NumpadDivide: 'NumpadDivide', NumpadDecimal: 'NumpadDecimal',
+};
+function keyName(code) {
+  let m;
+  if ((m = /^Digit(\d)$/.exec(code))) return m[1];
+  if ((m = /^Key([A-Z])$/.exec(code))) return m[1];
+  if (/^F([1-9]|1\d|2[0-4])$/.test(code)) return code;
+  if (/^Numpad\d$/.test(code)) return code;
+  return CODE_NAMES[code] || '';
+}
+function comboOf(e) {
+  const k = keyName(e.code);
+  if (!k) return '';
+  const m = [];
+  if (e.ctrlKey) m.push('Ctrl');
+  if (e.altKey) m.push('Alt');
+  if (e.shiftKey) m.push('Shift');
+  if (e.metaKey) m.push('Win');
+  return m.concat(k).join('+');
+}
+// Одинаковые сочетания, записанные по-разному (alt+f8 и Alt+F8), сравниваем в одном виде
+function normCombo(s) {
+  if (!s) return '';
+  const parts = String(s).split('+');
+  if (parts.length > 1 && parts[parts.length - 1] === '') parts.splice(-2, 2, '+');
+  const mods = new Set();
+  let key = '';
+  parts.forEach((p) => {
+    const l = p.trim().toLowerCase();
+    if (l === 'ctrl' || l === 'control') mods.add('Ctrl');
+    else if (l === 'alt') mods.add('Alt');
+    else if (l === 'shift') mods.add('Shift');
+    else if (l === 'win' || l === 'meta') mods.add('Win');
+    else key = l;
+  });
+  return ['Ctrl', 'Alt', 'Shift', 'Win'].filter((x) => mods.has(x)).concat(key).join('+');
+}
+// Буквы, цифры, знаки и пробел без Ctrl/Alt/Win сломали бы набор текста
+const needsMod = (combo) => {
+  const p = combo.split('+'), k = p[p.length - 1];
+  return (k.length === 1 || k === 'Space' || k === 'Semicolon') && !p.some((x) => x === 'Ctrl' || x === 'Alt' || x === 'Win');
+};
+
+const WIN_ACTIONS = {
+  menu: () => toggleMenu(),
+  mode: () => { if (!root.classList.contains('phone')) setMode(!compact); },
+  pin: () => { if (!$('pinBtn').hidden) $('pinBtn').click(); },
+  overlay: () => goOverlay(),
+  settings: () => toggleSettings(),
+};
+let keyMap = new Map();
+let capturing = null; // настройки ждут нажатия: {g, k}
+
 function onKey(e) {
+  if (capturing) { captureKey(e); return; }
+  if (e.key === 'Escape' && settingsOpen()) { e.preventDefault(); e.stopPropagation(); toggleSettings(false); return; }
+  if (e.key === 'Escape' && OVERLAY) { e.preventDefault(); if (!closeDept()) setOvl('button'); return; }
   if (e.key === 'Escape' && opacityOpen()) { e.preventDefault(); e.stopPropagation(); showOpacity(false); return; }
   if (e.key === 'Escape' && menuOpen() && dept) { e.preventDefault(); e.stopPropagation(); closeDept(); return; }
   if (e.key === 'Escape' && menuOpen() && current) { e.preventDefault(); e.stopPropagation(); hideMenu(); return; }
-  if (!e.altKey || e.ctrlKey || e.metaKey) return;
-  const k = e.code;
-  let handled = true;
-  if (/^Digit[1-9]$/.test(k) && APPS[+k.slice(5) - 1]) open(APPS[+k.slice(5) - 1].id);
-  else if (EXTRA_KEYS.some(([c], j) => c === k && APPS[9 + j])) open(APPS[9 + EXTRA_KEYS.findIndex(([c]) => c === k)].id);
-  else if (k === 'Digit0' || k === 'Backquote') toggleMenu();
-  else if (k === 'KeyM') setMode(!compact);
-  else if (k === 'KeyP' && !$('pinBtn').hidden) $('pinBtn').click();
-  else handled = false;
-  if (handled) { e.preventDefault(); e.stopPropagation(); }
+  if (OVERLAY) return;
+  const fn = keyMap.get(normCombo(comboOf(e)));
+  if (!fn) return;
+  e.preventDefault(); e.stopPropagation();
+  fn();
 }
 document.addEventListener('keydown', onKey, true);
+
+// Применить настройки клавиш: клавиши окна, подсказки, клавиши поверх игры в Пульт.exe
+function applyKeys() {
+  keyMap = new Map();
+  APPS.forEach((a) => { const c = normCombo(hkGet('app', a.id)); if (c && !keyMap.has(c)) keyMap.set(c, () => open(a.id)); });
+  HK.win.forEach(([k]) => { const c = normCombo(hkGet('win', k)); if (c) keyMap.set(c, WIN_ACTIONS[k]); });
+  // Подсказки на кнопках и в меню
+  APPS.forEach((a) => { a.title = `${a.name} — ${a.sub}` + keyHint('app', a.id); });
+  home.querySelectorAll('.lab[data-id]').forEach((n) => { if (byId[n.dataset.id]) n.title = byId[n.dataset.id].title; });
+  $('switch').querySelectorAll('button[data-id]').forEach((b) => { b.title = byId[b.dataset.id].name + keyHint('app', b.dataset.id); });
+  $('hubBtn').title = 'Меню приложений' + keyHint('win', 'menu');
+  $('ovlBarBtn').title = 'Свернуть в оверлей поверх всех окон' + keyHint('win', 'overlay');
+  $('gearBtn').title = 'Настройки: цвета и клавиши' + keyHint('win', 'settings');
+  $('modeBtn').title = (compact ? 'Развернуть в расширенный режим' : 'Свернуть в компактный режим') + keyHint('win', 'mode');
+  const kb = (v) => v.split('+').map((p) => `<kbd>${p}</kbd>`).join('+');
+  const foot = [];
+  if (hkGet('win', 'menu')) foot.push(kb(hkGet('win', 'menu')) + ' — меню');
+  if (hkGet('win', 'mode')) foot.push(kb(hkGet('win', 'mode')) + ' — режим');
+  if (host && hkGet('glob', 'overlay')) foot.push(kb(hkGet('glob', 'overlay')) + ' — оверлей');
+  foot.push('⚙ справа снизу — цвета и клавиши');
+  $('homeKeys').innerHTML = foot.join(' · ');
+  pushGlobalKeys();
+  pushHotkeys();
+  if (settingsOpen()) renderKeys();
+}
+function globalSpec() {
+  const seen = new Set(HK.glob.map((r) => r[0]));
+  const rows = HK.glob.map((r) => r[0]).concat(APPS.map((a) => 'app:' + a.id).filter((k) => !seen.has(k)));
+  return rows.map((k) => [k, hkGet('glob', k)]).filter(([, v]) => v).map(([k, v]) => k + '=' + v).join(';');
+}
+function pushGlobalKeys() { if (host && !OVERLAY) send('globalkeys:' + (capturing ? '' : globalSpec())); }
+let globalFailed = new Set();
 
 // ---------- Передача между приложениями ----------
 // Приложение просит отправить данные другому: {type: 'pult-send', to, code, title}. Открываем получателя
@@ -525,15 +682,38 @@ window.addEventListener('message', (e) => {
   if (!popups[d.page]) inline(); // окно заблокировано браузером
 });
 
-// ---------- Хоткеи Инженера ----------
-function toEngineer(msg) {
-  const f = frames.engineer;
-  if (f) f.contentWindow.postMessage(msg, location.origin);
+// ---------- Хоткеи приложений поверх игры (Инженер, оверлей Алхимика) ----------
+// Приложение присылает свои клавиши: {type: 'pult-hotkeys', keys}. Пустой набор — отпустить.
+// Клавиши в программе одни на всех, поэтому их занимает тот, кто попросил последним,
+// а когда он отпускает — возвращаются клавиши предыдущего приложения.
+const hotkeyKeys = {};
+let hotkeyOwner = null;
+function toFrame(id, msg) {
+  const f = frames[id];
+  if (f && f.contentWindow) f.contentWindow.postMessage(msg, location.origin);
 }
-function engineerHotkey(action) {
-  if (action === 'toggle') return; // окно прячет и показывает сама программа
-  if (!current || current.id !== 'engineer') open('engineer');
-  toEngineer({ type: 'pult-hotkey', action });
+function armHotkeys(id, keys) {
+  const was = hotkeyOwner;
+  if (keys && Object.keys(keys).length) { hotkeyKeys[id] = keys; hotkeyOwner = id; }
+  else if (hotkeyKeys[id]) {
+    delete hotkeyKeys[id];
+    if (hotkeyOwner === id) { const rest = Object.keys(hotkeyKeys); hotkeyOwner = rest.length ? rest[rest.length - 1] : null; }
+  }
+  pushHotkeys();
+  if (was && was !== hotkeyOwner) toFrame(was, { type: 'pult-hotkeys-lost' }); // клавиши ушли другому приложению
+}
+// Клавиши шагов из настроек заменяют клавиши приложения (только те действия, что приложение само просит)
+function pushHotkeys() {
+  if (OVERLAY) return;
+  const keep = Object.assign({}, (hotkeyOwner && hotkeyKeys[hotkeyOwner]) || {});
+  Object.keys(keep).forEach((a) => { const v = hkGet('slide', a); if (v) keep[a] = v; });
+  send('hotkeys:' + (capturing ? '' : Object.entries(keep).map(([a, k]) => a + '=' + k).join(';')));
+}
+function appHotkey(action) {
+  const id = hotkeyOwner || 'engineer';
+  // «toggle» — это показать и спрятать окно, его делает сама программа; приложение не переключаем
+  if (action !== 'toggle' && (!current || current.id !== id)) open(id);
+  toFrame(id, { type: 'pult-hotkey', action });
 }
 
 // ---------- Связь с окном программы ----------
@@ -542,22 +722,30 @@ if (host) {
     const d = e.data || {};
     if (typeof d.pinned === 'boolean') showPin(d.pinned);
     if (d.mode === 'compact' || d.mode === 'expanded') setMode(d.mode === 'compact', true);
-    if (d.hotkey) engineerHotkey(d.hotkey);
-    if (Array.isArray(d.hotkeysFailed)) toEngineer({ type: 'pult-hotkeys-state', failed: d.hotkeysFailed });
+    if (d.hotkey) appHotkey(d.hotkey);
+    if (Array.isArray(d.hotkeysFailed) && hotkeyOwner) toFrame(hotkeyOwner, { type: 'pult-hotkeys-state', failed: d.hotkeysFailed });
     if (d.send) toApp(d.send); // из отдельного окна (протокол допроса → Папирус)
+    if (typeof d.open === 'string') open(d.open); // из оверлея или по общей клавише
+    // Общая клавиша приложения, когда окно на экране: второе нажатие сворачивает Пульт в оверлей
+    if (typeof d.appkey === 'string') {
+      if (current && current.id === d.appkey && !menuOpen() && !settingsOpen()) goOverlay();
+      else { open(d.appkey); send('front'); }
+    }
+    if (Array.isArray(d.globalFailed)) { globalFailed = new Set(d.globalFailed); if (settingsOpen()) renderKeys(); }
+    if (d.ovl === 'button' || d.ovl === 'menu') setOvl(d.ovl, true);
+    if (d.ovl === 'show') applyTheme(store.get('theme') || 'system');
   });
-  // Инженер сообщает свои клавиши (guides.json), программа занимает их поверх игры и присылает нажатия
+  // Приложение сообщает свои клавиши, программа занимает их поверх игры и присылает нажатия
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || e.data.type !== 'pult-hotkeys') return;
-    send('hotkeys:' + Object.entries(e.data.keys || {}).map(([a, k]) => a + '=' + k).join(';'));
+    const id = (APPS.find((a) => frames[a.id] && frames[a.id].contentWindow === e.source) || {}).id;
+    if (id) armHotkeys(id, e.data.keys);
   });
   $('opacityBox').hidden = false;
   $('opacityHomeWrap').hidden = false;
   if (store.get('bg') !== null) setBgAlpha(+store.get('bg'));
-  const dark = matchMedia('(prefers-color-scheme: dark)');
-  const theme = () => send('theme:' + (dark.matches ? 'dark' : 'light'));
-  dark.addEventListener('change', theme);
-  theme();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', sendScheme);
+  if (!OVERLAY) $('ovlBarBtn').hidden = false;
 }
 
 // ---------- Телефон (Пульт.apk) ----------
@@ -598,11 +786,270 @@ window.pultBack = () => {
   return 'exit';
 };
 // Кнопки громкости листают шаги Инженера
-window.pultEngineer = (action) => engineerHotkey(action);
+window.pultEngineer = (action) => appHotkey(action);
 if (root.classList.contains('phone')) compact = true; // на телефоне расширенный режим не помещается
 
+// ---------- Цветовая гамма ----------
+// Цвета оболочки: меню, панель, оверлей, настройки. Приложения внутри сохраняют свои стили.
+// c: фон, фон панели, поверхность, поверхность-2, линии, текст, приглушённый, бледный, акцент.
+// mono — сектора меню и значки окрашиваются акцентом темы.
+const THEMES = [
+  { id: 'system', name: 'Системная', from: 'как в Windows' },
+  { id: 'dark', name: 'Тёмная', from: 'Пульт', c: ['#12151b', '#191d25', '#20252f', '#2a303c', '#333a47', '#e6e9ef', '#98a1b3', '#677084', '#8eb4ff'] },
+  { id: 'light', name: 'Светлая', from: 'Пульт', light: true, c: ['#e9ecf1', '#f4f6f9', '#ffffff', '#eef1f5', '#d3d9e2', '#1a1f29', '#5a6377', '#8a93a5', '#2f6fdc'] },
+  { id: 'kpk', name: 'КПК', from: 'редактор персонажа', c: ['#131a24', '#19222e', '#202c3c', '#29384c', '#384e68', '#cfe0f2', '#8fa6bf', '#61758c', '#6f9fd8'] },
+  { id: 'terminal', name: 'Терминал', from: 'редактор персонажа', mono: true, font: 'Consolas, "Courier New", monospace', c: ['#081008', '#0c170c', '#102010', '#162a16', '#1f5c1f', '#8ce694', '#5fb866', '#3d7d42', '#3fdc4f'] },
+  { id: 'syndie', name: 'Синдикат', from: 'редактор персонажа', c: ['#1a0909', '#230d0d', '#2e1313', '#3b1919', '#5a2222', '#f0c9c9', '#c08f8f', '#8a5f5f', '#4caf50'] },
+  { id: 'cat', name: 'Котик', from: 'редактор персонажа', c: ['#21140e', '#2a1a14', '#35221a', '#422c21', '#5a3c2c', '#efd6c4', '#c0a08a', '#8a6e5c', '#e08860'] },
+  { id: 'synth', name: 'Синт', from: 'редактор персонажа', c: ['#120720', '#1a0a2e', '#24123d', '#2f1a4d', '#4a2a75', '#e0ccf5', '#a98fcf', '#75609a', '#e04090'] },
+  { id: 'hotpink', name: 'Фуксия', from: 'редактор персонажа', c: ['#33133a', '#421a48', '#522259', '#632b6b', '#8a3d94', '#f2cef4', '#d39ad8', '#a46aab', '#e070ec'] },
+  { id: 'hackerman', name: 'Хакер', from: 'редактор персонажа', mono: true, font: 'Consolas, "Courier New", monospace', c: ['#030703', '#071007', '#0b160b', '#102010', '#1d4a1d', '#00ff00', '#00c000', '#008a00', '#00ff00'] },
+  { id: 'malfunction', name: 'Сбой', from: 'редактор персонажа', c: ['#132630', '#1b3443', '#213f52', '#2a4c62', '#355e78', '#dce7f0', '#9fb6c7', '#6e8799', '#e04848'] },
+  { id: 'heretic', name: 'Еретик', from: 'редактор персонажа', c: ['#151310', '#1d1a16', '#27231d', '#312c24', '#4a3f30', '#e0d4cc', '#b0a088', '#7d705e', '#c94a4a'] },
+  { id: 'wizard', name: 'Волшебник', from: 'редактор персонажа', c: ['#162b37', '#1d3746', '#244456', '#2c5166', '#3c6a82', '#d4e9f0', '#9cc0cf', '#6b8f9e', '#2cc5e6'] },
+  { id: 'pact', name: 'Пакт', from: 'редактор персонажа', c: ['#0b0f24', '#131832', '#1a2142', '#222a53', '#313c72', '#d2daee', '#96a2c8', '#67729a', '#5c74ff'] },
+  { id: 'abductor', name: 'Абдуктор', from: 'редактор персонажа', c: ['#1d2236', '#262c44', '#2f3653', '#384063', '#4c5680', '#ecd6e2', '#b8a4b8', '#857790', '#e0457a'] },
+  { id: 'amber', name: 'Янтарь', from: 'редактор персонажа', c: ['#1c1300', '#261a02', '#302205', '#3c2b08', '#5c4210', '#ffe9c4', '#d6b47a', '#9c8050', '#ffb300'] },
+  { id: 'ochre', name: 'Охра', from: 'редактор персонажа', c: ['#261803', '#311f08', '#3c280d', '#493112', '#6b4a1e', '#f2e2c8', '#c9ad85', '#94795a', '#e08a1e'] },
+  { id: 'bluespace', name: 'Блюспейс', from: 'новая', c: ['#060a1c', '#0a112c', '#10193e', '#162252', '#24357a', '#dbe6ff', '#8fa5e0', '#5a6ca8', '#39c6ff'] },
+  { id: 'plasma', name: 'Плазма', from: 'новая', c: ['#140919', '#1c0d23', '#26122f', '#31183d', '#52266a', '#f3d9ff', '#c08ad8', '#8a5ea0', '#c45cff'] },
+  { id: 'supermatter', name: 'Суперматерия', from: 'новая', c: ['#17110a', '#1f170d', '#2a1f11', '#352816', '#5a4120', '#fff1d6', '#e3bd78', '#a3814a', '#ffcf3d'] },
+  { id: 'cryo', name: 'Криостазис', from: 'новая', light: true, c: ['#e3eff6', '#eff7fb', '#ffffff', '#e6f1f7', '#bfd6e5', '#10283a', '#4a6a80', '#8aa4b5', '#1a8ccc'] },
+  { id: 'paper', name: 'Бумага', from: 'новая', light: true, c: ['#e6dcc4', '#f0e7d2', '#faf5e8', '#ede3cb', '#cbbd99', '#2b2418', '#6b5d42', '#9c8d6c', '#9a5f17'] },
+];
+const THEME_VARS = ['--bg', '--bg2', '--surface', '--surface2', '--line', '--text', '--muted', '--faint', '--focus'];
+let themeId = 'system';
+function applyTheme(id) {
+  const t = THEMES.find((x) => x.id === id) || THEMES[0];
+  themeId = t.id;
+  THEME_VARS.forEach((v, i) => { if (t.c) root.style.setProperty(v, t.c[i]); else root.style.removeProperty(v); });
+  if (t.c) {
+    root.style.setProperty('color-scheme', t.light ? 'light' : 'dark');
+    root.style.setProperty('--shadow', t.light ? '0 18px 50px rgba(20, 30, 50, .18)' : '0 18px 50px rgba(0, 0, 0, .45)');
+  } else { root.style.removeProperty('color-scheme'); root.style.removeProperty('--shadow'); }
+  if (t.font) root.style.setProperty('--font', t.font); else root.style.removeProperty('--font');
+  root.toggleAttribute('data-mono', !!t.mono);
+  root.dataset.theme = t.id;
+  sendScheme();
+  document.querySelectorAll('.theme[data-theme]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.theme === t.id ? 'true' : 'false'));
+}
+function sendScheme() {
+  if (OVERLAY) return;
+  const t = THEMES.find((x) => x.id === themeId) || THEMES[0];
+  const darkOs = matchMedia('(prefers-color-scheme: dark)').matches;
+  send('theme:' + (t.c ? (t.light ? 'light' : 'dark') : (darkOs ? 'dark' : 'light')));
+}
+
+// ---------- Настройки (⚙ справа снизу) ----------
+const settingsOpen = () => !$('settings').hidden;
+let setTab = store.get('setTab') === 'keys' ? 'keys' : 'look';
+function toggleSettings(on) {
+  if (OVERLAY) return;
+  on = on === undefined ? !settingsOpen() : on;
+  if (!on) endCapture();
+  $('settings').hidden = !on;
+  $('gearBtn').setAttribute('aria-expanded', on ? 'true' : 'false');
+  if (on) { renderSettings(); haptic('tap'); }
+  else focusApp();
+}
+function renderSettings() {
+  const el = $('settings');
+  el.innerHTML = `<div class="setbox" role="dialog" aria-label="Настройки">
+    <header class="sethead"><h2>Настройки</h2>
+      <nav class="settabs" role="tablist">
+        <button role="tab" data-tab="look" aria-selected="${setTab === 'look'}">Оформление</button>
+        <button role="tab" data-tab="keys" aria-selected="${setTab === 'keys'}">Клавиши</button>
+      </nav><span class="grow"></span>
+      <button class="ibtn" id="setClose" title="Закрыть (Esc)" aria-label="Закрыть">${svg('close')}</button>
+    </header>
+    <div class="setbody" id="setBody"></div></div>`;
+  el.querySelector('.settabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tab]');
+    if (!b) return;
+    endCapture();
+    setTab = b.dataset.tab; store.set('setTab', setTab);
+    el.querySelectorAll('.settabs button').forEach((x) => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
+    renderPane();
+  });
+  $('setClose').addEventListener('click', () => toggleSettings(false));
+  renderPane();
+}
+function renderPane() { if (setTab === 'keys') renderKeys(); else renderLook(); }
+// Щелчок по затемнению вокруг окна настроек закрывает их
+$('settings').addEventListener('click', (e) => { if (e.target === $('settings')) toggleSettings(false); });
+
+function renderLook() {
+  const body = $('setBody');
+  if (!body) return;
+  const card = (t) => {
+    const c = t.c || THEMES[1].c;
+    const st = `--tb:${c[0]};--tb2:${c[1]};--ts:${c[3]};--ts2:${c[4]};--tl:${c[4]};--tt:${c[5]};--tm:${c[6]};--tf:${c[8]}` + (t.font ? `;--tfont:${t.font}` : '');
+    return `<button class="theme" data-theme="${t.id}" aria-pressed="${t.id === themeId}" style='${st}'>` +
+      `<span class="tprev${t.c ? '' : ' split'}"><i></i><i></i><i></i></span><b>${t.name}</b><small>${t.from}</small></button>`;
+  };
+  body.innerHTML = `<h3>Цветовая гамма</h3>
+    <p class="hint">Меняет цвета Пульта: меню, панель, оверлей и настройки. Приложения внутри сохраняют свои цвета.
+    Темы из редактора персонажа — те же, что у окон TGUI в игре.</p>
+    <div class="themes">${THEMES.map(card).join('')}</div>`;
+  body.querySelector('.themes').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme]');
+    if (!b) return;
+    store.set('theme', b.dataset.theme);
+    applyTheme(b.dataset.theme);
+    haptic('tap');
+  });
+}
+
+// Все назначенные клавиши — для подсветки повторов
+function allBindings() {
+  const out = [];
+  HK.glob.forEach(([k, label]) => out.push({ g: 'glob', k, label: label + ' (поверх игры)' }));
+  APPS.forEach((a) => { if (!hkRow('glob', 'app:' + a.id)) out.push({ g: 'glob', k: 'app:' + a.id, label: a.name + ' (поверх игры)' }); });
+  HK.slide.forEach(([k, label]) => out.push({ g: 'slide', k, label }));
+  HK.win.forEach(([k, label]) => out.push({ g: 'win', k, label }));
+  APPS.forEach((a) => out.push({ g: 'app', k: a.id, label: a.name }));
+  out.forEach((b) => { b.v = normCombo(hkGet(b.g, b.k)); });
+  return out;
+}
+function renderKeys() {
+  const body = $('setBody');
+  if (!body || setTab !== 'keys') return;
+  const all = allBindings();
+  const field = (g, k, placeholder) => {
+    const v = hkGet(g, k), n = normCombo(v);
+    const dups = n ? all.filter((b) => b.v === n && !(b.g === g && b.k === k)) : [];
+    const fail = g === 'glob' && v && globalFailed.has(k);
+    const cap = capturing && capturing.g === g && capturing.k === k;
+    const custom = hkCfg[g] && typeof hkCfg[g][k] === 'string';
+    let cls = 'kbtn', title = 'Нажмите, чтобы назначить клавишу';
+    if (cap) cls += ' capture';
+    else if (!v) cls += ' empty';
+    if (fail) { cls += ' fail'; title = 'Не удалось занять: клавишу держит другая программа'; }
+    else if (dups.length) { cls += ' dup'; title = 'Эта же клавиша: ' + dups.map((d) => d.label).join(', '); }
+    const text = cap ? 'Нажмите сочетание… (Esc — отмена)' : v || placeholder || 'нет';
+    return `<span class="kf"><button class="${cls}" data-g="${g}" data-k="${k}" title="${title}">${text.replace(/</g, '&lt;')}</button>` +
+      `<button class="kx" data-clear="${g}|${k}" title="Убрать клавишу" ${v ? '' : 'disabled'}>✕</button>` +
+      `<button class="kx" data-reset="${g}|${k}" title="Вернуть по умолчанию${hkDefault(g, k) ? ': ' + hkDefault(g, k) : ''}" ${custom ? '' : 'disabled'}>↺</button></span>`;
+  };
+  const row = (name, ...fields) => `<div class="krow"><span class="kname">${name}</span>${fields.join('')}</div>`;
+  const appName = (a, extra = '') => `<span style="--c:${a.color}">${svg(a.icon)}</span>${a.name}${extra}`;
+  const offNote = host ? '' : `<span class="keys-off">Клавиши поверх игры работают только в Пульт.exe — здесь их можно настроить заранее.</span>`;
+  let h = `<h3>Поверх игры</h3><p class="hint">Работают, даже когда активна игра. Пока Пульт запущен, эти сочетания не доходят до других программ.
+    Клавиша панели выводит Пульт с этим приложением, повторное нажатие сворачивает его в оверлей.</p>${offNote}`;
+  h += HK.glob.map(([k, label, , app]) => {
+    const a = byId[app];
+    return row(a ? `<span style="--c:${a.color}">${svg(a.icon)}</span>${label}<small>${a.name}</small>` : label, field('glob', k));
+  }).join('');
+  h += `<h3>Шаги и слайды</h3><p class="hint">Листают шаги Инженера, Робототехника и оверлея Алхимика поверх игры. Пусто — клавиши самого приложения
+    (у Инженера — из guides.json). Работают, пока приложение занимает клавиши.</p>`;
+  h += HK.slide.map(([k, label, def]) => row(label, field('slide', k, def + ' — из приложения'))).join('');
+  h += `<h3>В окне Пульта</h3><p class="hint">Действуют, когда активно окно Пульта.</p>`;
+  h += HK.win.map(([k, label]) => row(label, field('win', k))).join('');
+  h += `<h3>Приложения</h3><p class="hint">«В окне» — открыть приложение, пока активен Пульт. «Поверх игры» — вывести Пульт с приложением из игры.</p>`;
+  h += `<div class="khead"><span></span><span>В окне</span><span>Поверх игры</span></div>`;
+  h += APPS.map((a) => row(appName(a), field('app', a.id), field('glob', 'app:' + a.id))).join('');
+  h += `<p class="kwarn" id="kwarn" hidden></p><div class="setfoot"><button id="kreset">Сбросить все клавиши</button></div>`;
+  const top = body.scrollTop;
+  body.innerHTML = h;
+  body.scrollTop = top;
+  body.onclick = (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.g) { if (capturing && capturing.g === b.dataset.g && capturing.k === b.dataset.k) endCapture(); else startCapture(b.dataset.g, b.dataset.k); }
+    else if (b.dataset.clear) { const [g, k] = b.dataset.clear.split('|'); endCapture(true); hkSet(g, k, ''); }
+    else if (b.dataset.reset) { const [g, k] = b.dataset.reset.split('|'); endCapture(true); hkSet(g, k, null); }
+    else if (b.id === 'kreset') { endCapture(true); hkCfg = {}; store.set('keys', '{}'); applyKeys(); }
+  };
+}
+function keyWarn(text, bad) {
+  const w = $('kwarn');
+  if (!w) return;
+  w.hidden = !text; w.textContent = text || ''; w.classList.toggle('bad', !!bad);
+}
+// Пока ждём нажатия, Пульт.exe отпускает все свои клавиши — иначе занятое сочетание не дошло бы до страницы
+function startCapture(g, k) {
+  capturing = { g, k };
+  pushGlobalKeys(); pushHotkeys();
+  renderKeys();
+  keyWarn('');
+}
+function endCapture(quiet) {
+  if (!capturing) return;
+  capturing = null;
+  pushGlobalKeys(); pushHotkeys();
+  if (!quiet) renderKeys();
+}
+function captureKey(e) {
+  e.preventDefault(); e.stopPropagation();
+  if (e.type !== 'keydown' || e.repeat) return;
+  const { g, k } = capturing;
+  if (e.key === 'Escape') { endCapture(); return; }
+  if ((e.key === 'Backspace' || e.key === 'Delete') && !e.ctrlKey && !e.altKey && !e.shiftKey) { capturing = null; hkSet(g, k, ''); return; }
+  const combo = comboOf(e);
+  if (!combo) return; // пока зажаты только Ctrl/Alt/Shift
+  if (needsMod(combo)) { keyWarn('Буквы, цифры и знаки — только вместе с Ctrl или Alt, иначе они перестанут печататься.', true); return; }
+  capturing = null;
+  hkSet(g, k, combo);
+  const dup = allBindings().filter((b) => b.v === normCombo(combo) && !(b.g === g && b.k === k));
+  keyWarn(dup.length ? 'Это сочетание уже назначено: ' + dup.map((d) => d.label).join(', ') + '.' : '');
+}
+
+$('gearBtn').innerHTML = svg('gear');
+$('gearBtn').addEventListener('click', () => toggleSettings());
+$('ovlBarBtn').innerHTML = svg('bubble');
+$('ovlBarBtn').addEventListener('click', () => goOverlay());
+
+// ---------- Оверлей ----------
+// В главном окне — свернуться в кнопку; в окне оверлея — кнопка и меню, Пульт.exe меняет размер окна по состоянию.
+function goOverlay() { if (host && !OVERLAY) send('overlay:on'); }
+let ovlState = 'button';
+function setOvl(state, fromHost) {
+  if (!OVERLAY) return;
+  ovlState = state;
+  if (!fromHost) send('ovl:' + state);
+  root.classList.toggle('ovl-menu', state === 'menu');
+  if (state === 'menu') {
+    home.classList.remove('closed');
+    closeDept(true);
+    introAnim();
+  } else closeDept(true);
+}
+// Тянуть — переместить окно оверлея (его двигает Пульт.exe, пока зажата кнопка мыши), просто нажать — щелчок
+function dragHandle(el) {
+  if (!el) return;
+  let start = null, moved = false;
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || (e.target.closest('button') && e.target.closest('button') !== el)) return;
+    start = [e.screenX, e.screenY]; moved = false;
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* нет захвата */ }
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!start || moved || Math.hypot(e.screenX - start[0], e.screenY - start[1]) < 4) return;
+    moved = true;
+    send('ovl:drag');
+  });
+  const up = () => { start = null; };
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('click', (e) => { if (moved) { moved = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+}
+
+applyTheme(store.get('theme') || 'system');
 buildRadial();
 buildSwitch();
-setMode(compact, true);
-send('hello');
-showMenu();
+if (OVERLAY) {
+  compact = true;
+  const b = $('ovlBtn');
+  b.innerHTML = `<svg viewBox="-12 -12 24 24" aria-hidden="true">${logoArcs(9.5, 3.4)}</svg>`;
+  dragHandle(b);
+  b.addEventListener('click', () => setOvl('menu'));
+  b.addEventListener('contextmenu', (e) => { e.preventDefault(); send('ovl:context'); });
+  home.classList.remove('closed');
+  applyKeys();
+  send('hello');
+} else {
+  setMode(compact, true);
+  applyKeys();
+  send('hello');
+  showMenu();
+}
