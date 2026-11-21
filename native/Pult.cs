@@ -158,6 +158,7 @@ class MainForm : Form
         Controls.Add(web);
 
         HandleCreated += (s, e) => { ApplyCaption(); EnableAlpha(Handle); };
+        stepTimer.Tick += (s, e) => StepTick();
         Load += async (s, e) => await InitAsync();
         // Закрыли в оверлее — в оверлее и запускаемся
         Shown += (s, e) => { if (state["overlay"] == "1") BeginInvoke((Action)(() => EnterOverlay(false))); };
@@ -262,6 +263,7 @@ class MainForm : Form
     void RememberBounds()
     {
         if (WindowState == FormWindowState.Minimized) return;
+        if (stepOn) { RememberStep(); return; } // окно сейчас — панель шага, режимы не трогаем
         if (!compact) state["expandedMax"] = WindowState == FormWindowState.Maximized ? "1" : "0";
         state.SetRect(Key, WindowState == FormWindowState.Normal ? Bounds : RestoreBounds);
     }
@@ -272,9 +274,12 @@ class MainForm : Form
         {
             RememberBounds();
             compact = isCompact;
-            SuspendLayout();
-            PlaceWindow();
-            ResumeLayout();
+            if (!stepOn) // в панели шага новый режим включится, когда оверлей шага закроют
+            {
+                SuspendLayout();
+                PlaceWindow();
+                ResumeLayout();
+            }
             state["mode"] = Key;
             state.Save();
         }
@@ -294,6 +299,116 @@ class MainForm : Form
         if (web.CoreWebView2 == null) return;
         web.CoreWebView2.PostWebMessageAsJson(
             "{\"mode\":\"" + Key + "\",\"pinned\":" + (TopMost ? "true" : "false") + "}");
+    }
+
+    // ---------- Оверлей шага (Робототехник, Алхимик…) ----------
+    // Приложение показывает только текущий шаг — окно Пульта становится небольшой панелью поверх игры
+    // в левом верхнем углу экрана (или там, куда её передвинули), а потом возвращается как было.
+
+    // Панель без рамки и заголовка: тянут её за полосу шага, размер меняют уголком справа снизу
+    // (страница присылает step:drag / step:size, дальше окно идёт за курсором, пока зажата кнопка мыши).
+
+    bool stepOn;
+    int framedStyle;
+    readonly Timer stepTimer = new Timer { Interval = 10 };
+    bool stepSizing;
+    Point stepCursor;
+    Rectangle stepStart;
+
+    [DllImport("user32.dll")]
+    static extern int GetWindowLong(IntPtr hWnd, int index);
+    [DllImport("user32.dll")]
+    static extern int SetWindowLong(IntPtr hWnd, int index, int value);
+    [DllImport("user32.dll")]
+    static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+
+    const int GWL_STYLE = -16;
+    const int WS_CAPTION = 0x00C00000, WS_THICKFRAME = 0x00040000;
+
+    // Рамку снимаем и возвращаем стилем окна, а не FormBorderStyle: тот пересоздаёт окно,
+    // а на нём держатся хоткеи и прозрачность
+    void SetFramed(bool framed)
+    {
+        if (framed) SetWindowLong(Handle, GWL_STYLE, framedStyle);
+        else
+        {
+            framedStyle = GetWindowLong(Handle, GWL_STYLE);
+            SetWindowLong(Handle, GWL_STYLE, framedStyle & ~(WS_CAPTION | WS_THICKFRAME));
+        }
+        SetWindowPos(Handle, IntPtr.Zero, 0, 0, 0, 0, 0x0020 | 0x0002 | 0x0001 | 0x0004 | 0x0010); // FRAMECHANGED|NOMOVE|NOSIZE|NOZORDER|NOACTIVATE
+        int border = framed ? -1 : -2; // DWMWA_BORDER_COLOR: по умолчанию / без контура (Windows 11)
+        DwmSetWindowAttribute(Handle, 34, ref border, 4);
+    }
+
+    void SetStep(bool on)
+    {
+        if (on == stepOn) return;
+        if (on)
+        {
+            RememberBounds();
+            stepOn = true;
+            Rectangle wa = Screen.FromControl(this).WorkingArea; // угол того экрана, где стоит Пульт
+            Rectangle? saved = state.Rect("step");
+            WindowState = FormWindowState.Normal;
+            MinimumSize = new Size(220, 80);
+            TopMost = true;
+            SetFramed(false);
+            Bounds = saved.HasValue && OnScreen(saved.Value) ? saved.Value
+                : new Rectangle(wa.Left + 12, wa.Top + 12, 400, 300);
+        }
+        else
+        {
+            stepTimer.Stop();
+            RememberStep();
+            stepOn = false;
+            SetFramed(true);
+            PlaceWindow();
+            TopMost = state["pin"] == "1";
+        }
+        state.Save();
+    }
+
+    void RememberStep()
+    {
+        if (WindowState == FormWindowState.Normal) state.SetRect("step", Bounds);
+    }
+
+    // «нужно,есть» в CSS-пикселях страницы: пересчитываем через текущую высоту окна, так не нужен масштаб экрана
+    void FitStep(string spec)
+    {
+        if (!stepOn || WindowState != FormWindowState.Normal) return;
+        string[] p = spec.Split(',');
+        int want, have;
+        if (p.Length != 2 || !int.TryParse(p[0], out want) || !int.TryParse(p[1], out have) || want <= 0 || have <= 0) return;
+        int h = (int)Math.Ceiling((double)ClientSize.Height * want / have) + (Height - ClientSize.Height);
+        h = Math.Max(80, Math.Min(Screen.FromControl(this).WorkingArea.Height, h));
+        if (Math.Abs(h - Height) > 1) Height = h;
+    }
+
+    void StartStepMove(bool sizing)
+    {
+        if (!stepOn) return;
+        stepSizing = sizing;
+        stepCursor = Cursor.Position;
+        stepStart = Bounds;
+        stepTimer.Start();
+    }
+
+    void StepTick()
+    {
+        if ((MouseButtons & MouseButtons.Left) == 0)
+        {
+            stepTimer.Stop();
+            RememberStep();
+            state.Save();
+            return;
+        }
+        Point c = Cursor.Position;
+        int dx = c.X - stepCursor.X, dy = c.Y - stepCursor.Y;
+        if (stepSizing) // высоту подгоняет страница по содержимому, уголком меняется ширина
+            Width = Math.Max(MinimumSize.Width, stepStart.Width + dx);
+        else
+            Location = new Point(stepStart.X + dx, stepStart.Y + dy);
     }
 
     // ---------- Прозрачный фон ----------
@@ -588,6 +703,11 @@ class MainForm : Form
                 else if (msg.StartsWith("globalkeys:")) SetGlobalHotkeys(msg.Substring(11));
                 else if (msg == "overlay:on") EnterOverlay(false);
                 else if (msg == "front") ShowFront();
+                else if (msg == "step:on") SetStep(true);
+                else if (msg == "step:off") SetStep(false);
+                else if (msg == "step:drag") StartStepMove(false);
+                else if (msg == "step:size") StartStepMove(true);
+                else if (msg.StartsWith("step:h:")) FitStep(msg.Substring(7));
                 else if (msg == "window:protocol") OpenProtocol();
             };
 

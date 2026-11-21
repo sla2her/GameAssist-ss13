@@ -247,6 +247,15 @@ html[data-mono] .sec, html[data-mono] .lab, html[data-mono] .hub, html[data-mono
 html[data-mono] { --app: var(--focus) !important; }
 body { font-family: var(--font); }
 
+/* ---------- Оверлей шага: окно Пульта — панель с текущим шагом приложения ---------- */
+html.step #bar, html.step #gearBtn, html.step #settings { display: none !important; }
+html.step body, html.step #win { background: transparent !important; }
+.stepgrip { display: none; }
+html.step .stepgrip {
+  display: block; position: fixed; right: 0; bottom: 0; z-index: 90; width: 16px; height: 16px; cursor: ew-resize;
+  background: linear-gradient(135deg, transparent 50%, color-mix(in srgb, var(--muted) 70%, transparent) 50% 58%, transparent 58% 70%, color-mix(in srgb, var(--muted) 70%, transparent) 70% 78%, transparent 78%);
+}
+
 /* ---------- Оверлей (окно ?overlay=1 в Пульт.exe) ---------- */
 html.ovl, html.ovl body { background: transparent !important; }
 html.ovl #win { width: 100% !important; height: 100% !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; }

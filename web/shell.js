@@ -339,7 +339,114 @@ function open(id) {
   if (android) android.setEngineerOpen(id === 'engineer');
   home.classList.add('closed');
   focusApp();
+  syncStep();
 }
+
+// Оверлей шага приложения (html.ov-on у Робототехника, Алхимика): в Пульт.exe окно становится
+// небольшой полупрозрачной панелью без рамки поверх игры в левом верхнем углу, панель Пульта прячется.
+// Панель тянут за полосу шага, размер — уголком справа снизу, прозрачность — Ctrl+колесо.
+let stepOn = false, stepDoc = null, stepObs = null;
+let stepAlpha = Math.min(1, Math.max(0.2, +(store.get('stepbg') || 0.75)));
+function syncStep() {
+  let on = false, doc = null;
+  const f = current && frames[current.id];
+  try { doc = f && f.contentDocument; on = !!doc && doc.documentElement.classList.contains('ov-on'); } catch (e) { /* не загрузился */ }
+  if (!host || OVERLAY) on = false;
+  if (on === stepOn) return;
+  stepOn = on;
+  root.classList.toggle('step', on);
+  if (on) {
+    hideMenu(); toggleSettings(false);
+    stepDoc = doc;
+    stepObs = new MutationObserver(() => requestAnimationFrame(stepFade));
+    stepObs.observe(doc.getElementById('ov') || doc.body, { childList: true, subtree: true });
+    // Только полоса шага, прогресс и карточка: подсказка «дальше», следующие шаги и клавиши — в окне приложения
+    const css = doc.createElement('style');
+    css.id = 'pult-step-css';
+    css.textContent = '#ov .ovfoot,#ov .upnext,#ov .ovnext{display:none!important}#ov .ovbody{flex:none!important}';
+    doc.head.appendChild(css);
+    doc.defaultView.addEventListener('resize', stepFitSoon);
+  } else {
+    if (stepObs) stepObs.disconnect();
+    stepUnfade();
+    if (stepDoc) {
+      const css = stepDoc.getElementById('pult-step-css');
+      if (css) css.remove();
+      stepDoc.defaultView.removeEventListener('resize', stepFitSoon);
+    }
+    stepObs = stepDoc = null;
+  }
+  send('step:' + (on ? 'on' : 'off'));
+  if (on) stepFade();
+}
+
+// Подложки панели шага (сам оверлей, его полоса и крупные карточки) — полупрозрачные, текст и кнопки плотные
+const stepLayers = [];
+function stepUnfade() {
+  stepLayers.splice(0).forEach((el) => el.style.removeProperty('background-color'));
+  const doc = stepDoc;
+  if (doc) {
+    doc.documentElement.style.removeProperty('background');
+    doc.body.style.removeProperty('background');
+    doc.body.style.removeProperty('visibility');
+    const ov = doc.getElementById('ov');
+    if (ov) ov.style.removeProperty('visibility');
+  }
+  if (doc && bgAlpha < 1) fadeApp(doc);
+}
+function stepFade() {
+  const doc = stepDoc, ov = doc && doc.getElementById('ov');
+  if (!stepOn || !ov) return;
+  stepUnfade();
+  (bgLayers.get(doc) || []).forEach(([el]) => el.style.removeProperty('background-color'));
+  doc.documentElement.style.setProperty('background', 'transparent', 'important');
+  doc.body.style.setProperty('background', 'transparent', 'important');
+  // Сквозь панель видна игра, а не страница приложения под оверлеем
+  doc.body.style.setProperty('visibility', 'hidden', 'important');
+  ov.style.setProperty('visibility', 'visible', 'important');
+  const win = doc.defaultView, w = ov.clientWidth;
+  [ov, ...ov.querySelectorAll('*')].forEach((el) => {
+    if (el !== ov && el.getBoundingClientRect().width < w * 0.6) return; // кнопки и мелочь не трогаем
+    const m = /rgba?\(([^)]+)\)/.exec(win.getComputedStyle(el).backgroundColor);
+    const c = m && m[1].split(',').map(parseFloat);
+    if (!c || (c.length > 3 && c[3] === 0)) return;
+    const a = (c.length < 4 ? 1 : c[3]) * (el === ov ? stepAlpha : Math.min(1, stepAlpha + 0.1));
+    el.style.setProperty('background-color', `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`, 'important');
+    stepLayers.push(el);
+  });
+  stepFitSoon();
+}
+// Высота панели — по содержимому (ширину задают уголком): программа пересчитывает её в пиксели окна
+let stepFitQueued = false;
+function stepFitSoon() {
+  if (stepFitQueued) return;
+  stepFitQueued = true;
+  requestAnimationFrame(() => { stepFitQueued = false; stepFit(); });
+}
+function stepFit() {
+  const ov = stepOn && stepDoc && stepDoc.getElementById('ov');
+  if (!ov) return;
+  let h = 0;
+  for (const ch of ov.children) h += ch.offsetHeight;
+  if (h > 0) send('step:h:' + Math.ceil(h) + ',' + window.innerHeight);
+}
+function stepPointer(e) {
+  if (!stepOn || e.button !== 0) return;
+  const t = e.target;
+  if (!t.closest || !t.closest('.ovbar') || t.closest('button, a, input, select, textarea, label')) return;
+  e.preventDefault();
+  send('step:drag');
+}
+function stepWheel(e) {
+  if (!stepOn || !e.ctrlKey) return;
+  e.preventDefault();
+  e.stopImmediatePropagation(); // колесо по карточке листает шаги — с Ctrl оно только для прозрачности
+  stepAlpha = Math.min(1, Math.max(0.2, Math.round((stepAlpha + (e.deltaY < 0 ? 0.05 : -0.05)) * 100) / 100));
+  store.set('stepbg', String(stepAlpha));
+  stepFade();
+}
+$('stepGrip').addEventListener('pointerdown', (e) => { if (e.button === 0) { e.preventDefault(); send('step:size'); } });
+$('stepGrip').addEventListener('wheel', stepWheel, { passive: false });
 
 function focusApp() {
   const f = current && frames[current.id];
@@ -354,6 +461,9 @@ function prepare(app, frame) {
   if (!doc || !doc.head) { frame.classList.add('ready'); return; }
   doc.documentElement.classList.add('pult-embedded');
   doc.documentElement.classList.toggle('pult-compact', compact);
+  new MutationObserver(syncStep).observe(doc.documentElement, { attributes: true, attributeFilter: ['class'] });
+  doc.addEventListener('pointerdown', stepPointer, true);
+  doc.addEventListener('wheel', stepWheel, { capture: true, passive: false });
 
   const ready = () => { frame.classList.add('ready'); if (bgAlpha < 1) fadeApp(doc); };
   // Вкладки и разделы приложения меняют вёрстку — после щелчка заново находим фоновые слои
