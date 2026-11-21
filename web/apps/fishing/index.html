@@ -1,0 +1,1457 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Рыбалка</title>
+<style>
+/* Рыбалка: справочник по модулю modular_bluemoon/fishing и симулятор мини-игры с физикой из игры.
+   Данные (рыбы, места, спрайты) — data.js, его собирает build_data.py. Вёрстка как у Вирусологии. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#2f8fb8; --accent-fg:#ffffff; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#4fb3de; --accent-fg:#06202c; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#4fb3de; --accent-fg:#06202c; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+
+.seg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.subnav{margin-bottom:14px;display:inline-flex}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.card>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.card .body{padding:10px 16px 14px;font-size:14px}
+.card .body p{margin:0 0 8px}
+.card .body p:last-child{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.bul{margin:0;padding:10px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.note{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.note.bad{--kc:var(--bad)} .note.ok{--kc:var(--ok)} .note.warn{--kc:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:5px 8px;vertical-align:middle;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+kbd{font:12px var(--font-m);background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;white-space:nowrap}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+.wide{grid-column:1/-1}
+.pos{color:var(--ok)} .neg{color:var(--bad)} .warnc{color:var(--warn)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chips button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:4px 11px;font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:6px;padding:0 7px;color:var(--tc,var(--muted));background:color-mix(in srgb,var(--tc,var(--muted)) 14%,transparent);white-space:nowrap;line-height:1.6}
+.tag.ok{--tc:var(--ok)} .tag.bad{--tc:var(--bad)} .tag.warn{--tc:var(--warn)} .tag.acc{--tc:var(--accent)}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding:12px 16px 0}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:7px 11px;background:var(--panel2)}
+.kpi b{display:block;font-size:19px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+
+/* спрайты из .dmi */
+.spr{display:inline-block;flex:none;image-rendering:pixelated;background-repeat:no-repeat;vertical-align:middle}
+.ico{display:inline-grid;place-items:center;width:32px;height:32px;flex:none;border-radius:7px;background:var(--panel2);color:var(--faint);font-size:15px}
+
+/* снаряжение */
+.gear{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 10px;padding:10px 12px;margin-bottom:14px;align-items:end}
+.gear label{display:grid;gap:2px;font-size:12px;color:var(--muted)}
+.gear select{width:100%;padding:5px 6px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);font-size:13.5px}
+.gear .checks{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--fg);align-items:center;padding-bottom:4px}
+.gear .checks label{display:flex;gap:5px;align-items:center;font-size:13px;color:var(--fg)}
+.gearsum{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+
+/* места */
+.places{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}
+.plist{padding:6px;display:grid;gap:2px;position:sticky;top:76px;max-height:calc(100vh - 90px);overflow:auto}
+.plist h4{margin:8px 8px 2px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)}
+.plist button{display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;border:0;background:none;padding:6px 9px;border-radius:7px;cursor:pointer;font-size:13.5px}
+.plist button:hover{background:var(--panel2)}
+.plist button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 16%,var(--panel));font-weight:600}
+.plist button small{color:var(--faint);font-variant-numeric:tabular-nums;font-weight:400}
+.bar{height:6px;border-radius:3px;background:var(--accent);min-width:1px}
+.rowname{display:flex;gap:8px;align-items:center}
+.rowname .en{color:var(--faint);font-size:12px}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--panel2)}
+
+/* рыбы */
+.ftools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.ftools input[type=search]{flex:1 1 220px;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel)}
+.ftools select{padding:6px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--panel)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.fcard{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;text-align:left}
+.fcard:hover{border-color:var(--line2);background:var(--panel2)}
+.fcard b{display:block;font-size:13.5px;line-height:1.25}
+.fcard small{color:var(--faint);font-size:11.5px;display:block}
+.fsprite{width:64px;height:40px;display:grid;place-items:center;flex:none}
+.fdetail .head{display:flex;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.fdetail .head h2{margin:0;font-size:19px}
+.fdetail .head .en{color:var(--faint);font-size:13px}
+.props{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 14px;padding:12px 16px;font-size:13.5px}
+.props div span{display:block;font-size:11.5px;color:var(--faint)}
+.sec{padding:4px 16px 12px;font-size:14px}
+.sec h4{margin:8px 0 6px;font-size:13px;color:var(--muted)}
+.traits{display:grid;gap:6px}
+.trait{padding:6px 10px;border-radius:8px;background:var(--panel2);font-size:13px}
+.trait b{font-weight:600}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13.5px}
+.btn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+.modal{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}
+.modal>.panel{width:min(760px,100%);max-height:calc(100vh - 32px);overflow:auto;position:relative}
+.modal .x{position:absolute;top:10px;right:10px}
+
+/* симулятор */
+.sim{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+.stage{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;padding:16px;user-select:none;-webkit-user-select:none;touch-action:none;min-height:470px}
+.stage canvas{image-rendering:pixelated;display:block}
+.hudwrap{position:relative;width:128px;height:384px}
+.water{position:relative;border-radius:10px;overflow:hidden;min-height:200px;background:linear-gradient(#5aa8d6,#2f6f9c 55%,#244f73);display:grid;place-items:center}
+.water .float{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%)}
+.water .say{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-weight:800;font-size:22px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.45);white-space:nowrap;pointer-events:none}
+.water .hint{position:absolute;left:10px;right:10px;bottom:10px;color:#e8f4fb;font-size:13px;text-align:center;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.water.bite{animation:shake .25s infinite}
+@keyframes shake{0%,100%{transform:translateX(0)}50%{transform:translateX(2px)}}
+.simside{display:grid;gap:10px}
+.simside .panel{padding:10px 14px;font-size:13.5px}
+.simside h4{margin:0 0 6px;font-size:13px;color:var(--muted)}
+.brk{display:grid;grid-template-columns:1fr auto;gap:1px 10px;font-size:13px}
+.brk .t{border-top:1px solid var(--line);font-weight:700;padding-top:3px;margin-top:3px}
+.log{max-height:220px;overflow:auto;font-size:12.5px;display:grid;gap:3px}
+.log div{padding:3px 6px;border-radius:5px;background:var(--panel2)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.statline{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.statline b{color:var(--fg)}
+.meter{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%;background:var(--accent)}
+
+@media (max-width:900px){
+  .places,.sim{grid-template-columns:minmax(0,1fr)}
+  .plist{position:static;max-height:none;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .plist h4{grid-column:1/-1}
+}
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%;overflow-x:auto} nav button{flex:1;padding:7px 8px}
+  .stage{gap:10px;padding:10px;min-height:404px}
+}
+@media (max-width:380px){ .stage{grid-template-columns:minmax(0,1fr);justify-items:center} }
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%;overflow-x:auto;scrollbar-width:none}
+.pult-compact nav button{flex:1;padding:5px 6px}
+.pult-compact .subnav,.pult-compact .chips{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .grid,.pult-compact .places,.pult-compact .sim{grid-template-columns:minmax(0,1fr)}
+.pult-compact .plist{position:static;max-height:none;grid-template-columns:repeat(2,minmax(0,1fr))}
+.pult-compact .plist h4{grid-column:1/-1}
+.pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .tbl,.pult-compact .kpis,.pult-compact .props,.pult-compact .sec{padding-left:10px;padding-right:10px}
+.pult-compact .bul{padding-left:28px;padding-right:10px}
+.pult-compact .note{margin-left:10px;margin-right:10px}
+.pult-compact .gear{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pult-compact .stage{gap:10px;padding:10px;min-height:404px}
+.pult-compact .fgrid{grid-template-columns:minmax(0,1fr)}
+.pult-compact .foot{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">РЫБ</div><div><h1>Рыбалка</h1><small>Места · Рыбы · Снасти · Симулятор мини-игры</small></div></div>
+  <nav role="tablist">
+    <button role="tab" data-tab="basics" aria-selected="true">Основы</button>
+    <button role="tab" data-tab="places" aria-selected="false">Места</button>
+    <button role="tab" data-tab="fish" aria-selected="false">Рыбы</button>
+    <button role="tab" data-tab="gear" aria-selected="false">Снасти</button>
+    <button role="tab" data-tab="sim" aria-selected="false">Симулятор</button>
+  </nav>
+</header>
+
+<main>
+<div id="gearbar" class="panel gear" hidden></div>
+
+<section id="v-basics"></section>
+<section id="v-places" hidden><div class="places"><div class="panel plist" id="plist"></div><div id="pview"></div></div></section>
+<section id="v-fish" hidden>
+  <div class="ftools">
+    <input type="search" id="fq" placeholder="Поиск: имя по-русски или по-английски">
+    <select id="fplace"></select>
+    <select id="fmove"></select>
+    <select id="fsort">
+      <option value="name">По имени</option>
+      <option value="diff">По сложности</option>
+      <option value="size">По размеру</option>
+    </select>
+  </div>
+  <div class="fgrid" id="fgrid"></div>
+</section>
+<section id="v-gear" hidden></section>
+<section id="v-sim" hidden>
+  <div class="sim">
+    <div>
+      <div class="panel">
+        <div class="stage" id="stage">
+          <div class="hudwrap"><canvas id="hud" width="128" height="384"></canvas></div>
+          <div class="water" id="water">
+            <div class="say" id="say"></div>
+            <div class="float" id="floatspr"></div>
+            <div class="hint" id="hint"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ctl">
+        <button class="btn pri" id="castBtn">Забросить</button>
+        <button class="btn" id="stopBtn" disabled>Смотать удочку</button>
+        <label class="muted" style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="fastWait"> Ускорить ожидание ×4</label>
+        <label class="muted" style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="showDbg"> Числа на полосе</label>
+      </div>
+      <div class="panel" style="margin-top:12px;padding:10px 14px">
+        <div class="statline" id="statline"></div>
+        <p class="muted" style="font-size:13px;margin:8px 0 0">Управление как в игре: <b>зажмите ЛКМ</b> (или <kbd>Пробел</kbd>) — приманка поднимается, отпустите — опускается.
+        С гиростабилизированным крючком <b>ПКМ</b> (или <kbd>↓</kbd>) тянет вниз, а без нажатий приманка зависает.
+        Пока поплавок качается — не кликайте (штраф к ожиданию). На «!!» кликните сразу: чем быстрее, тем больше стартовый прогресс.</p>
+      </div>
+    </div>
+    <div class="simside">
+      <div class="panel">
+        <h4>Что ловим</h4>
+        <label style="display:grid;gap:2px;font-size:12px;color:var(--muted)">Место
+          <select id="simPlace" style="padding:5px 6px;border:1px solid var(--line2);border-radius:7px;background:var(--panel)"></select></label>
+        <label style="display:grid;gap:2px;font-size:12px;color:var(--muted);margin-top:6px">Улов
+          <select id="simTarget" style="padding:5px 6px;border:1px solid var(--line2);border-radius:7px;background:var(--panel)"></select></label>
+      </div>
+      <div class="panel"><h4>Сложность и параметры</h4><div id="simCalc"></div></div>
+      <div class="panel"><h4>Журнал</h4><div class="log" id="simLog"></div></div>
+    </div>
+  </div>
+</section>
+
+<p class="foot">Числа взяты из кода BlueMoon (<code>modular_bluemoon/fishing</code>): таблицы улова, сложность, физика приманки и движения рыбы.
+Шанс поклёвки — доля веса в таблице места с учётом удочки, крючка, наживки и черт рыбы. Симулятор считает шаг 0,1 с, как подсистема рыбалки на сервере.</p>
+</main>
+</div>
+
+<script src="data.js"></script>
+<script>
+'use strict';
+const FD = window.FISH_DATA;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('fishing.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('fishing.' + k, JSON.stringify(v)); } catch (e) { /* без хранилища */ } },
+};
+const fmt = (x, d = 1) => (Math.round(x * 10 ** d) / 10 ** d).toLocaleString('ru-RU');
+const pct = (x) => (x >= 10 ? Math.round(x) : x >= 1 ? fmt(x, 1) : x > 0 ? fmt(x, 2) : '0') + '%';
+// DM: round(x) с одним аргументом — вниз, round(x, 1) — к ближайшему
+const floor = Math.floor;
+const near = (x) => Math.floor(x + 0.5);
+const clamp = (x, a, b) => Math.min(Math.max(x, a), b);
+const prob = (p) => Math.random() * 100 < p;
+const randInt = (a, b) => { a = Math.round(a); b = Math.round(b); return a + Math.floor(Math.random() * (b - a + 1)); };
+
+// ---------------- Названия ----------------
+const RU_FISH = {
+  angelfish: 'Скалярия', arctic_char: 'Арктический голец', armorfish: 'Панцирник', babbelfish: 'Вавилон-рыба',
+  baby_carp: 'Малёк космокарпа', boned: 'Безморская костемасса', bumpy: 'Бугристая рыба', cardinal: 'Рыба-кардинал',
+  catfish: 'Сом', chainsawfish: 'Рыба-бензопила', chasm_crab: 'Бездонный краб', 'chasm_crab/ice': 'Арктический краб',
+  clownfish: 'Рыба-клоун', 'clownfish/lube': 'Смазочная рыба', dolphish: 'Морже-дельфиш', donkfish: 'Донк-рыба',
+  emulsijack: 'Токсичный эмульсиджек', firefish: 'Огненный бычок', flumpulus: 'Флюмпулус', fryish: 'Фрайиш',
+  'fryish/fritterish': 'Фриттериш', 'fryish/nessie': 'Несси-рыба', goldfish: 'Золотая рыбка', 'goldfish/gill': 'Макгилл',
+  'goldfish/three_eyes': 'Трёхглазая золотая рыбка', 'goldfish/three_eyes/gill': 'Макгилл трёхглазый',
+  greenchromis: 'Зелёный хромис', gullion: 'Гульон', gunner_jellyfish: 'Медуза-артиллерист', guppy: 'Гуппи',
+  holo: 'Голо-золотая рыбка', 'holo/angel': 'Голо-скалярия', 'holo/checkered': 'Неотрисованная голорыба',
+  'holo/clown': 'Голо-рыба-клоун', 'holo/crab': 'Голо-краб', 'holo/halffish': 'Голо-полурыба', 'holo/puffer': 'Голо-фугу',
+  jumpercable: 'Кабель-прикуриватель', lanternfish: 'Рыба-фонарь', lavaloop: 'Лавалуп', 'lavaloop/plasma_river': 'Плазмалуп',
+  'lcm/bass': 'Большеротый окунь', 'lcm/blue_tang': 'Голубой хирург', 'lcm/bluefintuna': 'Голубой тунец',
+  'lcm/boxin_man': 'Боксёр', 'lcm/deep_fry': 'Глубинный малёк', 'lcm/eel': 'Пресноводный угорь', 'lcm/fishmael': 'Фишмаэль',
+  'lcm/lobster': 'Омар', 'lcm/marine_shrimp': 'Морская креветка', 'lcm/mosb': 'Гора улыбающихся рыб',
+  'lcm/northernpike': 'Северная щука', 'lcm/pigfish': 'Мини-свинорыба', 'lcm/piscine_mermaid': 'Влюблённая рыба',
+  'lcm/salmon': 'Атлантический лосось', 'lcm/seabunny': 'Морской зайчик', 'lcm/searabbit': 'Морской кролик',
+  'lcm/sheephead': 'Калифорнийский губан', 'lcm/siltcurrent': 'Иловое течение', 'lcm/smolshark': 'Маленькая акула',
+  'lcm/trout': 'Стальноголовая форель', 'lcm/tuna_pallid': 'Бледный тунец', 'lcm/ufo': 'НЛО',
+  'lcm/unidentified_fish_object': 'Неопознанный рыбный объект', 'lcm/walkin_man': 'Ходок', 'lcm/waterflea': 'Водяная блоха',
+  'lcm/weever_blue_album': 'Синий альбом Weever', 'lcm/yang': 'Карп-ян', 'lcm/yin': 'Карп-инь',
+  mastodon: 'Безморский мастодонт', monkfish: 'Морской чёрт', moonfish: 'Загосская луна-рыба', 'moonfish/dwarf': 'Карликовая луна-рыба',
+  mossglob: 'Моховой ком', needlefish: 'Рыба-игла', perch: 'Окунь', pike: 'Щука', 'pike/armored': 'Бронированная щука',
+  plaice: 'Камбала', plasmatetra: 'Плазменная тетра', pufferfish: 'Рыба-фугу', ratfish: 'Крысорыба',
+  sacabambaspis: 'Сакабамбаспис', sand_crab: 'Краб-землекоп', sand_surfer: 'Песчаный сёрфер', skin_crab: 'Кожаный краб',
+  slimefish: 'Водяной слайм', sludgefish: 'Илорыба', 'sludgefish/purple': 'Фиолетовая илорыба', sockeye_salmon: 'Нерка',
+  soul: 'Рыба-душа', squid: 'Кальмар', starfish: 'Космозвезда', 'starfish/chrystarfish': 'Кристозвезда', stingray: 'Скат',
+  swordfish: 'Рыба-меч', tadpole: 'Головастик', zipzap: 'Тревожный зипзап',
+};
+const ITEMS = {
+  dud: { ru: 'Пусто', ico: '∅' },
+  '/mob/living/basic/carp': { ru: 'Космический карп (живой!)', ico: '⚠' },
+  '/mob/living/basic/carp/mega': { ru: 'Мегакарп (живой!)', ico: '⚠' },
+  '/obj/effect/decal/remains/plasma': { ru: 'Плазменные останки', ico: '☠' },
+  '/obj/item/bait_can/worm': { ru: 'Банка червей', spr: ['fishing.dmi', 'bait_can'] },
+  '/obj/item/coin/plasma': { ru: 'Плазменная монета', ico: '◎' },
+  '/obj/item/fishing_rod/fiberglass': { ru: 'Стеклопластиковая удочка', spr: ['fishing.dmi', 'fishing_rod'] },
+  '/obj/item/fishing_rod/titanium': { ru: 'Титановая удочка', spr: ['fishing.dmi', 'fishing_rod_material'] },
+  '/obj/item/food/badrecipe': { ru: 'Пригоревшая еда', ico: '♨' },
+  '/obj/item/reagent_containers/food/snacks/badrecipe': { ru: 'Пригоревшая еда', ico: '♨' },
+  '/obj/item/food/nugget/fish': { ru: 'Рыбный наггетс', ico: '◍' },
+  '/obj/item/reagent_containers/food/drinks/soda_cans/wellcheers': { ru: 'Банка Wellcheers', ico: '◫' },
+  '/obj/item/seeds/carrot': { ru: 'Семена моркови', ico: '❦' }, '/obj/item/seeds/corn': { ru: 'Семена кукурузы', ico: '❦' },
+  '/obj/item/seeds/grass': { ru: 'Семена травы', ico: '❦' }, '/obj/item/seeds/potato': { ru: 'Семена картофеля', ico: '❦' },
+  '/obj/item/seeds/random': { ru: 'Случайные семена', ico: '❦' }, '/obj/item/seeds/tomato': { ru: 'Семена томата', ico: '❦' },
+  '/obj/item/seeds/watermelon': { ru: 'Семена арбуза', ico: '❦' }, '/obj/item/seeds/wheat': { ru: 'Семена пшеницы', ico: '❦' },
+  '/obj/item/shrimp_boat_return': { ru: 'Солёная записка — путь домой', ico: '✉' },
+  '/obj/item/shrimp_boat_ticket': { ru: 'Размокшая банка Wellcheers — билет на шхуну', ico: '★' },
+  '/obj/item/soap': { ru: 'Мыло', ico: '▭' },
+  '/obj/item/stack/ore/bluespace_crystal': { ru: 'Блюспейс-кристалл', ico: '◆' },
+  '/obj/item/stack/ore/plasma': { ru: 'Плазменная руда', ico: '◆' },
+  '/obj/item/stack/ore/slag': { ru: 'Шлак', ico: '◆' },
+  '/obj/item/stack/sheet/bone': { ru: 'Кости', ico: '☗' },
+  '/obj/item/stack/sheet/mineral/runite': { ru: 'Рунит', ico: '◆' },
+  '/obj/item/stack/spacecash/c1': { ru: '1 кредит', ico: '¤' }, '/obj/item/stack/spacecash/c10': { ru: '10 кредитов', ico: '¤' },
+  '/obj/item/stack/spacecash/c50': { ru: '50 кредитов', ico: '¤' },
+  '/obj/item/toy/plush/carpplushie': { ru: 'Плюшевый карп', ico: '♥' },
+  '/obj/item/toy/plush/carpplushie/dehy_carp': { ru: 'Обезвоженный карп (оживает от воды)', ico: '♥' },
+  '/obj/item/trash/plate': { ru: 'Грязная тарелка', ico: '◯' },
+  '/obj/structure/closet/crate/necropolis/mansus': { ru: 'Рыбный сундук Мансуса', ico: '▣' },
+  '/obj/structure/closet/crate/necropolis/tendril': { ru: 'Сундук некрополя', ico: '▣' },
+};
+// Иконки рыбы на полосе мини-игры (GLOB.specific_fish_icons, точное совпадение типа). Видны только в плаще рыбака.
+const HUD_ICON = {
+  'fish:armorfish': 'crab', 'fish:boned': 'bone', 'fish:chainsawfish': 'weapon', 'fish:chasm_crab': 'crab',
+  'fish:gunner_jellyfish': 'jellyfish', 'fish:holo/crab': 'crab', 'fish:holo/puffer': 'chunky', 'fish:jumpercable': 'electric',
+  'fish:lavaloop': 'weapon', 'fish:mastodon': 'bone', 'fish:pike/armored': 'weapon', 'fish:pufferfish': 'chunky',
+  'fish:sand_crab': 'crab', 'fish:skin_crab': 'crab', 'fish:slimefish': 'slime', 'fish:sludgefish': 'slime', 'fish:starfish': 'star',
+  'fish:stingray': 'weapon', 'fish:swordfish': 'weapon', 'fish:zipzap': 'electric',
+  '/obj/structure/closet/crate/necropolis/tendril': 'coin', '/obj/structure/closet/crate/necropolis/mansus': 'coin',
+  '/obj/item/stack/sheet/bone': 'bone',
+};
+const HUD_SAY = { fish: 'рыба!!!', hostile: 'враждебное!!!', star: 'морская звезда!!!', chunky: 'круглая рыба!!!', jellyfish: 'медуза!!!',
+  slime: 'слизь!!!', coin: 'ценность!!!', gem: 'руда!!!', crab: 'ракообразное!!!', bone: 'кости!!!', electric: 'электрическое!!!',
+  weapon: 'оружие!!!', critter: 'зверёк!!!', seed: 'семена!!!', bottle: 'бутылка!!!', organ: 'орган!!!' };
+
+const TRAITS = {
+  wary: ['Пугливая', 'Сложность +5.'],
+  shiny_lover: ['Любит блестящее', 'Сложность +5. Шанс ×1,8, если наживка — золотой слиток.'],
+  picky_eater: ['Привереда', 'Без наживки шанс ×0,35. Любимая наживка ×1,4, нелюбимая — не клюёт вовсе. Хорошая и отличная наживка ×1, остальная ×0,35.'],
+  nocturnal: ['Ночная', 'В темноте (освещённость < 0,3) шанс ×1,6, на свету ×0,8.'],
+  heavy: ['Тяжёлая', 'Шанс ×0,9. В мини-игре сложность +5 и прогресс тает на 1/с быстрее.'],
+  carnivore: ['Мясоед', 'Мясная, рыбная, жучья или универсальная наживка — шанс ×1,35.'],
+  vegan: ['Травоядная', 'Растительная или универсальная наживка — шанс ×1,35.'],
+  predator: ['Хищник', 'Шанс ×1,15. В аквариуме ест рыбу поменьше.'],
+  necrophage: ['Падальщик', 'Ест мёртвую рыбу в аквариуме.'],
+  parthenogenesis: ['Партеногенез', 'Размножается без пары.'],
+  no_mating: ['Бесплодная', 'Не размножается.'],
+  recessive: ['Рецессивная', 'Признаки теряются при скрещивании.'],
+  crossbreeder: ['Гибридизатор', 'Скрещивается с другими видами.'],
+  revival: ['Живучая', 'Может ожить после готовки или ран.'],
+  yucky: ['Мерзкая', 'Отвратительна на вкус.'],
+  toxic: ['Ядовитая', 'Опасно есть.'], 'toxic/carpotoxin': ['Карпотоксин', 'Содержит карпотоксин.'],
+  toxin_immunity: ['Иммунитет к ядам', 'Не умирает от ядовитой наживки.'],
+  territorial: ['Территориальная', 'Нападает на других рыб.'],
+  lubed: ['Скользкая', 'Сложность +3. В мини-игре приманка ходит в 1,4 раза быстрее (и вверх, и вниз). Поскальзывает.'],
+  amphibious: ['Земноводная', 'Живёт без воды.'],
+  antigrav: ['Антигравитация', 'В мини-игре время от времени переворачивает гравитацию приманки.'],
+  anxiety: ['Тревожная', 'Сложность +4. Гибнет, если рядом больше трёх рыб.'],
+  electrogenesis: ['Электрогенез', 'Вырабатывает электричество.'],
+  stinger: ['Жало', 'Жалит.'], toxic_barbs: ['Ядовитые шипы', 'Колется ядом.'],
+  hallucinogenic: ['Галлюциноген', 'После еды — галлюцинации.'],
+  mixotroph: ['Миксотроф', 'Не голодает.'],
+  camouflage: ['Маскировка', 'В мини-игре рыба время от времени почти исчезает с полосы.'],
+  ink: ['Чернила', 'Ослепляет того, кого ей ударили.'],
+  emulsijack: ['Эмульсиджек', 'Растворяет соседей по аквариуму.'], 'emulsijack/psychic': ['Пси-эмульсиджек', 'Растворяет соседей силой мысли.'],
+};
+const MOVES = {
+  default: ['Обычная', 'Частые короткие рывки на 100–200 и редкие длинные заплывы через всю полосу.'],
+  slow: ['Медленная', 'Только плавные длинные заплывы, скорость до 150, не сбивается с курса.'],
+  zippy: ['Юркая', 'Короткие рывки втрое чаще обычного.'],
+  accelerando: ['Разгоняющаяся', 'За 30 секунд скорость и ускорение удваиваются.'],
+  choppy: ['Дёрганая', 'Позиция обновляется скачками дважды в секунду.'],
+  plunger: ['Ныряльщик', 'Тянет ко дну, у самого верха резко уходит вниз.'],
+};
+const FLUIDS = { FRESHWATER: 'Пресная', SALTWATER: 'Солёная', ANADROMOUS: 'Пресная или солёная', ANY_WATER: 'Любая вода',
+  SULPHWATEVER: 'Серная', AIR: 'Воздух' };
+const FOOD = { MEAT: 1, VEGETABLES: 2, RAW: 4, JUNKFOOD: 8, GRAIN: 16, FRUIT: 32, DAIRY: 64, FRIED: 128, ALCOHOL: 256, SUGAR: 512,
+  GROSS: 1024, TOXIC: 2048, PINEAPPLE: 4096, BREAKFAST: 8192, ANTITOXIC: 16384, SEAFOOD: 32768, GORE: 65536, BUGS: 131072 };
+const FOOD_RU = { MEAT: 'мясо', VEGETABLES: 'овощи', RAW: 'сырое', JUNKFOOD: 'фастфуд', GRAIN: 'тесто', DAIRY: 'молочное', FRIED: 'жареное',
+  GROSS: 'мерзкое', TOXIC: 'ядовитое', SEAFOOD: 'морепродукты', GORE: 'кровавое', BUGS: 'жуки' };
+const food = (s) => s.split('|').reduce((a, k) => a | (FOOD[k.trim()] || 0), 0);
+
+// ---------------- Снасти ----------------
+const RODS = [
+  { id: 'basic', ru: 'Удочка', en: 'fishing rod', spr: 'fishing_rod', dm: 0, exp: 1, cast: 3, where: 'Автомат Angler\'s Friend, ящик «Fishing Kit» в карго, техтоннели' },
+  { id: 'fiberglass', ru: 'Стеклопластиковая', en: 'fibreglass fishing rod', spr: 'fishing_rod', dm: -2, exp: 1.2, cast: 3, where: 'Автомат, протолат (сервис/наука)' },
+  { id: 'titanium', ru: 'Титановая', en: 'titanium fishing rod', spr: 'fishing_rod_material', dm: -3, exp: 1.35, cast: 3, frame: 'frame_material', where: 'Протолат (сервис/наука)' },
+  { id: 'gold', ru: 'Золотая', en: 'golden fishing rod', spr: 'fishing_rod_master', dm: 0, cmp: 1.4, spd: 1.15, cast: 3, frame: 'frame_master', where: 'Премиум-отдел автомата' },
+  { id: 'lunar', ru: 'Лунная', en: 'lunar fishing rod', spr: 'fishing_rod_master', dm: -1, bnc: 0.8, cast: 3, frame: 'frame_master', where: 'Премиум-отдел автомата' },
+  { id: 'telescopic', ru: 'Телескопическая', en: 'telescopic fishing rod', spr: 'fishing_rod_telescopic', dm: 0, cast: 4, frame: 'frame_telescopic', where: 'В продаже нет' },
+  { id: 'bone', ru: 'Костяная', en: 'bone fishing rod', spr: 'fishing_rod_bone', dm: 2, exp: 1.25, cast: 3, frame: 'frame_bone', where: 'В продаже нет' },
+  { id: 'science', ru: 'Научная', en: 'science fishing rod', spr: 'fishing_rod_science', dm: -4, cmp: 1.25, spd: 1.1, cast: 3, baitless: true, frame: 'frame_science', where: 'Премиум-отдел автомата, протолат (наука/сервис)' },
+  { id: 'master', ru: 'Мастерская', en: 'master fishing rod', spr: 'fishing_rod_master', dm: -5, exp: 1.5, cmp: 1.3, cast: 3, baitless: true, frame: 'frame_master', where: 'В продаже нет' },
+];
+RODS.forEach((r) => { r.exp ??= 1; r.cmp ??= 1; r.spd ??= 1; r.bnc ??= 1; r.frame ??= 'frame_wood'; });
+const LINES = [
+  { id: 'basic', ru: 'Обычная леска', en: 'fishing line reel', spr: 'reel_blue', cast: 2, fx: 'Прирост прогресса +1/с (как у любой лески).', where: 'Стоит на удочке; автомат' },
+  { id: 'reinforced', ru: 'Укреплённая', en: 'reinforced fishing line reel', spr: 'reel_green', cast: 2, lava: true, fx: 'Огнеупорная: нужна для лавы и плазмы.', where: 'Автомат' },
+  { id: 'cloaked', ru: 'Маскировочная', en: 'cloaked fishing line reel', spr: 'reel_white', cast: 2, fx: 'По описанию снижает сложность, но в текущем коде флаг ничего не делает.', where: 'Автомат' },
+  { id: 'bouncy', ru: 'Гибкая', en: 'flexible fishing line reel', spr: 'reel_red', cast: 3, loss: -2, fx: 'Потеря прогресса −2/с, заброс +1.', where: 'Автомат' },
+  { id: 'sinew', ru: 'Жила', en: 'fishing sinew', spr: 'reel_sinew', cast: 2, lava: true, loss: 1, gain: -1, fx: 'Огнеупорная, но жёсткая: потеря +1/с, прирост −1/с.', where: 'В продаже нет' },
+  { id: 'auto', ru: 'Автокатушка', en: 'fishing line auto-reel', spr: 'reel_auto', cast: 2, auto: true, fx: 'Сама подсекает (старт прогресса ×1,3), сама подсекает блесну, без нажатий тянет приманку к рыбе. Длинное ожидание −7,5 с.', where: 'Премиум-отдел автомата' },
+  { id: 'bluespace', ru: 'Блюспейс', en: 'bluespace fishing line', spr: 'reel_bluespace', cast: 6, fx: 'Заброс +6 клеток.', where: 'Премиум-отдел автомата' },
+];
+LINES.forEach((l) => { l.loss ??= 0; l.gain ??= 0; });
+const HOOKS = [
+  { id: 'basic', ru: 'Простой крючок', en: 'simple fishing hook', spr: 'hook', fx: 'Без особенностей.', where: 'Стоит на удочке; автомат' },
+  { id: 'magnet', ru: 'Магнитный', en: 'magnetic hook', spr: 'treasure', fx: 'Всё, что не рыба (вещи, руда, сундуки), ×5 к шансу.', where: 'Автомат' },
+  { id: 'shiny', ru: 'Блестящий', en: 'shiny lure hook', spr: 'gold_shiny', fx: 'Рыба с невысоким спрайтом (до 4 px, «верхние слои») и все вещи ×2 к шансу.', where: 'Автомат' },
+  { id: 'weighted', ru: 'Утяжелённый', en: 'weighted hook', spr: 'weighted', weighted: true, fx: 'Рыба с высоким спрайтом (от 6 px, «глубинная») ×2 к шансу. Приманка почти не отскакивает от краёв (0,1).', where: 'Автомат' },
+  { id: 'rescue', ru: 'Спасательный', en: 'rescue hook', spr: 'rescue', rescue: true, fx: 'Рыбачить можно только в пропасти — вытаскивает упавших.', where: 'Автомат' },
+  { id: 'bone', ru: 'Костяной', en: 'bone hook', spr: 'hook_bone', fx: 'Всё ×1,1 к весу (вместе с промахом).', where: 'В продаже нет' },
+  { id: 'gyro', ru: 'Гиростабилизированный', en: 'gyro-stabilized hook', spr: 'gyro', bidir: true, fx: 'Приманка не падает сама: ЛКМ — вверх, ПКМ — вниз, без нажатий зависает.', where: 'Автомат' },
+  { id: 'jaws', ru: 'Капкан', en: 'jawed hook', spr: 'jaws', noEscape: true, kill: true, fx: 'Рыба не может уйти; через ~50 с мини-игра выигрывается сама, но рыба будет мёртвой.', where: 'Премиум-отдел автомата' },
+];
+const B = '/obj/item/bait';
+const LURE_FOOD = FOOD.MEAT | FOOD.BUGS;
+const lure = (id, ru, spin, extra = {}) => ({ id: 'lure_' + id, ru, grp: 'Блёсны', spr: id, paths: [B, '/obj/item/fishing_lure', '/obj/item/fishing_lure/' + id],
+  food: LURE_FOOD, q: 'good', omni: true, lure: true, spin, keep: true, ...extra });
+const fishBait = (fid, q) => ({ id: 'fish_' + fid.replace('/', '_'), ru: RU_FISH[fid], grp: 'Рыба как наживка', fishSpr: fid,
+  paths: ['/obj/item/fish', ...fid.split('/').map((_, i, a) => '/obj/item/fish/' + a.slice(0, i + 1).join('/'))],
+  food: FOOD.SEAFOOD | FOOD.MEAT | FOOD.RAW | FOOD.GORE, q });
+const BAITS = [
+  { id: 'none', ru: 'Без наживки', grp: '' },
+  { id: 'worm', ru: 'Червь', grp: 'Наживка', spr: 'worm', paths: [B, B + '/worm'], food: FOOD.MEAT | FOOD.BUGS | FOOD.GROSS, q: 'basic', bite: 0.7 },
+  { id: 'worm_premium', ru: 'Скользкий червь', grp: 'Наживка', spr: 'worm', paths: [B, B + '/worm', B + '/worm/premium'], food: FOOD.MEAT | FOOD.BUGS | FOOD.GROSS, q: 'good', bite: 0.5 },
+  { id: 'worm_mutagen', ru: 'Червь + 3 ед. мутагена', grp: 'Наживка', spr: 'worm', paths: [B, B + '/worm'], food: FOOD.MEAT | FOOD.BUGS | FOOD.GROSS, q: 'basic', bite: 0.7, reag: { '/datum/reagent/toxin/mutagen': 3 } },
+  { id: 'worm_toxin', ru: 'Червь + токсин', grp: 'Наживка', spr: 'worm', paths: [B, B + '/worm'], food: FOOD.MEAT | FOOD.BUGS | FOOD.GROSS, q: 'basic', bite: 0.7, reag: { '/datum/reagent/toxin': 1 } },
+  { id: 'dough', ru: 'Шарик теста', grp: 'Наживка', spr: 'doughball', paths: [B, B + '/doughball'], food: FOOD.GRAIN, q: 'basic' },
+  { id: 'dough_syn', ru: 'Синтетическое тесто', grp: 'Наживка', spr: 'doughball_blue', paths: [B, B + '/doughball', B + '/doughball/synthetic'], food: FOOD.GRAIN, q: 'basic', omni: true },
+  { id: 'dough_super', ru: 'Супер-тесто', grp: 'Наживка', spr: 'doughball_blue', paths: [B, B + '/doughball', B + '/doughball/synthetic', B + '/doughball/synthetic/super'], food: FOOD.GRAIN, q: 'great', omni: true },
+  { id: 'natural', ru: 'Натуральная наживка', grp: 'Наживка', spr: 'worm', paths: [B, B + '/natural'], food: FOOD.MEAT | FOOD.GROSS, q: 'great' },
+  lure('minnow', 'Искусственный малёк', [20, 30]),
+  lure('plug', 'Воблер (только крупная рыба)', [20, 30], { plug: true }),
+  lure('dropping', 'Пластиковый помёт', [15, 28]),
+  lure('spoon', 'Блесна-ложка', [12.5, 22.5]),
+  lure('artificial_fly', 'Искусственная муха', [11, 20]),
+  lure('led', 'LED-приманка', [30, 38]),
+  lure('lucky_coin', 'Монета-манэки', [15, 27]),
+  lure('algae', 'Пластиковые водоросли', [30, 50]),
+  lure('grub', 'Твистер', [10, 27]),
+  lure('buzzbait', 'Электро-баззбейт', [8, 17]),
+  lure('spinnerbait', 'Спиннербейт', [20, 40]),
+  lure('daisy_chain', 'Гирлянда', [20, 40]),
+  { id: 'gold', ru: 'Золотой слиток', grp: 'Особое', paths: ['/obj/item/stack/sheet/mineral/gold'], food: 0, gold: true },
+  { id: 'diamond', ru: 'Алмаз', grp: 'Особое', paths: ['/obj/item/stack/sheet/mineral/diamond'], food: 0 },
+  { id: 'bluespace', ru: 'Блюспейс-кристалл', grp: 'Особое', paths: ['/obj/item/stack/ore/bluespace_crystal'], food: 0 },
+  { id: 'lead', ru: 'Свинцовая батарейка', grp: 'Особое', paths: ['/obj/item/stock_parts/cell/lead'], food: 0, poison: true },
+  { id: 'ears', ru: 'Уши (орган)', grp: 'Особое', paths: ['/obj/item/organ/ears'], food: 0 },
+  ...Object.entries(FD.fish).filter(([, f]) => f.bait).map(([id, f]) => fishBait(id, f.bait)),
+];
+const byId = (list, id) => list.find((x) => x.id === id) || list[0];
+
+// ---------------- Места ----------------
+const PLACES = [
+  { id: 'water/any', grp: 'Станция и планеты', ru: 'Открытая вода', where: 'Тайлы воды на картах (озёра, реки, пруды) и лужи воды на полу.' },
+  { id: 'water/pool', grp: 'Станция и планеты', ru: 'Бассейн', where: 'Плавательный бассейн.' },
+  { id: 'water/sink', grp: 'Станция и планеты', ru: 'Раковина, душ, кулер', where: 'Раковины, души и кулеры с водой.' },
+  { id: 'toilet', grp: 'Станция и планеты', ru: 'Унитаз и писсуар', where: 'Унитазы и писсуары. Тут же — билет на креветочную шхуну.' },
+  { id: 'chasm', grp: 'Станция и планеты', ru: 'Пропасть', where: 'Пропасти (Лаваленд, станция).' },
+  { id: 'space', grp: 'Станция и планеты', ru: 'Открытый космос', where: 'Заброс в космос. Пойманная рыба там живёт, на станции — задыхается.' },
+  { id: 'lava', grp: 'Станция и планеты', ru: 'Лава', where: 'Лава Лаваленда.', lava: true },
+  { id: 'holodeck', grp: 'Станция и планеты', ru: 'Голодек', where: 'Любая клетка голодека — голографическая рыба.' },
+  { id: 'shrimp_boat', grp: 'Станция и планеты', ru: 'Шхуна «Wellcheers»', where: 'Секретное судно: открыть в руке размокшую банку Wellcheers (ловится в унитазе). Домой ведёт «солёная записка».' },
+  { id: 'portal', grp: 'Фиш-портер 3000', ru: 'Аквариум', unlock: 0 },
+  { id: 'portal/river', grp: 'Фиш-портер 3000', ru: 'Мелководье' },
+  { id: 'portal/beach', grp: 'Фиш-портер 3000', ru: 'Пляж' },
+  { id: 'portal/ocean', grp: 'Фиш-портер 3000', ru: 'Глубина' },
+  { id: 'portal/chasm', grp: 'Фиш-портер 3000', ru: 'Бездна' },
+  { id: 'portal/ice', grp: 'Фиш-портер 3000', ru: 'Лёд' },
+  { id: 'portal/lava', grp: 'Фиш-портер 3000', ru: 'Лава', lava: true },
+  { id: 'portal/onsen', grp: 'Фиш-портер 3000', ru: 'Горячий источник' },
+  { id: 'portal/garden', grp: 'Фиш-портер 3000', ru: 'Оранжерея' },
+  { id: 'portal/plasma', grp: 'Фиш-портер 3000', ru: 'Плазма', lava: true },
+  { id: 'portal/hyperspace', grp: 'Фиш-портер 3000', ru: 'Космос' },
+  { id: 'portal/fry', grp: 'Фиш-портер 3000', ru: 'Фритюр' },
+  { id: 'portal/random', grp: 'Фиш-портер 3000', ru: 'Случайность', rnd: true },
+  { id: 'portal/rift', grp: 'Фиш-портер 3000', ru: 'Карповый разлом' },
+  { id: 'portal/mansus', grp: 'Фиш-портер 3000', ru: 'Мансус' },
+  { id: 'portal/syndicate', grp: 'Фиш-портер 3000', ru: 'Синдикат', emag: true },
+].filter((p) => FD.sources[p.id]).map((p) => ({ ...FD.sources[p.id], ...p }));
+PLACES.forEach((p) => {
+  if (p.grp.startsWith('Фиш')) {
+    p.where = p.emag ? 'Только после ЕМАГа портала.' : p.unlock ? `Открывается, когда изучено ${p.unlock} видов рыб (анализатор или поимка).` : 'Доступно сразу.';
+    if (p.rnd) p.where += ' Смесь всех порталов, кроме синдикатского, вес каждой позиции случайный 1–4 (тут — среднее), промахов нет.';
+  }
+});
+const placeById = (id) => PLACES.find((p) => p.id === id) || PLACES[0];
+
+// ---------------- Спрайты ----------------
+(function sheetsCss() {
+  let css = '';
+  for (const [name, s] of Object.entries(FD.sheets)) css += `.sh-${name.replace('.', '_')}{background-image:url(${s.png})}\n`;
+  const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+})();
+function spr(sheet, state, scale = 1, frame = 0) {
+  const s = FD.sheets[sheet]; const idx = s && s.states[state];
+  if (idx == null) return '<span class="ico">?</span>';
+  const i = idx + frame; const col = i % s.cols; const row = Math.floor(i / s.cols);
+  return `<span class="spr sh-${sheet.replace('.', '_')}" style="width:${s.fw * scale}px;height:${s.fh * scale}px;background-size:${s.cols * s.fw * scale}px auto;background-position:-${col * s.fw * scale}px -${row * s.fh * scale}px"></span>`;
+}
+const fishSpr = (fid, scale = 1) => { const f = FD.fish[fid]; return f ? spr(f.sheet, f.state, scale) : ''; };
+function rewardIcon(key, scale = 1) {
+  if (key.startsWith('fish:')) return fishSpr(key.slice(5), scale);
+  const it = ITEMS[key];
+  if (it && it.spr) return spr(it.spr[0], it.spr[1], scale);
+  return `<span class="ico" style="width:${32 * scale}px;height:${32 * scale}px">${it ? it.ico : '•'}</span>`;
+}
+const rewardName = (key) => key.startsWith('fish:') ? (RU_FISH[key.slice(5)] || FD.fish[key.slice(5)]?.en || key) : (ITEMS[key]?.ru || key.split('/').pop());
+const rewardEn = (key) => key.startsWith('fish:') ? FD.fish[key.slice(5)]?.en : '';
+const baitIcon = (b) => b.fishSpr ? fishSpr(b.fishSpr) : b.spr ? spr('fishing.dmi', b.spr) : '';
+
+// ---------------- Снаряжение игрока ----------------
+const gear = Object.assign({ rod: 'basic', line: 'basic', hook: 'basic', bait: 'worm', skill: 0, hat: false, cloak: false, dark: false }, store.get('gear', {}));
+const G = () => ({ rod: byId(RODS, gear.rod), line: byId(LINES, gear.line), hook: byId(HOOKS, gear.hook), bait: byId(BAITS, gear.bait),
+  skill: +gear.skill || 0, hat: !!gear.hat, cloak: !!gear.cloak, dark: !!gear.dark });
+
+// ---------------- Расчёт улова (fish_source.get_modified_fish_table) ----------------
+function matchBait(bait, ident) {
+  if (!bait || bait.id === 'none') return false;
+  if (ident.k === 'path') return (bait.paths || []).includes(ident.v);
+  if (ident.k === 'foodtype') return !!((bait.food || 0) & food(ident.v));
+  if (ident.k === 'reagent') {
+    const r = bait.reag || {};
+    return Object.entries(r).some(([k, n]) => (k === ident.v || k.startsWith(ident.v + '/')) && n >= (ident.n || 0));
+  }
+  if (ident.k === 'type') return (bait.paths || []).includes(ident.v);
+  return false;
+}
+function checkBait(bait, f) {
+  if (bait.lure) return 1 + (!bait.plug || f.size > 50 ? 4 : 0);
+  if (bait.omni) return 1.5;
+  let m = 1;
+  f.fav.forEach((x) => { if (matchBait(bait, x)) m *= 2; });
+  f.bad.forEach((x) => { if (matchBait(bait, x)) m *= 0.5; });
+  return m;
+}
+function traitCatch(t, g, f) {
+  const b = g.bait; const has = b && b.id !== 'none';
+  switch (t) {
+    case 'shiny_lover': return has && b.gold ? 1.8 : 1;
+    case 'picky_eater':
+      if (!has) return 0.35;
+      if (f.fav.some((x) => matchBait(b, x))) return 1.4;
+      if (f.bad.some((x) => matchBait(b, x))) return 0;
+      return b.q === 'good' || b.q === 'great' ? 1 : 0.35;
+    case 'nocturnal': return g.dark ? 1.6 : 0.8;
+    case 'heavy': return 0.9;
+    case 'carnivore': return has && (b.omni || (b.food & (FOOD.MEAT | FOOD.SEAFOOD | FOOD.BUGS))) ? 1.35 : 1;
+    case 'vegan': return has && (b.omni || (b.food & FOOD.VEGETABLES)) ? 1.35 : 1;
+    case 'predator': return 1.15;
+    default: return 1;
+  }
+}
+function hookMult(hook, key) {
+  const isFish = key.startsWith('fish:');
+  const h = isFish ? FD.fish[key.slice(5)].h : 0;
+  switch (hook.id) {
+    case 'magnet': return key === 'dud' || isFish ? 1 : 5;
+    case 'shiny': return key === 'dud' ? 1 : h <= 4 ? 2 : 1;
+    case 'weighted': return h >= 6 ? 2 : 1;
+    case 'bone': return 1.1;
+    default: return 1;
+  }
+}
+function catchTable(place, g = G()) {
+  const rows = [];
+  let removeDud = false;
+  const baitOn = g.bait.id !== 'none';
+  for (const [key, w0] of place.table) {
+    let w = w0 * hookMult(g.hook, key);
+    if (key.startsWith('fish:')) {
+      const f = FD.fish[key.slice(5)];
+      if (baitOn) {
+        const m = checkBait(g.bait, f);
+        w = near(w * m);
+        if (m > 1 && g.bait.lure) removeDud = true;
+      } else w = near(w * 0.15);
+      let mult = 1;
+      f.traits.forEach((t) => { mult *= traitCatch(t, g, f); });
+      w = near(w * mult);
+    }
+    if (w > 0) rows.push({ key, w });
+  }
+  const out = removeDud ? rows.filter((r) => r.key !== 'dud') : rows;
+  const sum = out.reduce((a, r) => a + r.w, 0) || 1;
+  out.forEach((r) => { r.p = (r.w / sum) * 100; });
+  return out;
+}
+function canFish(place, g = G()) {
+  if (g.hook.rescue && place.id !== 'chasm') return 'Спасательным крючком рыбачат только в пропасти.';
+  if (place.lava && !g.line.lava) return 'Нужна огнеупорная леска: укреплённая или жила.';
+  return '';
+}
+
+// ---------------- Сложность (calculate_difficulty + мини-игра) ----------------
+function difficulty(place, key, g = G()) {
+  const parts = [['Место', place.diff]];
+  if (g.hat) parts.push(['Шапка рыбака', -5]);
+  if (g.rod.dm) parts.push(['Удочка', g.rod.dm]);
+  let heavy = false;
+  if (key && key.startsWith('fish:')) {
+    const f = FD.fish[key.slice(5)];
+    if (f.dm) parts.push(['Рыба', f.dm]);
+    if (g.bait.id !== 'none') {
+      f.fav.forEach((x) => { if (matchBait(g.bait, x)) parts.push(['Любимая наживка', -10]); });
+      f.bad.forEach((x) => { if (matchBait(g.bait, x)) parts.push(['Нелюбимая наживка', 10]); });
+    }
+    const add = { wary: 5, shiny_lover: 5, lubed: 3, anxiety: 4 };
+    f.traits.forEach((t) => { if (add[t]) parts.push([TRAITS[t][0], add[t]]); });
+    heavy = f.traits.includes('heavy');
+  }
+  if (g.skill) parts.push(['Навык ×1,5', -g.skill * 1.5]);
+  const raw = parts.reduce((a, p) => a + p[1], 0);
+  if (raw <= 0) return { parts, raw, instant: true, d: 0 };
+  let d = clamp(Math.round(raw), 6, 100);
+  const base = d;
+  if (heavy) { d += 5; parts.push(['Тяжёлая (в мини-игре)', 5]); }
+  return { parts, raw, base, d, instant: false };
+}
+function minigameParams(place, key, g = G(), reaction = 1) {
+  const df = difficulty(place, key, g);
+  const f = key && key.startsWith('fish:') ? FD.fish[key.slice(5)] : null;
+  const lubed = f && f.traits.includes('lubed');
+  let completion = 30;
+  if (g.bait.id === 'none' && !g.rod.baitless) completion -= 10;
+  if (df.base > 15) completion -= 15 * df.base * 0.01;
+  completion *= reaction;
+  let gain = 5 + 1 + g.line.gain + g.skill * 0.5;
+  let loss = 6 + g.line.loss - g.skill * 0.8 + (f && f.traits.includes('heavy') ? 1 : 0);
+  gain *= g.rod.cmp;
+  const baitH = 360 - floor(df.d * 1.3);
+  return {
+    df, completion, gain, loss,
+    reel: 1200 * g.rod.spd * (lubed ? 1.4 : 1), grav: -800 * (lubed ? 1.4 : 1),
+    bounce: (g.hook.weighted ? 0.1 : 0.6) * g.rod.bnc, decel: 1.8, overlap: 0.6 ** g.rod.spd,
+    baitH, baitPx: near(27 * baitH / 360), move: f ? f.move : 'default',
+  };
+}
+function waitRange(place, g = G()) {
+  let r = place.wait ? place.wait.map((x) => x * 10) : [30, 250];
+  if (g.bait.lure) r = [r[0] + 80, r[1] - 80];
+  if (g.bait.bite) r = r.map((x) => x * g.bait.bite);
+  return r; // децисекунды
+}
+const castRange = (g = G()) => Math.max(g.rod.cast + g.line.cast, 1) + floor(g.skill * 0.5);
+
+// ---------------- Панель снаряжения ----------------
+function renderGearBar() {
+  const opt = (list, cur) => list.map((x) => `<option value="${x.id}"${x.id === cur ? ' selected' : ''}>${esc(x.ru)}</option>`).join('');
+  const groups = {};
+  BAITS.forEach((b) => { (groups[b.grp] ||= []).push(b); });
+  const baitOpts = Object.entries(groups).map(([gname, list]) => gname
+    ? `<optgroup label="${gname}">${opt(list, gear.bait)}</optgroup>` : opt(list, gear.bait)).join('');
+  $('gearbar').innerHTML = `
+    <label>Удочка<select data-g="rod">${opt(RODS, gear.rod)}</select></label>
+    <label>Леска<select data-g="line">${opt(LINES, gear.line)}</select></label>
+    <label>Крючок<select data-g="hook">${opt(HOOKS, gear.hook)}</select></label>
+    <label>Наживка<select data-g="bait">${baitOpts}</select></label>
+    <label>Навык рыбалки<select data-g="skill">${[0, 1, 2, 3, 4].map((l) => `<option value="${l}"${+gear.skill === l ? ' selected' : ''}>${l} — ${SKILL_NAMES[l]}</option>`).join('')}</select></label>
+    <div class="checks">
+      <label title="Legendary fishing hat: сложность −5"><input type="checkbox" data-g="hat"${gear.hat ? ' checked' : ''}> Шапка</label>
+      <label title="Legendary fisher cloak: видно, что клюнуло"><input type="checkbox" data-g="cloak"${gear.cloak ? ' checked' : ''}> Плащ</label>
+      <label title="Ночные рыбы ловятся лучше в темноте"><input type="checkbox" data-g="dark"${gear.dark ? ' checked' : ''}> Темно</label>
+    </div>
+    <div class="gearsum" id="gearsum"></div>`;
+  updateGearSum();
+}
+const SKILL_NAMES = ['новичок', '100 опыта', '300 опыта', '700 опыта', '1500 опыта'];
+function updateGearSum() {
+  const g = G();
+  const bits = [`Заброс ${castRange(g)} кл.`];
+  if (g.bait.id === 'none' && !g.rod.baitless) bits.push('<span class="warnc">без наживки: шанс рыбы ×0,15, старт прогресса −10</span>');
+  if (g.bait.lure) bits.push('блесна: каждой подходящей рыбе ×5, промахов нет, надо подсекать по зелёному огоньку');
+  if (g.bait.omni && !g.bait.lure) bits.push('универсальная наживка: всем рыбам ×1,5');
+  if (g.bait.poison) bits.push('<span class="warnc">ядовитая: рыба, кроме любителей свинца и неуязвимых к яду, будет мёртвой</span>');
+  if (g.hook.kill) bits.push('<span class="warnc">капкан: рыба будет мёртвой</span>');
+  if (g.bait.bite) bits.push(`червь: ожидание ×${String(g.bait.bite).replace('.', ',')}`);
+  $('gearsum').innerHTML = bits.join(' · ');
+}
+$('gearbar').addEventListener('change', (e) => {
+  const k = e.target.dataset.g; if (!k) return;
+  gear[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+  store.set('gear', gear);
+  updateGearSum();
+  rerender();
+});
+
+// ---------------- Вкладки ----------------
+let tab = store.get('tab', 'basics');
+function setTab(t) {
+  tab = t; store.set('tab', t);
+  document.querySelectorAll('nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === t));
+  ['basics', 'places', 'fish', 'gear', 'sim'].forEach((x) => { $('v-' + x).hidden = x !== t; });
+  $('gearbar').hidden = !['places', 'fish', 'sim'].includes(t);
+  if (t !== 'sim') sim.stop(true);
+  rerender();
+}
+document.querySelector('nav').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setTab(b.dataset.tab); });
+function rerender() {
+  if (tab === 'places') renderPlace();
+  if (tab === 'fish') renderFishGrid();
+  if (tab === 'sim') renderSimSetup();
+}
+
+// ---------------- Основы ----------------
+function renderBasics() {
+  const lvl = [1, 2, 3, 4].map((l) => `<tr><td>${l}</td><td class="n">${100 * (2 ** l - 1)}</td><td class="n">−${fmt(l * 1.5)}</td><td class="n">+${fmt(l * 0.5)}</td><td class="n">−${fmt(l * 0.8)}</td><td class="n">+${floor(l * 0.5)}</td></tr>`).join('');
+  $('v-basics').innerHTML = `<div class="grid">
+  <div class="panel card"><h3>Как рыбачить</h3><ol class="steps">
+    <li><span>Возьмите удочку. На ней уже стоят обычная леска и крючок, без крючка заброс невозможен. Наживку (червя, тесто, блесну) насадите, ударив ею по удочке. ${spr('fishing.dmi', 'fishing_rod')}${spr('fishing.dmi', 'worm')}</span></li>
+    <li><span>Щёлкните удочкой по месту рыбалки: вода, унитаз, раковина, пропасть, лава, космос. Дальность — ${3 + 2} клетки с обычной леской, леска не должна упираться в стены.</span></li>
+    <li><span>Поплавок качается 3–25 с. <b>Не кликайте</b> — каждый лишний клик добавляет 3–5 с ожидания. С блесной наоборот: кликайте, когда огонёк на поплавке зелёный.</span></li>
+    <li><span>Поклёвка — «!!» над поплавком. На клик есть 4 с: в первые полсекунды стартовый прогресс ×1,4, до 1 с ×1,2, на 2–3 с ×0,82, в последнюю секунду ×0,65.</span></li>
+    <li><span>Мини-игра: зажмите ЛКМ — зелёная приманка ползёт вверх, отпустите — падает. Держите рыбу внутри приманки: прогресс растёт, вне — тает. 100% — улов, 0% — рыба сорвалась.</span></li>
+    <li><span>Остановить рыбалку — использовать удочку в руке (во время мини-игры 3 с). Отойти дальше 4 клеток — обрыв.</span></li>
+  </ol></div>
+
+  <div class="panel card"><h3>Где взять снасти</h3><ul class="bul">
+    <li><b>Автомат Angler's Friend</b>: удочки, лески, крючки, черви, тесто, блёсны, каталог, анализатор, генная пушка, ящики для рыбы, сеть, фиш-портер, одежда. Премиум-отдел: научная, золотая и лунная удочки, автокатушка, блюспейс-леска, капкан, супер-наживка.</li>
+    <li><b>Карго</b>: «Fishing Kit» — 800 кредитов (удочка, снасти, черви, малёк, тесто, свинцовая батарейка, каталог, фиш-портер, ящики); заправка автомата — 700.</li>
+    <li><b>Протолат</b> (сервис, наука): стеклопластиковая, титановая и научная удочки.</li>
+    <li><b>Техтоннели</b>: удочка, банка червей, блесна-малёк, каталог, набор аквариума — как случайный лут.</li>
+    <li>Удочку и банку червей можно и выловить в открытой воде.</li>
+  </ul></div>
+
+  <div class="panel card"><h3>Что влияет на шанс поклёвки</h3><ul class="bul">
+    <li>У каждого места своя таблица весов. Шанс = вес ÷ сумма весов (с учётом всего ниже). Вкладка «Места» считает это под ваше снаряжение.</li>
+    <li><b>Без наживки</b> вес любой рыбы ×0,15 (научной и мастерской удочке наживка не нужна только для старта прогресса).</li>
+    <li><b>Любимая наживка</b> ×2, <b>нелюбимая</b> ×0,5. Синтетическое и супер-тесто — ×1,5 всем.</li>
+    <li><b>Блёсны</b> — ×5 всем рыбам (воблер — только крупным, больше 50 см) и убирают «пусто» из таблицы. Блёсна не тратится.</li>
+    <li><b>Крючки</b>: магнитный ×5 к вещам, блестящий ×2 к мелкой рыбе, утяжелённый ×2 к крупной, костяной ×1,1 ко всему.</li>
+    <li><b>Черты рыбы</b>: привереды, ночные, мясоеды, травоядные — см. карточку рыбы.</li>
+    <li>Червь ускоряет поклёвку (ожидание ×0,7, скользкий червь ×0,5). Блесна сужает ожидание до 11–17 с.</li>
+  </ul></div>
+
+  <div class="panel card"><h3>Что влияет на сложность мини-игры</h3><ul class="bul">
+    <li>Сложность = место + удочка + рыба + черты (пугливая +5, любит блестящее +5, тревожная +4, скользкая +3) − 10 за любимую наживку, +10 за нелюбимую, −5 шапка, −1,5 за уровень навыка. Итог от 6 до 100; если вышло ≤ 0 — рыба ловится мгновенно.</li>
+    <li>Сложность уменьшает приманку: высота = 360 − 1,3 × сложность (из 1000 по полосе), рыба — 50.</li>
+    <li>Чем сложнее, тем чаще рыба прыгает и сильнее ускоряется, а при сложности выше 15 старт прогресса меньше.</li>
+    <li>Прогресс: +6/с на рыбе (5 + 1 за леску), −6/с мимо, старт 30%. Навык: +0,5 прироста и −0,8 потерь за уровень. Золотая удочка ×1,4 к приросту.</li>
+  </ul></div>
+
+  <div class="panel card"><h3>Навык рыбалки</h3><div class="tbl"><table>
+    <tr><th>Ур.</th><th class="n">Опыт</th><th class="n">Сложность</th><th class="n">Прирост/с</th><th class="n">Потери/с</th><th class="n">Заброс</th></tr>${lvl}
+  </table></div>
+  <p class="note">Опыт идёт за каждую мини-игру, даже проигранную: секунды × 25 × (1 + 0,08 × сложность) × множитель удочки. Сдались или сорвалось из-за внешних причин — вдвое меньше. Если уровень сильно выше сложности — опыт урезается. Опыт сохраняется между раундами.</p></div>
+
+  <div class="panel card"><h3>Одежда рыбака</h3><ul class="bul">
+    <li><b>Legendary fishing hat</b> (шапка) — сложность −5.</li>
+    <li><b>Fishing gloves</b> (перчатки) — при осмотре видно размер и вес рыбы.</li>
+    <li><b>Legendary fisher cloak</b> (плащ) — при поклёвке видно, что клюнуло («ракообразное!!!», «оружие!!!»…), и иконка на полосе.</li>
+    <li><b>Horticultural waders</b> (заброды) — просто защитная одежда.</li>
+  </ul></div>
+
+  <div class="panel card"><h3>Фиш-портер 3000</h3><div class="body">
+    <p>Портал для рыбалки в других измерениях: из набора в автомате или ящике карго, разворачивается в руке на пол. Щелчок — выбор измерения.</p>
+    <p>Новые измерения открываются по числу изученных видов: сканируйте рыбу анализатором или ловите новые виды — прогресс по видам сохраняется между раундами.</p>
+    <p>ЕМАГ открывает синдикатское измерение. «Фиш-портер 4000 deluxe» открывает всё сразу.</p>
+  </div></div>
+
+  <div class="panel card"><h3>Полезное</h3><ul class="bul">
+    <li><b>Каталог рыб</b> — список видов, где ловятся, жидкость и температура для аквариума, ваши рекорды веса.</li>
+    <li><b>Анализатор</b> — здоровье, голод и черты рыбы; заодно записывает вид.</li>
+    <li><b>Ящик для рыбы</b> держит рыбу живой (стазис). На удочке рыба тоже не умирает.</li>
+    <li><b>Сеть</b> раз в 1–2 минуты сама ловит что-то из «Открытой воды».</li>
+    <li><b>Рыбный рынок</b> покупает свежую рыбу на ID-карту.</li>
+    <li>Трофей — повесить рыбу на настенное крепление.</li>
+  </ul></div>
+  </div>`;
+}
+
+// ---------------- Места ----------------
+let curPlace = store.get('place', 'water/any');
+function renderPlaceList() {
+  let html = ''; let grp = '';
+  for (const p of PLACES) {
+    if (p.grp !== grp) { grp = p.grp; html += `<h4>${grp}</h4>`; }
+    html += `<button data-p="${p.id}" aria-pressed="${p.id === curPlace}"><span>${esc(p.ru)}</span><small>${p.diff}</small></button>`;
+  }
+  $('plist').innerHTML = html;
+}
+$('plist').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; curPlace = b.dataset.p; store.set('place', curPlace); renderPlace(); });
+function renderPlace() {
+  renderPlaceList();
+  const p = placeById(curPlace); const g = G();
+  const rows = catchTable(p, g).sort((a, b) => b.p - a.p);
+  const max = Math.max(...rows.map((r) => r.p), 1);
+  const wr = waitRange(p, g);
+  const blocked = canFish(p, g);
+  const fishRows = rows.filter((r) => r.key.startsWith('fish:'));
+  const fishShare = fishRows.reduce((a, r) => a + r.p, 0);
+  const body = rows.map((r) => {
+    const df = difficulty(p, r.key, g);
+    const lim = p.counts[r.key] != null ? `<span class="tag warn" title="Ограниченный запас, восстановление ${fmt(p.regen[r.key] || 30, 0)} мин">лимит ${p.counts[r.key]}</span>` : '';
+    const fav = r.key.startsWith('fish:') && g.bait.id !== 'none' && FD.fish[r.key.slice(5)].fav.some((x) => matchBait(g.bait, x)) ? ' <span class="tag ok">любит</span>' : '';
+    return `<tr class="${r.key.startsWith('fish:') ? 'click' : ''}" data-f="${r.key.startsWith('fish:') ? r.key.slice(5) : ''}">
+      <td><div class="rowname">${rewardIcon(r.key)}<div>${esc(rewardName(r.key))}${fav} ${lim}<div class="en">${esc(rewardEn(r.key) || '')}</div></div></div></td>
+      <td class="n">${pct(r.p)}<div class="bar" style="width:${(r.p / max) * 70}px;margin-left:auto"></div></td>
+      <td class="n">${df.instant ? '<span class="pos">сразу</span>' : df.d}</td>
+      <td class="n faint">${fmt(r.w, 1)}</td></tr>`;
+  }).join('');
+  $('pview').innerHTML = `<div class="panel card"><h3>${esc(p.ru)} <small>${esc(p.name || '')}</small></h3>
+    <div class="kpis">
+      <div class="kpi"><b>${p.diff}</b><span>базовая сложность</span></div>
+      <div class="kpi"><b>${fmt(wr[0] / 10)}–${fmt(wr[1] / 10)} с</b><span>ожидание поклёвки</span></div>
+      <div class="kpi"><b>${pct(fishShare)}</b><span>поклёвок — рыба</span></div>
+      <div class="kpi"><b>${fishRows.length}</b><span>видов рыб</span></div>
+    </div>
+    <div class="body"><p class="muted">${esc(p.where || '')}</p></div>
+    ${blocked ? `<p class="note bad">${esc(blocked)}</p>` : ''}
+    <div class="tbl"><table><tr><th>Улов</th><th class="n">Шанс</th><th class="n" title="Сложность мини-игры с вашим снаряжением">Сложн.</th><th class="n" title="Итоговый вес в таблице">Вес</th></tr>${body}</table></div>
+    <div class="body"><button class="btn pri" data-sim="${p.id}">Порыбачить здесь в симуляторе</button></div></div>`;
+}
+$('pview').addEventListener('click', (e) => {
+  const s = e.target.closest('[data-sim]'); if (s) { simPlace = s.dataset.sim; simTarget = 'random'; setTab('sim'); return; }
+  const tr = e.target.closest('tr[data-f]'); if (tr && tr.dataset.f) openFish(tr.dataset.f);
+});
+
+// ---------------- Рыбы ----------------
+const VISIBLE_FISH = Object.keys(FD.fish).filter((id) => FD.fish[id].catalog || PLACES.some((p) => p.table.some(([k]) => k === 'fish:' + id)));
+function fishPlaces(fid, g = G()) {
+  const out = [];
+  for (const p of PLACES) {
+    if (!p.table.some(([k]) => k === 'fish:' + fid)) continue;
+    const row = catchTable(p, g).find((r) => r.key === 'fish:' + fid);
+    out.push({ p, pr: row ? row.p : 0, df: difficulty(p, 'fish:' + fid, g) });
+  }
+  return out.sort((a, b) => b.pr - a.pr);
+}
+function baitText(list) {
+  return list.map((x) => {
+    if (x.k === 'path') {
+      const fishId = x.v.startsWith('/obj/item/fish/') ? x.v.slice(15) : null;
+      const map = { '/obj/item/bait/worm': 'черви', '/obj/item/bait/doughball': 'тесто', '/obj/item/fishing_lure': 'любая блесна', '/obj/item/fish': 'любая рыба-наживка',
+        '/obj/item/stock_parts/cell/lead': 'свинцовая батарейка', '/obj/item/organ/ears': 'уши', '/obj/item/stack/sheet/mineral/diamond': 'алмаз',
+        '/obj/item/stack/ore/bluespace_crystal': 'блюспейс-кристалл', '/obj/item/food/badrecipe': 'пригоревшая еда (насадить нельзя)' };
+      return map[x.v] || (fishId ? (RU_FISH[fishId] || fishId) : x.v.split('/').pop());
+    }
+    if (x.k === 'foodtype') return x.v.split('|').map((k) => FOOD_RU[k] || k.toLowerCase()).join(' / ');
+    if (x.k === 'reagent') return (x.v.endsWith('mutagen') ? 'мутаген' : x.v.endsWith('toxin') ? 'токсин' : x.v.split('/').pop()) + (x.n ? ` в наживке (≥${x.n} ед.)` : ' в наживке');
+    return x.v;
+  }).join(', ');
+}
+function bestBaits(fid) {
+  const f = FD.fish[fid];
+  const ok = BAITS.filter((b) => b.id !== 'none' && f.fav.some((x) => matchBait(b, x)));
+  const out = ok.filter((b) => !b.lure && !b.id.startsWith('fish_')).map((b) => b.ru);
+  if (ok.some((b) => b.lure)) out.push('блёсны');
+  const fb = ok.filter((b) => b.id.startsWith('fish_')).map((b) => b.ru);
+  if (fb.length) out.push('рыба-наживка (' + fb.join(', ') + ')');
+  return out;
+}
+function fillFishFilters() {
+  $('fplace').innerHTML = '<option value="">Все места</option>' + PLACES.map((p) => `<option value="${p.id}">${esc(p.ru)}</option>`).join('');
+  $('fmove').innerHTML = '<option value="">Любое движение</option>' + Object.entries(MOVES).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('');
+}
+['fq', 'fplace', 'fmove', 'fsort'].forEach((id) => $(id).addEventListener('input', renderFishGrid));
+function renderFishGrid() {
+  const q = $('fq').value.trim().toLowerCase(); const pl = $('fplace').value; const mv = $('fmove').value; const sort = $('fsort').value;
+  let list = VISIBLE_FISH.filter((id) => {
+    const f = FD.fish[id];
+    if (q && !((RU_FISH[id] || '').toLowerCase().includes(q) || f.en.toLowerCase().includes(q))) return false;
+    if (mv && f.move !== mv) return false;
+    if (pl && !placeById(pl).table.some(([k]) => k === 'fish:' + id)) return false;
+    return true;
+  });
+  const by = { name: (a, b) => (RU_FISH[a] || a).localeCompare(RU_FISH[b] || b, 'ru'), diff: (a, b) => FD.fish[b].dm - FD.fish[a].dm, size: (a, b) => FD.fish[b].size - FD.fish[a].size };
+  list.sort(by[sort]);
+  $('fgrid').innerHTML = list.map((id) => {
+    const f = FD.fish[id];
+    const n = PLACES.filter((p) => p.table.some(([k]) => k === 'fish:' + id)).length;
+    return `<button class="fcard" data-f="${id}"><span class="fsprite">${fishSpr(id, f.sheet === 'wide.dmi' ? 1 : 1.25)}</span>
+      <span><b>${esc(RU_FISH[id] || f.en)}</b><small>${esc(f.en)}</small><small>${MOVES[f.move][0]}${f.dm ? ` · сложн. ${f.dm > 0 ? '+' : ''}${f.dm}` : ''} · ${n ? n + ' мест' : 'не ловится'}</small></span></button>`;
+  }).join('') || '<p class="muted">Ничего не нашлось.</p>';
+}
+$('fgrid').addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) openFish(b.dataset.f); });
+
+function openFish(fid) {
+  const f = FD.fish[fid]; const g = G();
+  const places = fishPlaces(fid, g);
+  const best = bestBaits(fid);
+  const temp = f.tmin == null && f.tmax == null ? 'любая' : `${f.tmin ?? '…'}…${f.tmax ?? '…'} °C`;
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="panel fdetail" role="dialog" aria-label="${esc(RU_FISH[fid] || f.en)}">
+    <button class="btn x" data-close>✕</button>
+    <div class="head">${fishSpr(fid, f.sheet === 'wide.dmi' ? 2 : 3)}<div><h2>${esc(RU_FISH[fid] || f.en)}</h2><div class="en">${esc(f.en)}</div></div></div>
+    <div class="sec"><p style="margin:6px 0">${esc(f.desc)}</p></div>
+    <div class="props">
+      <div><span>Сложность рыбы</span>${f.dm > 0 ? '+' : ''}${f.dm}</div>
+      <div><span>Движение</span>${MOVES[f.move][0]}</div>
+      <div><span>Размер / вес</span>${f.size} см / ${f.weight >= 1000 ? fmt(f.weight / 1000) + ' кг' : f.weight + ' г'}</div>
+      <div><span>Высота спрайта</span>${f.h} px ${f.h <= 4 ? '(блестящий крючок)' : f.h >= 6 ? '(утяжелённый крючок)' : ''}</div>
+      <div><span>Вода</span>${FLUIDS[f.fluid] || f.fluid}</div>
+      <div><span>Температура</span>${temp}</div>
+    </div>
+    <div class="sec">
+      <h4>Движение в мини-игре</h4><div>${MOVES[f.move][1]}</div>
+      <h4>Наживка</h4>
+      <div>Любит: ${f.fav.length ? '<b>' + esc(baitText(f.fav)) + '</b>' : '<span class="muted">ничего особенного</span>'}${best.length ? ` <span class="muted">— подходит: ${esc(best.join(', '))}</span>` : ''}</div>
+      ${f.bad.length ? `<div>Не любит: <b class="neg">${esc(baitText(f.bad))}</b></div>` : ''}
+      ${f.bait ? `<div class="muted">Сама годится как ${f.bait === 'great' ? 'отличная' : 'хорошая'} наживка.</div>` : ''}
+      ${f.traits.length ? `<h4>Черты</h4><div class="traits">${f.traits.map((t) => `<div class="trait"><b>${esc(TRAITS[t]?.[0] || t)}</b> — ${esc(TRAITS[t]?.[1] || '')}</div>`).join('')}</div>` : ''}
+      <h4>Где ловится (с вашим снаряжением)</h4>
+      ${places.length ? `<table><tr><th>Место</th><th class="n">Шанс</th><th class="n">Сложн.</th></tr>${places.map((x) => `<tr><td>${esc(x.p.ru)} <span class="faint">${esc(x.p.grp === 'Фиш-портер 3000' ? '· портер' : '')}</span></td><td class="n">${pct(x.pr)}</td><td class="n">${x.df.instant ? 'сразу' : x.df.d}</td></tr>`).join('')}</table>` : '<p class="muted">Ни в одной таблице улова нет: появляется при разведении в аквариуме, из генной пушки или особых событий.</p>'}
+      ${places.length ? `<div style="margin-top:12px"><button class="btn pri" data-train="${places[0].p.id}">Тренировать в симуляторе</button></div>` : ''}
+    </div></div>`;
+  m.addEventListener('click', (e) => {
+    if (e.target === m || e.target.closest('[data-close]')) { m.remove(); return; }
+    const t = e.target.closest('[data-train]');
+    if (t) { m.remove(); simPlace = t.dataset.train; simTarget = 'fish:' + fid; setTab('sim'); }
+  });
+  document.addEventListener('keydown', function onEsc(e) { if (e.key === 'Escape') { m.remove(); document.removeEventListener('keydown', onEsc); } });
+  document.body.appendChild(m);
+}
+
+// ---------------- Снасти ----------------
+function renderGearTab() {
+  const rodRows = RODS.map((r) => `<tr><td><div class="rowname">${spr('fishing.dmi', r.spr)}<div>${esc(r.ru)}<div class="en faint" style="font-size:12px">${esc(r.en)}</div></div></div></td>
+    <td class="n">${r.dm > 0 ? '+' : ''}${r.dm}</td><td class="n">${fmt(r.cmp, 2)}</td><td class="n">${fmt(r.spd, 2)}</td><td class="n">${fmt(r.bnc, 2)}</td><td class="n">${fmt(r.exp, 2)}</td><td class="n">${r.cast}</td>
+    <td>${r.baitless ? '<span class="tag ok">без наживки</span> ' : ''}${esc(r.where)}</td></tr>`).join('');
+  const row = (list) => list.map((x) => `<tr><td><div class="rowname">${spr('fishing.dmi', x.spr)}<div>${esc(x.ru)}<div class="faint" style="font-size:12px">${esc(x.en)}</div></div></div></td><td>${esc(x.fx)}${x.cast != null ? ` <span class="faint">Заброс +${x.cast}.</span>` : ''}</td><td class="faint">${esc(x.where)}</td></tr>`).join('');
+  const baitRows = BAITS.filter((b) => b.id !== 'none' && !b.id.startsWith('fish_')).map((b) => {
+    const fx = [];
+    if (b.lure) fx.push(`×5 к рыбе${b.plug ? ' крупнее 50 см' : ''}, убирает «пусто», не тратится. Подсечка каждые ${fmt(b.spin[0] / 10)}–${fmt(b.spin[1] / 10)} с`);
+    else if (b.omni) fx.push('×1,5 ко всей рыбе');
+    if (b.bite) fx.push(`ожидание ×${String(b.bite).replace('.', ',')}`);
+    if (b.q === 'great') fx.push('отличное качество: 25% шанс рыбы крупнее');
+    if (b.gold) fx.push('любители блестящего ×1,8');
+    if (b.poison) fx.push('убивает пойманную рыбу');
+    if (b.reag) fx.push('шприцем можно впрыснуть реагент в любую наживку — любят трёхглазые золотые рыбки (мутаген) и слаймы (токсин)');
+    const fans = VISIBLE_FISH.filter((id) => FD.fish[id].fav.some((x) => matchBait(b, x))).map((id) => RU_FISH[id] || id);
+    return `<tr><td><div class="rowname">${baitIcon(b) || '<span class="ico">◆</span>'}<div>${esc(b.ru)}</div></div></td><td>${esc(fx.join('; ') || 'обычная')}</td><td class="faint">${fans.length ? esc(fans.slice(0, 8).join(', ')) + (fans.length > 8 ? ` и ещё ${fans.length - 8}` : '') : '—'}</td></tr>`;
+  }).join('');
+  const fishBaitRows = BAITS.filter((b) => b.id.startsWith('fish_')).map((b) => `${baitIcon(b)} ${esc(b.ru)}`).join(' · ');
+  $('v-gear').innerHTML = `<div class="grid">
+    <div class="panel card wide"><h3>Удочки</h3><div class="tbl"><table>
+      <tr><th>Удочка</th><th class="n" title="Прибавка к сложности">Сложн.</th><th class="n" title="Множитель прироста прогресса">Прогресс</th><th class="n" title="Скорость подмотки приманки">Скорость</th><th class="n" title="Отскок от краёв">Отскок</th><th class="n" title="Множитель опыта">Опыт</th><th class="n">Заброс</th><th>Где взять</th></tr>${rodRows}</table></div>
+      <p class="note">Удочка из материала (стекло, титан, золото…) в половине случаев делает улов из этого материала. Научная и мастерская удочки не теряют 10% стартового прогресса без наживки.</p></div>
+    <div class="panel card wide"><h3>Лески</h3><div class="tbl"><table><tr><th>Леска</th><th>Эффект</th><th>Где взять</th></tr>${row(LINES)}</table></div></div>
+    <div class="panel card wide"><h3>Крючки</h3><div class="tbl"><table><tr><th>Крючок</th><th>Эффект</th><th>Где взять</th></tr>${row(HOOKS)}</table></div></div>
+    <div class="panel card wide"><h3>Наживки и блёсны</h3><div class="tbl"><table><tr><th>Наживка</th><th>Эффект</th><th>Любимая для</th></tr>${baitRows}</table></div>
+      <div class="body"><p><b>Рыба как наживка</b> (насаживается целиком, считается мясом-морепродуктом): ${fishBaitRows}.</p>
+      <p class="muted">Еду насадить нельзя — только наживку и предметы с пометкой «наживка». Поэтому любители жареного (фрайиш, фриттериш, несси) ловятся просто на шанс.</p></div></div>
+  </div>`;
+}
+
+// ---------------- Симулятор: движение рыбы (fish_movement.dm) ----------------
+const AREA = 1000; const FISH_H = 50;
+class Mover {
+  constructor(ch, type) {
+    this.ch = ch; this.type = type; this.times = 0;
+    this.short = 2.25; this.long = 0.0625; this.shortLim = 400; this.longLim = 200; this.curLim = null;
+    this.idle = 0; this.target = null; this.vel = 0; this.canInterrupt = true;
+    if (type === 'slow') { this.short = 0; this.long = 1.5; this.longLim = 150; this.canInterrupt = false; }
+    if (type === 'zippy') this.short = 2.25 * 3;
+    if (type === 'choppy') this.faux = 0;
+    if (type === 'plunger') { this.plunging = true; this.ps = -22; }
+  }
+  adjust() {
+    const d01 = this.ch.difficulty / 100; const sq = Math.PI / 2;
+    const f = (c) => (c > 1 ? Math.pow(d01, sq - Math.atan(c / sq)) * 100 : c * this.ch.difficulty);
+    this.short = f(this.short); this.long = f(this.long);
+    if (this.type === 'plunger') { this.ps += floor(this.ps * this.ch.difficulty * 0.03); this.idle += this.ps; }
+  }
+  accel(spt) {
+    const a = 0.3 * this.ch.difficulty + 0.5;
+    if (this.type === 'accelerando') return a + Math.min(a, a * this.times * spt / 30);
+    return a;
+  }
+  move(spt) {
+    const ch = this.ch;
+    if (this.type === 'plunger') {
+      const area = AREA - FISH_H;
+      if (this.plunging) {
+        if ((this.target ?? 0) > ch.fishPos) this.target = null;
+        if (ch.fishPos / area <= 0.04) { this.idle -= this.ps; this.plunging = false; }
+      } else if ((area - ch.fishPos) / area <= 0.04) { this.idle += this.ps; this.plunging = true; }
+    }
+    if (this.type === 'accelerando' && this.times * spt < 30) {
+      if (!this.times) { this.sAdd = this.shortLim / 30; this.lAdd = this.longLim / 30; }
+      else {
+        if (this.curLim) this.curLim += near((this.curLim === this.shortLim ? this.sAdd : this.lAdd) * spt * 100) / 100;
+        this.shortLim += near(this.sAdd * spt * 100) / 100; this.longLim += near(this.lAdd * spt * 100) / 100;
+      }
+    }
+    this.times++;
+    const canRoll = this.times % 2 === 1;
+    if (Math.abs((this.target ?? 0) - ch.fishPos) < 6) this.target = null;
+    if (canRoll && (this.canInterrupt || this.target == null) && prob(this.long)) {
+      const top = AREA - ch.fishPos - FISH_H; const bot = ch.fishPos;
+      const topChance = top < 100 ? 0 : (top / Math.max(bot, 1)) * 100;
+      let nt = ch.fishPos;
+      if (prob(topChance)) nt += top * randInt(75, 100) / 100; else nt -= bot * randInt(75, 100) / 100;
+      this.target = floor(nt); this.curLim = this.longLim;
+    }
+    if (this.target != null) {
+      const dist = this.target - ch.fishPos; const am = this.accel(spt);
+      let ta = dist * am * spt;
+      if (this.idle) {
+        const iv = this.idle; const aiv = Math.abs(iv);
+        if (ta && ((iv > 0) !== (ta > 0))) {
+          const hr = (am * 0.5) / aiv;
+          if (hr < 1) { const pw = Math.min(hr + 0.5, 1); ta *= 1 - hr ** pw; } else ta += iv;
+        }
+      }
+      this.vel = this.vel * 0.9 + ta;
+    } else if (canRoll && prob(this.short)) {
+      const top = AREA - ch.fishPos - FISH_H; const bot = ch.fishPos; let jl = 0;
+      if (top >= 100) jl = randInt(100, 200);
+      if (bot >= 100 && (!jl || prob(50))) jl = -randInt(100, 200);
+      this.target = clamp(ch.fishPos + jl, 0, AREA - FISH_H); this.curLim = this.shortLim;
+    }
+    const lim = this.curLim || 0;
+    this.vel = clamp(this.vel, -lim, lim);
+    if (this.type === 'accelerando') this.vel = floor(this.vel);
+    if (this.type === 'choppy') {
+      this.faux = clamp(this.faux + this.vel * spt, 0, AREA - FISH_H);
+      if (this.times % 5 === 0) ch.fishPos = this.faux;
+    } else ch.fishPos = clamp(ch.fishPos + this.vel * spt, 0, AREA - FISH_H);
+  }
+}
+
+// ---------------- Симулятор: испытание (fishing_minigame.dm) ----------------
+const TICK = 0.1; // SSfishing.wait = 0.1 с
+const BITE_WINDOW = 40; // ds
+const sim = {
+  ch: null, raf: 0, last: 0, acc: 0, stats: store.get('stats', { casts: 0, caught: 0, lost: 0, xp: 0 }),
+  stop(silent) {
+    if (!this.ch) return;
+    if (this.ch.phase === 'game' && !silent) { this.ch.interrupt('Рыбалка остановлена'); return; }
+    this.ch = null; cancelAnimationFrame(this.raf); this.raf = 0;
+    setPhaseUi(); if (!silent) drawIdle();
+  },
+};
+let simPlace = store.get('simPlace', 'water/any');
+let simTarget = 'random';
+
+function log(msg, cls = '') {
+  const el = document.createElement('div'); if (cls) el.className = cls;
+  el.innerHTML = msg; $('simLog').prepend(el);
+  while ($('simLog').children.length > 60) $('simLog').lastChild.remove();
+}
+function say(text, ms = 900) {
+  $('say').textContent = text;
+  clearTimeout(say.t); if (ms) say.t = setTimeout(() => { $('say').textContent = ''; }, ms);
+}
+
+class Challenge {
+  constructor(place, target, g) {
+    this.place = place; this.target = target; this.g = g; this.t = 0; this.phase = 'wait';
+    this.lastClick = -1e9; this.spin = g.bait.lure ? g.bait.spin : null; this.spinReady = false;
+    this.auto = !!g.line.auto; this.range = waitRange(place, g); this.exp = 1; this.effects = [];
+    this.startBaiting(false);
+  }
+  roll() {
+    if (this.target !== 'random') return this.target;
+    const rows = catchTable(this.place, this.g); const sum = rows.reduce((a, r) => a + r.w, 0);
+    let x = Math.random() * sum;
+    for (const r of rows) { x -= r.w; if (x < 0) return r.key; }
+    return 'dud';
+  }
+  startBaiting(penalty) {
+    this.reward = null;
+    let wait;
+    this.lastClick = this.t;
+    if (penalty) wait = Math.min(Math.max(this.nextAt - this.t, 0) + randInt(30, 50), 300);
+    else {
+      wait = randInt(this.range[0], this.range[1]);
+      if (this.auto && wait >= 150) wait = Math.max(wait - 75, 150);
+    }
+    this.phase = 'wait'; this.nextAt = this.t + wait;
+    if (this.spin) this.setLure();
+    setPhaseUi();
+  }
+  setLure() { this.spinReady = false; this.readyAt = this.t + this.spin[0]; this.missAt = this.t + this.spin[1]; this.autoSpinAt = null; }
+  startBiting() {
+    this.phase = 'bite'; this.reward = this.roll();
+    if (this.g.cloak) { const ic = HUD_ICON[this.reward] || 'fish'; say(HUD_SAY[ic], 4000); this.icon = ic; }
+    else { say('!!', 4000); this.icon = 'fish'; }
+    this.nextAt = this.t + BITE_WINDOW; this.spinReady = true;
+    if (this.auto) this.autoStartAt = this.t + 2;
+    setPhaseUi();
+  }
+  click(right) {
+    if (this.phase === 'wait') {
+      if (right) return;
+      if (this.t < this.lastClick + 2.5) return;
+      if (this.spin) {
+        if (!this.spinReady) { say('слишком рано!'); this.startBaiting(true); log('Слишком рано — ожидание +3–5 с', 'warnc'); }
+        else { say('подсекли'); this.lastClick = this.t; }
+        this.spinReady = false; this.setLure();
+      } else { say('промах!'); this.startBaiting(true); log('Клик без поклёвки — ожидание +3–5 с', 'warnc'); }
+    } else if (this.phase === 'bite' && !right) this.startGame(false);
+  }
+  startGame(autoReel) {
+    const g = this.g; const key = this.reward;
+    this.df = difficulty(this.place, key, g);
+    this.reactionLeft = this.nextAt - this.t;
+    say('', 0);
+    if (this.df.instant) { this.result = 'instant'; this.finish(true); return; }
+    let reaction = 1;
+    if (autoReel) reaction = 1.3;
+    else {
+      const tl = this.reactionLeft;
+      if (tl <= 10) reaction = 0.65; else if (tl <= 20) reaction = 0.82; else if (tl >= 30 && tl < 35) reaction = 1.2; else if (tl >= 35) reaction = 1.4;
+    }
+    this.reaction = reaction;
+    const P = minigameParams(this.place, key, g, reaction);
+    Object.assign(this, { completion: P.completion, gain: P.gain, loss: P.loss, reel: P.reel, grav: P.grav, bounce: P.bounce,
+      decel: P.decel, overlap: P.overlap, baitH: P.baitH, baitPx: P.baitPx });
+    this.difficulty = this.df.d;
+    const f = key.startsWith('fish:') ? FD.fish[key.slice(5)] : null;
+    this.fish = f;
+    this.mover = new Mover(this, f ? f.move : 'default');
+    this.bidir = !!g.hook.bidir; this.noEscape = !!g.hook.noEscape;
+    this.effects = [];
+    if (f && f.traits.includes('antigrav')) this.effects.push('antigrav');
+    if (f && f.traits.includes('camouflage')) this.effects.push('camo');
+    this.mover.adjust();
+    this.exp += this.difficulty * 0.08;
+    this.fishPos = randInt(0, (AREA - FISH_H) * 0.8);
+    const dd = 100 + this.difficulty;
+    this.baitPos = clamp(floor(this.fishPos + randInt(-dd, dd) - this.baitH * 0.5), 0, AREA - this.baitH);
+    this.baitVel = 0; this.reeling = 0; this.active = null; this.fishAlpha = 1; this.alphaTo = 1;
+    this.effectAt = this.effects.length ? this.t + randInt(50, 90) : null;
+    this.killAt = g.hook.kill && f ? this.t + (f.hp / 2) * 10 : null;
+    this.phase = 'game'; this.startT = this.t; this.prev = { b: this.baitPos, f: this.fishPos, c: this.completion };
+    setPhaseUi(); renderSimCalc(this);
+    log(`Клюнуло: <b>${esc(rewardName(key))}</b> · сложность ${this.difficulty}${this.reaction !== 1 ? ` · реакция ×${String(this.reaction).replace('.', ',')}` : ''} · старт ${fmt(this.completion)}%`);
+  }
+  tickEffects() {
+    if (this.effectAt == null || this.t < this.effectAt) return;
+    if (!this.active) {
+      this.active = this.effects[Math.floor(Math.random() * this.effects.length)];
+      if (this.active === 'antigrav') { this.effectAt = this.t + randInt(60, 90); say('антигравитация!', 1200); }
+      if (this.active === 'camo') { this.effectAt = this.t + randInt(60, 80); this.alphaTo = 7 / 255; }
+      return;
+    }
+    if (this.active === 'antigrav') this.effectAt = this.t + randInt(100, 130);
+    if (this.active === 'camo') { this.effectAt = this.t + randInt(90, 160); this.alphaTo = 1; }
+    this.active = null;
+  }
+  moveBait(spt) {
+    const shouldBounce = Math.abs(this.baitVel) > 150;
+    this.baitPos += this.baitVel * spt;
+    if (this.baitPos > AREA - this.baitH) {
+      this.baitPos = AREA - this.baitH;
+      this.baitVel = this.reeling === 1 || !shouldBounce ? 0 : -this.baitVel * this.bounce;
+    } else if (this.baitPos < 0) {
+      this.baitPos = 0;
+      this.baitVel = this.reeling === 2 || !shouldBounce ? 0 : -this.baitVel * this.bounce;
+    }
+    const on = this.fishPos + FISH_H >= this.baitPos && this.baitPos + this.baitH >= this.fishPos;
+    this.on = on;
+    let dv;
+    if (this.reeling === 1) dv = this.reel;
+    else if (this.reeling === 2) dv = -this.reel;
+    else dv = !this.bidir || this.baitVel > 0 ? this.grav : -this.grav;
+    dv = floor(dv * (on ? this.overlap : 1) * spt);
+    if (this.active === 'antigrav') dv = -dv;
+    if (this.reeling === 0 && this.auto) {
+      const center = this.baitPos + this.baitH / 2; const adj = this.reel * 0.2;
+      dv += this.fishPos > center ? adj : -adj;
+    }
+    if (this.baitVel > 0 && dv < 0) this.baitVel += Math.max(-this.baitVel, dv * this.decel);
+    else if (this.baitVel < 0 && dv > 0) this.baitVel += Math.min(-this.baitVel, dv * this.decel);
+    if (this.bidir && this.reeling === 0) {
+      if (dv < 0) this.baitVel = Math.max(this.baitVel + dv, 0);
+      else if (dv > 0) this.baitVel = Math.min(this.baitVel + dv, 0);
+    } else this.baitVel += dv;
+    if (on) {
+      this.completion += this.gain * spt;
+      if (this.completion >= 100) { this.completion = 100; this.finish(true); return; }
+    } else {
+      this.completion -= this.loss * spt;
+      if (this.completion <= 0 && !this.noEscape) { this.completion = 0; say('рыба сорвалась!', 1500); this.finish(false); return; }
+    }
+    this.completion = clamp(this.completion, 0, 100);
+  }
+  step() {
+    this.t += 1;
+    if (this.phase === 'wait') {
+      if (this.spin) {
+        if (!this.spinReady && this.t >= this.readyAt) { this.spinReady = true; if (this.auto) this.autoSpinAt = this.t + 2; }
+        if (this.autoSpinAt != null && this.t >= this.autoSpinAt && this.spinReady) { this.autoSpinAt = null; say('подсекли'); this.setLure(); }
+        else if (this.t >= this.missAt) { say('промах!'); log('Не подсекли блесну вовремя — ожидание +3–5 с', 'warnc'); this.startBaiting(true); return; }
+      }
+      if (this.t >= this.nextAt) this.startBiting();
+    } else if (this.phase === 'bite') {
+      if (this.auto && this.autoStartAt != null && this.t >= this.autoStartAt) { this.autoStartAt = null; this.startGame(true); return; }
+      if (this.t >= this.nextAt) { say('', 0); log('Поклёвка прошла — не успели кликнуть за 4 с', 'warnc'); this.startBaiting(false); }
+    } else if (this.phase === 'game') {
+      this.prev = { b: this.baitPos, f: this.fishPos, c: this.completion };
+      this.tickEffects();
+      this.mover.move(TICK);
+      this.moveBait(TICK);
+      if (this.phase === 'game' && this.killAt != null && this.t >= this.killAt) { this.exp *= 0.5; this.result = 'killed'; this.finish(true); }
+    }
+  }
+  interrupt(reason) { if (this.phase !== 'game') { sim.stop(true); drawIdle(); return; } this.exp *= 0.5; say(reason, 1500); this.finish(false); }
+  finish(win) {
+    if (this.phase === 'done') return;
+    const g = this.g;
+    let xp = 0;
+    if (this.startT != null) {
+      const secs = (this.t - this.startT) / 10;
+      let mult = this.exp;
+      const extra = g.skill - this.difficulty * 0.1;
+      if (extra > 0) mult /= 1 + extra * 0.08;
+      mult *= g.rod.exp;
+      xp = near(secs * 0.25 * mult * 100);
+    }
+    this.phase = 'done';
+    const key = this.reward; const isFish = key && key.startsWith('fish:');
+    sim.stats.casts++; sim.stats.xp += xp;
+    if (win) {
+      sim.stats.caught++;
+      const dead = isFish && (this.result === 'killed' || g.hook.kill || (g.bait.poison && !FD.fish[key.slice(5)].traits.includes('toxin_immunity') && !FD.fish[key.slice(5)].fav.some((x) => matchBait(g.bait, x))));
+      const name = key === 'dud' ? 'ничего — крючок пуст' : esc(rewardName(key)) + (dead ? ' (мёртвая)' : '');
+      say(key === 'dud' ? 'ничего' : 'поймано!', 2000);
+      log(`${rewardIcon(key)} ${this.result === 'instant' ? 'Сразу' : 'Поймано'}: <b>${name}</b>${this.startT != null ? ` за ${fmt((this.t - this.startT) / 10)} с` : ''} · +${xp} опыта`, 'pos');
+    } else {
+      sim.stats.lost++;
+      log(`Сорвалась: ${esc(rewardName(key || 'dud'))} · +${xp} опыта`, 'neg');
+    }
+    store.set('stats', sim.stats);
+    renderStats();
+    this.endAt = performance.now();
+    setPhaseUi();
+  }
+}
+
+// ---------------- Симулятор: отрисовка ----------------
+const IMG = {};
+for (const [name, s] of Object.entries(FD.sheets)) { const im = new Image(); im.src = s.png; IMG[name] = im; }
+const hud = $('hud'); const hx = hud.getContext('2d'); const SC = 4;
+const offs = document.createElement('canvas'); offs.width = 32; offs.height = 96; const ox = offs.getContext('2d');
+function drawState(ctx, sheet, state, dx, dy, frame = 0) {
+  const s = FD.sheets[sheet]; const idx = s.states[state]; if (idx == null) return;
+  const i = idx + frame; const col = i % s.cols; const row = Math.floor(i / s.cols);
+  ctx.drawImage(IMG[sheet], col * s.fw, row * s.fh, s.fw, s.fh, dx, dy, s.fw, s.fh);
+}
+let completionBox = null;
+function getCompletionBox() {
+  if (completionBox) return completionBox;
+  const c = document.createElement('canvas'); c.width = 32; c.height = 96; const x = c.getContext('2d');
+  drawState(x, 'fishing_hud.dmi', 'completion_overlay', 0, 0);
+  try {
+    const d = x.getImageData(0, 0, 32, 96).data; let top = 96; let bot = 0;
+    for (let y = 0; y < 96; y++) for (let xx = 0; xx < 32; xx++) if (d[(y * 32 + xx) * 4 + 3]) { top = Math.min(top, y); bot = Math.max(bot, y); }
+    completionBox = { top, bot };
+  } catch (e) { completionBox = { top: 8, bot: 87 }; }
+  return completionBox;
+}
+function drawHud(ch, alpha) {
+  ox.clearRect(0, 0, 32, 96);
+  const H = 'fishing_hud.dmi';
+  const bg = ch.active === 'antigrav' ? 'background_antigrav' : ch.active === 'camo' ? 'background_camo' : ch.place.bg;
+  drawState(ox, H, FD.sheets[H].states[bg] != null ? bg : 'background_default', 0, 0);
+  drawState(ox, H, ch.g.rod.frame || 'frame_wood', 0, 0);
+  const lerp = (a, b) => a + (b - a) * alpha;
+  const b = lerp(ch.prev.b, ch.baitPos); const f = lerp(ch.prev.f, ch.fishPos); const c = lerp(ch.prev.c, ch.completion);
+  const bz = Math.round(76 * b / AREA); const fz = Math.round(76 * f / AREA);
+  const ph = ch.baitPx;
+  drawState(ox, H, 'bait_bottom', 0, -bz);
+  for (let i = 1; i <= ph - 6; i++) drawState(ox, H, 'bait_bar', 0, -bz - i);
+  drawState(ox, H, 'bait_top', 0, -bz - (ph - 6));
+  ch.fishAlpha += (ch.alphaTo - ch.fishAlpha) * 0.08;
+  ox.globalAlpha = ch.fishAlpha;
+  drawState(ox, H, ch.icon || 'fish', 0, -fz, ch.icon === 'slime' ? Math.floor(performance.now() / 400) % 2 : 0);
+  ox.globalAlpha = 1;
+  const box = getCompletionBox(); const cut = 80 * (1 - c / 100);
+  ox.save(); ox.beginPath(); ox.rect(0, box.top + cut, 32, 96); ox.clip(); drawState(ox, H, 'completion_overlay', 0, 0); ox.restore();
+  hx.imageSmoothingEnabled = false; hx.clearRect(0, 0, hud.width, hud.height);
+  hx.save();
+  if (ch.active === 'flip') { hx.translate(0, hud.height); hx.scale(1, -1); }
+  hx.drawImage(offs, 0, 0, 32 * SC, 96 * SC);
+  hx.restore();
+  if ($('showDbg').checked) {
+    hx.fillStyle = 'rgba(0,0,0,.55)'; hx.fillRect(0, 0, hud.width, 34);
+    hx.fillStyle = '#fff'; hx.font = '11px Consolas,monospace';
+    hx.fillText(`прогр ${fmt(c)}% ${ch.on ? '▲' : '▼'}`, 4, 13);
+    hx.fillText(`d${ch.difficulty} v${Math.round(ch.baitVel)}`, 4, 28);
+  }
+}
+function drawIdle(ch) {
+  hx.imageSmoothingEnabled = false; hx.clearRect(0, 0, hud.width, hud.height);
+  if (!IMG['fishing_hud.dmi'].complete) return;
+  ox.clearRect(0, 0, 32, 96);
+  const p = placeById(simPlace); const H = 'fishing_hud.dmi';
+  drawState(ox, H, FD.sheets[H].states[p.bg] != null ? p.bg : 'background_default', 0, 0);
+  drawState(ox, H, G().rod.frame || 'frame_wood', 0, 0);
+  hx.globalAlpha = ch ? 1 : 0.55; hx.drawImage(offs, 0, 0, 32 * SC, 96 * SC); hx.globalAlpha = 1;
+}
+function drawFloat(ch) {
+  const fl = $('floatspr'); const t = performance.now() / 1000;
+  if (!ch || ch.phase === 'game' || ch.phase === 'done') { fl.innerHTML = ''; return; }
+  const amp = ch.phase === 'bite' ? 3 : 1; const per = ch.phase === 'bite' ? 1 : 2;
+  const dy = Math.sin(t * Math.PI * 2 / per) * amp * 3;
+  // огонёк блесны: зелёный — пора подсекать, красный — рано
+  const col = ch.spin ? (ch.spinReady ? '#3fe05a' : '#ff4040') : '';
+  fl.style.transform = `translate(-50%, calc(-50% + ${dy}px))`;
+  fl.innerHTML = `<span style="position:relative;display:inline-block;width:96px;height:96px">${spr('fishing.dmi', 'float', 3)}${ch.spin ? `<span style="position:absolute;border-radius:50%;box-shadow:0 0 18px 6px ${col}66;width:16px;height:16px;left:40px;top:14px;background:${col}"></span>` : ''}</span>`;
+}
+function frame(now) {
+  const ch = sim.ch; if (!ch) return;
+  if (!sim.last) sim.last = now;
+  let dt = (now - sim.last) / 1000; sim.last = now; dt = Math.min(dt, 0.25);
+  const speed = (ch.phase === 'wait' && $('fastWait').checked) ? 4 : 1;
+  sim.acc += dt * speed;
+  while (sim.acc >= TICK && ch.phase !== 'done') { sim.acc -= TICK; ch.step(); if (sim.ch !== ch) return; }
+  if (ch.phase === 'game') drawHud(ch, Math.min(sim.acc / TICK, 1));
+  else if (ch.phase === 'done') { drawHud(ch, 1); if (now - ch.endAt > 2200) { sim.stop(true); drawIdle(); return; } }
+  else drawIdle(ch);
+  drawFloat(ch);
+  $('water').classList.toggle('bite', ch.phase === 'bite');
+  sim.raf = requestAnimationFrame(frame);
+}
+function setPhaseUi() {
+  const ch = sim.ch;
+  $('castBtn').disabled = !!ch && ch.phase !== 'done';
+  $('stopBtn').disabled = !ch || ch.phase === 'done';
+  const hints = {
+    wait: ch && ch.spin ? 'Ждём поклёвку. Кликайте, когда огонёк зелёный, — иначе штраф.' : 'Ждём поклёвку. Не кликайте — каждый клик +3–5 с ожидания.',
+    bite: 'Клюёт! Кликните быстрее.',
+    game: ch && ch.bidir ? 'ЛКМ — вверх, ПКМ — вниз. Держите рыбу в приманке.' : 'Зажмите ЛКМ — приманка вверх, отпустите — вниз. Держите рыбу в приманке.',
+    done: '',
+  };
+  $('hint').textContent = ch ? hints[ch.phase] : 'Нажмите «Забросить».';
+  if (!ch) { $('water').classList.remove('bite'); $('floatspr').innerHTML = ''; }
+}
+function renderStats() {
+  const s = sim.stats;
+  $('statline').innerHTML = `Забросов <b>${s.casts}</b> · Поймано <b>${s.caught}</b> · Сорвалось <b>${s.lost}</b> · Опыт <b>${s.xp}</b> <button class="btn" id="resetStats" style="padding:1px 8px;font-size:12px">сброс</button>`;
+}
+$('statline').addEventListener('click', (e) => { if (e.target.id === 'resetStats') { sim.stats = { casts: 0, caught: 0, lost: 0, xp: 0 }; store.set('stats', sim.stats); renderStats(); } });
+
+function renderSimSetup() {
+  $('simPlace').innerHTML = PLACES.map((p) => `<option value="${p.id}"${p.id === simPlace ? ' selected' : ''}>${esc(p.grp.startsWith('Фиш') ? 'Портер: ' + p.ru : p.ru)}</option>`).join('');
+  const p = placeById(simPlace);
+  const rows = catchTable(p).sort((a, b) => b.p - a.p);
+  if (simTarget !== 'random' && !p.table.some(([k]) => k === simTarget)) simTarget = 'random';
+  $('simTarget').innerHTML = `<option value="random">Случайно, как в игре</option>` + p.table.filter(([k]) => k !== 'dud').map(([k]) => {
+    const r = rows.find((x) => x.key === k);
+    return `<option value="${esc(k)}"${k === simTarget ? ' selected' : ''}>${esc(rewardName(k))} — ${r ? pct(r.p) : '0%'}</option>`;
+  }).join('');
+  if (!sim.ch || sim.ch.phase === 'done') renderSimCalc(null);
+  if (!sim.ch) drawIdle();
+  renderStats();
+}
+$('simPlace').addEventListener('change', (e) => { simPlace = e.target.value; store.set('simPlace', simPlace); simTarget = 'random'; renderSimSetup(); });
+$('simTarget').addEventListener('change', (e) => { simTarget = e.target.value; renderSimCalc(null); });
+
+function renderSimCalc(ch) {
+  const p = placeById(simPlace); const g = G();
+  const key = ch ? ch.reward : (simTarget !== 'random' ? simTarget : null);
+  const blocked = canFish(p, g);
+  if (!key) {
+    const rows = catchTable(p, g).filter((r) => r.key.startsWith('fish:'));
+    const ds = rows.map((r) => difficulty(p, r.key, g)).filter((d) => !d.instant).map((d) => d.d);
+    const wr = waitRange(p, g);
+    $('simCalc').innerHTML = `${blocked ? `<p class="neg" style="margin:0 0 6px">${esc(blocked)}</p>` : ''}
+      <div class="brk"><span>Сложность рыб здесь</span><b>${ds.length ? Math.min(...ds) + '–' + Math.max(...ds) : '—'}</b>
+      <span>Ожидание поклёвки</span><b>${fmt(wr[0] / 10)}–${fmt(wr[1] / 10)} с</b>
+      <span>Прирост / потери прогресса</span><b>+${fmt((6 + g.line.gain + g.skill * 0.5) * g.rod.cmp)} / −${fmt(6 + g.line.loss - g.skill * 0.8)} в с</b></div>
+      <p class="muted" style="margin:8px 0 0;font-size:12.5px">Выберите конкретный улов, чтобы увидеть расчёт сложности.</p>`;
+    return;
+  }
+  const P = minigameParams(p, key, g, ch ? ch.reaction : 1);
+  const df = P.df;
+  const parts = df.parts.map(([n, v]) => `<span>${esc(n)}</span><b>${v > 0 ? '+' : ''}${fmt(v)}</b>`).join('');
+  $('simCalc').innerHTML = `${blocked ? `<p class="neg" style="margin:0 0 6px">${esc(blocked)}</p>` : ''}
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">${rewardIcon(key)}<b>${esc(rewardName(key))}</b></div>
+    <div class="brk">${parts}<span class="t">Сложность</span><b class="t">${df.instant ? 'ловится сразу' : df.d}</b></div>
+    ${df.instant ? '' : `<div class="brk" style="margin-top:8px">
+      <span>Высота приманки</span><b>${P.baitH} из 1000 (${P.baitPx} px)</b>
+      <span>Старт прогресса</span><b>${fmt(P.completion)}%</b>
+      <span>Прирост / потери</span><b>+${fmt(P.gain)} / −${fmt(P.loss)} в с</b>
+      <span>Подмотка / падение</span><b>${fmt(P.reel, 0)} / ${fmt(-P.grav, 0)}</b>
+      <span>Отскок от краёв</span><b>${fmt(P.bounce, 2)}</b>
+      <span>Движение рыбы</span><b>${MOVES[P.move][0]}</b></div>`}`;
+}
+
+// ---------------- Симулятор: управление ----------------
+$('castBtn').addEventListener('click', () => {
+  const p = placeById(simPlace); const g = G();
+  const why = canFish(p, g);
+  if (why) { log(esc(why), 'neg'); return; }
+  sim.stop(true);
+  sim.ch = new Challenge(p, simTarget, g);
+  sim.last = 0; sim.acc = 0;
+  log(`Заброс: ${esc(p.ru)}${simTarget !== 'random' ? ' · цель — ' + esc(rewardName(simTarget)) : ''}`, 'faint');
+  setPhaseUi();
+  sim.raf = requestAnimationFrame(frame);
+});
+$('stopBtn').addEventListener('click', () => sim.stop(false));
+const stage = $('stage');
+stage.addEventListener('contextmenu', (e) => { if (sim.ch) e.preventDefault(); });
+stage.addEventListener('pointerdown', (e) => {
+  const ch = sim.ch; if (!ch) return;
+  e.preventDefault();
+  const right = e.button === 2;
+  // как start_reeling: ПКМ тянет вниз только с гиро-крючком, иначе любая кнопка — вверх
+  if (ch.phase === 'game') { ch.reeling = right && ch.bidir ? 2 : 1; return; }
+  ch.click(right);
+});
+window.addEventListener('pointerup', () => { if (sim.ch && sim.ch.phase === 'game') sim.ch.reeling = 0; });
+window.addEventListener('blur', () => { if (sim.ch && sim.ch.phase === 'game') sim.ch.reeling = 0; });
+document.addEventListener('keydown', (e) => {
+  const ch = sim.ch; if (!ch || tab !== 'sim' || e.repeat || e.altKey || e.ctrlKey) return;
+  if (e.target.closest && e.target.closest('select,input')) return;
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+    e.preventDefault();
+    if (ch.phase === 'game') ch.reeling = 1; else ch.click(false);
+  } else if ((e.code === 'ArrowDown' || e.code === 'KeyS') && ch.phase === 'game' && ch.bidir) { e.preventDefault(); ch.reeling = 2; }
+});
+document.addEventListener('keyup', (e) => {
+  const ch = sim.ch; if (!ch || ch.phase !== 'game') return;
+  if (['Space', 'ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) ch.reeling = 0;
+});
+
+// ---------------- Старт ----------------
+renderGearBar();
+renderBasics();
+renderGearTab();
+fillFishFilters();
+IMG['fishing_hud.dmi'].onload = () => { if (!sim.ch) drawIdle(); };
+setTab(['basics', 'places', 'fish', 'gear', 'sim'].includes(tab) ? tab : 'basics');
+</script>
+</body>
+</html>

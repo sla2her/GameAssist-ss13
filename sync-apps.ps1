@@ -68,6 +68,10 @@ Copy-Item (Join-Path $root 'viro\index.html') $dst
 
 # Робототехник — живёт в Пульте (robo\): сборка киборгов, мехов и ботов, оверлей; НРП берёт у Панели АВД (..\avd\nrp.js)
 $dst = Join-Path $apps 'robo'; Reset-Dir $dst
-Copy-Item (Join-Path $root 'robo\index.html') $dst
+Copy-Item (Join-Path $root 'robo\index.html'), (Join-Path $root 'robo\mod.js'), (Join-Path $root 'robo\mod-data.js') $dst
+
+# Рыбалка — живёт в Пульте (fishing\): справочник и симулятор; data.js собирает fishing\build_data.py из modular_bluemoon/fishing
+$dst = Join-Path $apps 'fishing'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'fishing\index.html'), (Join-Path $root 'fishing\data.js') $dst
 
 "Приложения скопированы в $apps"

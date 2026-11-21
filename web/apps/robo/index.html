@@ -137,6 +137,160 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .phrase button{border:1px solid var(--line2);background:var(--panel2);border-radius:6px;padding:2px 8px;font-size:12px;color:var(--muted)}
 .foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
 
+/* ---------- МОД-стенд (robo/mod.js) ---------- */
+.mspr{display:inline-block;flex:none;image-rendering:pixelated;background-repeat:no-repeat;vertical-align:middle}
+.mspr.ph{border-radius:6px;background:var(--panel2)}
+.mtop{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:end;padding:10px 12px;margin-bottom:12px}
+.mtop label{display:grid;gap:2px;font-size:12px;color:var(--muted)}
+.mtop select{padding:5px 8px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);font-size:13.5px;max-width:280px}
+.mpre{display:flex;gap:5px;flex-wrap:wrap;align-items:center;font-size:12.5px}
+.mgrid{display:grid;grid-template-columns:290px minmax(0,1fr) 340px;gap:12px;align-items:start}
+.mcat{padding:8px;position:sticky;top:70px;max-height:calc(100vh - 86px);overflow:auto}
+.mcat input[type=search]{width:100%;padding:6px 9px;border:1px solid var(--line2);border-radius:8px;background:var(--panel)}
+.mchips{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0 6px}
+.mchips button{border:1px solid var(--line2);background:var(--panel);border-radius:14px;padding:1px 8px;font-size:12px;color:var(--muted)}
+.mchips button small{color:var(--faint)}
+.mchips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.mall{display:flex;gap:6px;align-items:flex-start;font-size:12px;color:var(--muted);margin-bottom:6px}
+.mrow{display:flex;gap:8px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.mrow:hover{background:var(--panel2)}
+.mrow.on{border-color:color-mix(in srgb,var(--ok) 50%,transparent);background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
+.mrow.no{opacity:.55}
+.mrow .mn{flex:1;min-width:0;display:grid;line-height:1.2}
+.mrow .mn b{font-size:13px;font-weight:600}
+.mrow .mn small{font-size:11px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow .mn .why{color:var(--bad);white-space:normal}
+.mcx{font:600 12px var(--font-m);min-width:22px;text-align:center;border-radius:6px;padding:1px 4px;color:var(--tc);background:color-mix(in srgb,var(--tc) 16%,transparent)}
+.mi{border:1px solid var(--line2);background:var(--panel);border-radius:50%;width:20px;height:20px;font:italic 700 11px Georgia,serif;color:var(--muted);padding:0}
+.mmid{display:grid;gap:12px;min-width:0}
+.mstand{padding:12px;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--accent) 12%,var(--panel)),var(--panel) 70%)}
+.mrig{display:grid;grid-template-columns:1fr auto 1fr;grid-template-areas:"z1 core z3" "z2 core z4";gap:10px;align-items:center}
+.mzone{border:1px dashed var(--line2);border-radius:10px;padding:6px 8px;min-height:94px;background:color-mix(in srgb,var(--panel) 85%,transparent)}
+.mzone.z1{grid-area:z1}.mzone.z2{grid-area:z2}.mzone.z3{grid-area:z3}.mzone.z4{grid-area:z4}
+.zh{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.zl{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.zl .faint,.faint{color:var(--faint);font-size:12px}
+.mcore{grid-area:core;position:relative;width:200px;display:grid;justify-items:center;gap:6px}
+.mcore .ring{width:180px;height:180px}
+.mcu{position:absolute;top:0;left:10px;width:180px;height:180px;display:grid;place-content:center;justify-items:center;text-align:center;animation:mhang 4s ease-in-out infinite}
+@keyframes mhang{0%,100%{transform:translateY(-2px)}50%{transform:translateY(3px)}}
+.mcu .cap{font:600 15px var(--font-m)}
+.mcu .cap.neg{color:var(--bad)}
+.mcu small{font-size:11px;color:var(--faint)}
+.mback{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;max-width:220px}
+.mchip{display:inline-flex;align-items:center;gap:4px;border:1px solid color-mix(in srgb,var(--tc) 55%,var(--line));background:color-mix(in srgb,var(--tc) 10%,var(--panel));border-radius:8px;padding:1px 6px 1px 1px;font-size:12px;max-width:100%}
+.mchip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.mchip i{font:normal 600 11px var(--font-m);color:var(--tc)}
+.mchip:hover{border-color:var(--bad);text-decoration:line-through}
+.mchip.inb{border-style:dashed}.mchip.inb:hover{text-decoration:none;border-color:var(--line2)}
+.mchip.warn{animation:mblink 1s steps(2) infinite}
+@keyframes mblink{50%{border-color:var(--bad)}}
+.mlegend{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:11.5px;color:var(--muted);margin-top:8px}
+.mlegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
+.mstats{padding:10px 14px}
+.kp{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+.kp div{border:1px solid var(--line);border-radius:9px;padding:5px 9px;background:var(--panel2)}
+.kp b{display:block;font-size:16px;font-variant-numeric:tabular-nums}
+.kp span{font-size:11.5px;color:var(--muted)}
+.mstats h4,.mprint h4{margin:10px 0 6px;font-size:13px;color:var(--muted)}
+.mstats h4 small{font-weight:400;color:var(--faint)}
+.abar{display:grid;grid-template-columns:96px minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:12px}
+.abar div{position:relative;height:8px;border-radius:4px;background:var(--panel2);overflow:hidden}
+.abar i{position:absolute;top:0;left:0;height:100%;background:var(--accent);border-radius:4px}
+.abar i.add{background:var(--ok)}
+.abar b{text-align:right;font-variant-numeric:tabular-nums}
+#mChart{width:100%;height:120px;display:block}
+.mprint{padding:4px 14px 12px}
+.mh{margin:0;padding:10px 14px 6px;font-size:14px}
+.mprint .mh{padding-left:0}
+.mh small{font-weight:400;color:var(--faint);font-size:12px}
+.mats{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:13px}
+.pinfo{font-size:12.5px;color:var(--muted);margin-top:6px}
+.tg2{display:inline-block;font-size:11.5px;border:1px solid var(--line2);border-radius:6px;padding:0 6px;margin:1px 0}
+.warnc{color:var(--warn)} .neg{color:var(--bad)}
+.mside{display:grid;gap:12px;align-content:start}
+#mAb{display:grid;gap:8px;padding:0 10px 10px;max-height:60vh;overflow:auto}
+.mpad{padding:0 14px 12px;font-size:13px}
+.ab{border:1px solid var(--line);border-left:3px solid var(--tc);border-radius:9px;padding:7px 9px;background:var(--panel2);font-size:12.5px;display:grid;gap:4px}
+.abh{display:flex;gap:8px;align-items:center}
+.abh>div{flex:1;min-width:0;display:grid;line-height:1.25}
+.abh small{color:var(--faint);font-size:11px}
+.abt{display:flex;gap:4px;flex-wrap:wrap}
+.tg{font-size:11px;font-weight:600;border-radius:5px;padding:0 6px;color:var(--tc,var(--muted));background:color-mix(in srgb,var(--tc,var(--muted)) 14%,transparent)}
+.tg.in{--tc:var(--faint)}
+.tip2{font-size:12.5px;padding:4px 8px;border-radius:6px;background:color-mix(in srgb,var(--accent) 10%,var(--panel));border-left:2px solid var(--accent)}
+.abd{color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.abd.open{display:block}
+.abc{color:var(--muted);font-size:12px}
+.tog{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.apick{display:flex;gap:3px;flex-wrap:wrap}
+.apick button{border:1px solid var(--line2);background:var(--panel);border-radius:6px;padding:0 6px;font-size:11.5px}
+.apick button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+#mAdv{padding:0 10px 10px;display:grid;gap:5px}
+.adv{font-size:12.5px;padding:5px 8px;border-radius:6px;background:var(--panel2);border-left:3px solid var(--line2)}
+.adv.warn{border-color:var(--warn)} .adv.bad{border-color:var(--bad)} .adv.ok{border-color:var(--ok)}
+#mAch{padding:0 10px 10px;display:flex;flex-wrap:wrap;gap:4px}
+.ach{font-size:12px;border:1px solid var(--line2);border-radius:12px;padding:1px 8px;color:var(--faint)}
+.ach.got{color:var(--warn);border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--panel))}
+.mcode{padding-bottom:10px}
+.mcrow{display:flex;gap:6px;padding:0 10px 6px}
+.mcrow input{flex:1;min-width:0;padding:4px 7px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);font:12px var(--font-m)}
+.mtoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:40;background:var(--fg);color:var(--bg);padding:7px 14px;border-radius:9px;font-size:13.5px;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.mtoast.bad{background:var(--bad);color:#fff}
+.mmodal{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}
+.mmodal>.panel{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:14px 16px;position:relative;display:grid;gap:8px;font-size:13.5px}
+.mmodal p{margin:0}
+.mx{position:absolute;top:10px;right:10px}
+@media (max-width:1180px){.mgrid{grid-template-columns:270px minmax(0,1fr)}.mside{grid-column:2}}
+@media (max-width:820px){.mgrid{grid-template-columns:minmax(0,1fr)}.mside{grid-column:auto}.mcat{position:static;max-height:360px}}
+@media (max-width:620px){.mrig{grid-template-columns:minmax(0,1fr);grid-template-areas:"core" "z1" "z2" "z3" "z4"}.mcore{justify-self:center}}
+/* области костюма и перетаскивание */
+.mzones{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-bottom:8px}
+.mzones button{display:grid;justify-items:center;gap:1px;border:1px solid var(--line2);background:var(--panel2);border-radius:9px;padding:4px 2px;font-size:11px;color:var(--muted);min-height:52px;align-content:center}
+.mzones button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--panel));color:var(--fg);box-shadow:0 0 0 1px var(--accent)}
+.mzones .zall{font-weight:700;font-size:13px;line-height:32px}
+.mvh{font-size:12.5px;font-weight:600;margin:2px 2px 4px}
+.mvh small{display:block;font-weight:400;color:var(--faint);font-size:11px}
+.mvar{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:4px;margin-bottom:10px;max-height:236px;overflow:auto}
+.mv{display:grid;justify-items:center;gap:1px;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:4px 2px;font-size:10.5px;line-height:1.15;position:relative;touch-action:none;cursor:grab}
+.mv.on{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok)}
+.mv i{position:absolute;top:2px;right:4px;font:normal 600 10px var(--font-m);color:var(--faint)}
+.mv:hover{border-color:var(--accent)}
+.mrow{cursor:grab;touch-action:pan-y}
+.mchip{touch-action:none;cursor:grab}
+.zh{display:flex;width:100%;border:0;background:none;padding:0;text-align:left;cursor:pointer;border-radius:7px}
+.zh:hover b{color:var(--accent)}
+.zh small{margin-left:auto;font:600 11px var(--font-m);color:var(--faint)}
+.mcu{cursor:pointer}
+.mzone.sel,.mcore.sel .ring{border-color:var(--accent);border-style:solid;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.mcore.sel .ring{border-radius:50%}
+.mzone,.mcore{transition:background .15s,border-color .15s,box-shadow .15s,transform .15s}
+.dz-ok{border-color:var(--ok)!important;border-style:solid!important;background:color-mix(in srgb,var(--ok) 9%,var(--panel))!important}
+.dz-bad{border-color:var(--bad)!important;border-style:solid!important;background:color-mix(in srgb,var(--bad) 8%,var(--panel))!important}
+.dz-hot{transform:scale(1.03);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 45%,transparent),0 8px 24px rgba(0,0,0,.18)}
+.dz-bad.dz-hot{box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 45%,transparent)}
+.mcore.dz-ok,.mcore.dz-bad{border:2px dashed;border-radius:16px}
+.mstand.dz-ok{box-shadow:inset 0 0 0 2px var(--ok)}
+.mstand.dz-hot{box-shadow:inset 0 0 0 3px var(--ok),0 0 30px color-mix(in srgb,var(--ok) 25%,transparent)}
+.mcat.dz-ok{box-shadow:inset 0 0 0 2px var(--bad)}
+.mdragsrc{opacity:.35}
+html.mdragging,html.mdragging *{cursor:grabbing!important;user-select:none!important;-webkit-user-select:none!important}
+.mghost{position:fixed;left:0;top:0;z-index:60;pointer-events:none;display:flex;gap:8px;align-items:center;padding:5px 10px 5px 5px;border-radius:10px;background:var(--panel);border:2px solid var(--accent);box-shadow:0 12px 30px rgba(0,0,0,.3);font-size:13px;max-width:280px;will-change:transform}
+.mghost>div{display:grid;line-height:1.25;min-width:0}
+.mghost small{color:var(--ok);font-size:11.5px}
+.mghost.bad{border-color:var(--bad)} .mghost.bad small{color:var(--bad)}
+.mghost.rm{border-color:var(--bad)} .mghost.rm small{color:var(--bad)}
+.mghost.shake{animation:mshake .3s}
+@keyframes mshake{25%{margin-left:-6px}75%{margin-left:6px}}
+.mpop{animation:mpop .45s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes mpop{0%{transform:scale(.6)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.pult-compact .mzones{grid-template-columns:repeat(6,minmax(0,1fr))}
+.pult-compact .mgrid{grid-template-columns:minmax(0,1fr)}
+.pult-compact .mcat{position:static;max-height:340px}
+.pult-compact .mside{grid-template-columns:minmax(0,1fr)}
+.pult-compact .mrig{grid-template-columns:minmax(0,1fr);grid-template-areas:"core" "z1" "z2" "z3" "z4"}
+.pult-compact .mcore{justify-self:center}
+
 /* ---------- Оверлей поверх игры: только текущий шаг ---------- */
 html.ov-on,html.ov-on body{overflow:hidden}
 #ov{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column}
@@ -185,6 +339,7 @@ html.ov-on,html.ov-on body{overflow:hidden}
   <div class="brand"><div class="badge">РОБ</div><div><h1>Робототехник</h1><small>Сборка киборгов, мехов и ботов · Советы · НРП</small></div></div>
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="build" aria-selected="true">Сборка</button>
+    <button role="tab" data-tab="mod" aria-selected="false">МОД-стенд</button>
     <button role="tab" data-tab="tips" aria-selected="false">Советы и НРП</button>
   </nav>
 </header>
@@ -210,6 +365,8 @@ html.ov-on,html.ov-on body{overflow:hidden}
     </div>
   </div>
 </section>
+
+<section id="v-mod" hidden></section>
 
 <section id="v-tips" hidden>
   <div class="seg subnav" id="tipnav">
@@ -242,6 +399,7 @@ html.ov-on,html.ov-on body{overflow:hidden}
 </div>
 
 <script src="../avd/nrp.js"></script>
+<script src="mod-data.js"></script>
 <script>
 'use strict';
 const $=(id)=>document.getElementById(id);
@@ -352,6 +510,29 @@ const GUIDES=[
       S('Кабель','Заменить проводку — ожоги (burn).'),
       S('Лом','Закрыть крышку.'),
       S('ID','Заблокировать крышку ID.'),
+    ]},
+
+  // ---------- МОД-костюмы (mod_construction.dm, mod_designs.dm, mod_control.dm) ----------
+  {id:'modsuit',g:'МОД-костюмы',name:'МОД-костюм',sub:'Модульный костюм: оболочка, ядро, части, обшивка',
+    res:'Basic Modular Suits — стартовый; обшивки отделов и модули — узлы Advanced/Engineering/Medical/Security Modular Suits',
+    mat:'Мехфаб: оболочка 5 металла + 2,5 плазмы, шлем/нагрудник/перчатки/ботинки по 2,5 металла, обшивка 3 металла + 1,5 стекла + 0,5 плазмы. Ядро МОД, батарея',
+    steps:[
+      S('Мехфаб','Напечатать в разделе MODsuit Chassis: оболочку (MOD Shell), шлем, нагрудник, перчатки и ботинки.','Оболочка 25 с, каждая часть 10 с. Поставьте всё в очередь сразу.'),
+      S('Мехфаб','Напечатать внешнюю обшивку (MOD External Plating) — стандартную или отдела.','Обшивка задаёт броню, вместимость и расход: инженерная (золото), атмосферная, шахтёрская, погрузочная (титан), медицинская (серебро), СБ (уран), космохонк (бананиум). Отделам — после их узла исследований. Сравнить — на вкладке «МОД-стенд».'),
+      S('Ядро МОД','Добыть ядро: ящик «MOD core Crate» в карго (3 ядра, нужен доступ робототехники) или скрафтить.','Крафт: 5 кабеля, 2 прута, 1 стекло, сердце + отвёртка. Сломанное ядро из техтоннелей чинится отвёрткой (5 с).'),
+      S('Ядро МОД','Вставить ядро в оболочку.','Оболочку держите в руке или на столе. Осмотр (Shift+клик) подсказывает, чего не хватает.'),
+      S('Отвёртка','Закрепить ядро.','Лом на этом шаге вынимает ядро обратно.'),
+      S('Шлем','Вставить шлем.'),
+      S('Нагрудник','Вставить нагрудник.'),
+      S('Перчатки','Вставить перчатки.'),
+      S('Ботинки','Вставить ботинки.','Лом снимает последнюю вставленную часть — если ошиблись.'),
+      S('Гаечный ключ','Закрепить сборку.'),
+      S('Отвёртка','Затянуть сборку.'),
+      S('Обшивка','Установить внешнюю обшивку — блок управления МОД готов.','Тема костюма берётся из обшивки и потом не меняется: выбирайте заранее.'),
+      S('Батарея','Кликнуть батареей по блоку управления (костюм выключен).','Без батареи костюм не включится. Чем ёмче, тем дольше работает: стенд считает время по модулям.'),
+      S('Модули','Кликать модулями по блоку управления, пока костюм выключен.','Есть лимит вместимости (обычно 15), несовместимые модули и бронеплиты (не больше 2 одного типа). Собрать набор заранее — вкладка «МОД-стенд».'),
+      S('ID','(По желанию) Провести своей ID по блоку — задать доступ к панели.','Снять модуль: отвёртка (открыть панель) → лом → выбрать модуль; нужен доступ.'),
+      S('Проверка','Надеть блок на спину, развернуть части и включить костюм.','Отдаёте костюм — снимите свой доступ или отдайте с ДНК-замком владельца.'),
     ]},
 
   // ---------- Рабочие мехи ----------
@@ -562,9 +743,10 @@ window.addEventListener('message',(e)=>{
 /* ===================== Вкладки ===================== */
 let tab='build',sub='play';
 function setTab(t){
-  tab=t==='tips'?'tips':'build';
+  tab=['tips','mod'].includes(t)?t:'build';
   document.querySelectorAll('nav.tabs [data-tab]').forEach((b)=>b.setAttribute('aria-selected',b.dataset.tab===tab));
-  $('v-build').hidden=tab!=='build';$('v-tips').hidden=tab!=='tips';
+  $('v-build').hidden=tab!=='build';$('v-tips').hidden=tab!=='tips';$('v-mod').hidden=tab!=='mod';
+  if(tab==='mod'&&window.MOD_SIM) window.MOD_SIM.render();
   store.set('tab',tab);
 }
 function setSub(s){
@@ -726,6 +908,7 @@ $('s-own').addEventListener('click',(e)=>{
 });
 
 /* ===================== Запуск ===================== */
+{const s=document.createElement('script');s.src='mod.js';document.body.appendChild(s)}
 renderNrp();
 setTab(store.get('tab')||'build');
 setSub(store.get('sub')||'play');
