@@ -31,7 +31,8 @@ main{flex:1;display:flex;min-height:0}
 .row{display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:wrap}
 .row label{color:var(--muted);min-width:60px}
 #wrap{flex:1;position:relative;min-width:0;background:#0f1114}
-#cv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.touch .hint-mouse, body:not(.touch) .hint-touch{display:none}
 #insp{width:290px;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:8px 10px}
 #insp .muted{color:var(--muted)}
 .card{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:8px}
@@ -116,7 +117,7 @@ dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 <footer>
   <span id="stHover">—</span>
   <span id="stTool"></span>
-  <span style="margin-left:auto">ЛКМ — действие · ПКМ — снести · R — повернуть · колесо — масштаб · СКМ/пробел+ЛКМ — двигать</span>
+  <span style="margin-left:auto"><span class="hint-mouse">ЛКМ — действие · в «Осмотре» перетащить машину ЛКМ — переставить · ПКМ — снести · R — повернуть · колесо — масштаб · СКМ/пробел+ЛКМ — двигать поле</span><span class="hint-touch">Касание — действие · в «Осмотре» удержать машину и тянуть — переставить, тянуть по пустому — двигать поле · два пальца — масштаб и сдвиг</span></span>
 </footer>
 
 <dialog id="sizeDlg">
@@ -731,6 +732,14 @@ const PIPE_COLORS = {
   grey: '#ffffff', orange: '#ff8119', purple: '#8000b6', red: '#ff0000', violet: '#400080', yellow: '#ffc600',
 };
 const MACHINE_REAGENT_TRANSFER = 10;
+// Манифольд слоёв (/obj/machinery/duct/multilayered, RPD → «Duct Layer-Manifold»): все 5 слоёв, любой цвет,
+// «тупой» — соединяется только по своей оси. update_connects() берёт ось из dir объекта, а RPD dir не задаёт
+// (остаётся SOUTH), поэтому в этом билде манифольд всегда соединяет север и юг. К машинам напрямую не подключается
+// (connect_plumber требует слой 3), с другими манифольдами не соединяется.
+const MANIFOLD_AXIS = 1 | 2; // N | S
+const MANIFOLD_IMG = new Image();
+MANIFOLD_IMG.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAASklEQVR42u3XwQkAMAhDUXdy1yzgBi5o6QI9CK0UfiB4zLtq7l6TtVOejHQTEZWZta+kOyMAAAAAAAAAAAAAAAAAAGAc8NUH3O0C/dLlmCcSRpQAAAAASUVORK5CYII='; // fluid_ducts.dmi: lduct_vertical
+MANIFOLD_IMG.onload = () => draw();
 
 // ===== Реагенты синтезатора (synthesizer.dm, dispensable_reagents) =====
 const SYNTH_REAGENTS = ['Aluminium', 'Bromine', 'Carbon', 'Chlorine', 'Copper', 'Ethanol', 'Fluorine', 'Hydrogen', 'Iodine',
@@ -778,9 +787,11 @@ const st = {
   w: 20, h: 14,
   machines: [],        // порядок = порядок обработки
   ducts: new Map(),    // "x,y,layer" -> {x,y,layer,color}
+  manifolds: new Map(), // "x,y" -> {x,y}
   nextId: 1, tick: 0,
 };
 let nets = [], ductInfo = new Map(); // key -> {net, conn}
+let manifoldInfo = new Map(); // "x,y" -> {net, ends: {1: маска слоёв, 2: маска слоёв}}
 let tool = 'select', placeDir = S, ductColor = 'grey', ductLayer = DEFAULT_LAYER;
 let selected = null; // {x,y}
 let hover = null;
@@ -790,6 +801,10 @@ const dkey = (x, y, l) => `${x},${y},${l}`;
 const inBounds = (x, y) => x >= 0 && y >= 0 && x < st.w && y < st.h;
 const machineAt = (x, y) => st.machines.find(m => m.x === x && m.y === y) || null;
 const ductsAt = (x, y) => LAYERS.map(l => st.ducts.get(dkey(x, y, l))).filter(Boolean);
+const mkey = (x, y) => `${x},${y}`;
+const manifoldAt = (x, y) => st.manifolds.get(mkey(x, y)) || null;
+// перемещаемый объект на тайле: машина или манифольд
+const objAt = (x, y) => { const m = machineAt(x, y); if (m) return { kind: 'm', o: m }; const f = manifoldAt(x, y); return f ? { kind: 'f', o: f } : null; };
 
 function makeMachine(type, x, y, dir) {
   const def = DEFS[type];
@@ -800,26 +815,47 @@ const dem = m => rotMask(DEFS[m.type].dem, m.dir);
 
 // ===== Построение сетей (ductnet) =====
 function rebuild() {
-  nets = []; ductInfo = new Map();
+  nets = []; ductInfo = new Map(); manifoldInfo = new Map();
   let nid = 1;
-  // Умные трубы сами соединяются с соседними трубами того же слоя и цвета
-  for (const [k, d] of st.ducts) {
-    if (ductInfo.has(k)) continue;
-    const net = { id: nid++, ducts: [], suppliers: [], demanders: [] };
+  // Умные трубы сами соединяются с соседними трубами того же слоя и цвета,
+  // а манифольд — со всеми трубами (любой слой и цвет) на тайлах по своей оси
+  const flood = (kind, start) => {
+    const net = { id: nid++, ducts: [], manifolds: [], suppliers: [], demanders: [] };
     nets.push(net);
-    const q = [d]; ductInfo.set(k, { net, conn: 0 });
+    const q = [[kind, start]];
+    if (kind === 'd') ductInfo.set(dkey(start.x, start.y, start.layer), { net, conn: 0 });
+    else manifoldInfo.set(mkey(start.x, start.y), { net, ends: { 1: 0, 2: 0 } });
+    const addDuct = nd => { const nk = dkey(nd.x, nd.y, nd.layer); if (!ductInfo.has(nk)) { ductInfo.set(nk, { net, conn: 0 }); q.push(['d', nd]); } };
     while (q.length) {
-      const c = q.shift(); net.ducts.push(c);
-      for (const dir of CARD) {
-        const [dx, dy] = DXY[dir];
-        const nk = dkey(c.x + dx, c.y + dy, c.layer);
-        const nd = st.ducts.get(nk);
-        if (!nd || nd.color !== c.color) continue;
-        ductInfo.get(dkey(c.x, c.y, c.layer)).conn |= dir;
-        if (!ductInfo.has(nk)) { ductInfo.set(nk, { net, conn: 0 }); q.push(nd); }
+      const [k, c] = q.shift();
+      if (k === 'd') {
+        net.ducts.push(c);
+        const ci = ductInfo.get(dkey(c.x, c.y, c.layer));
+        for (const dir of CARD) {
+          const [dx, dy] = DXY[dir];
+          const nx = c.x + dx, ny = c.y + dy;
+          const nd = st.ducts.get(dkey(nx, ny, c.layer));
+          if (nd && nd.color === c.color) { ci.conn |= dir; addDuct(nd); continue; }
+          const mf = manifoldAt(nx, ny);
+          if (mf && (MANIFOLD_AXIS & dir)) {
+            ci.conn |= dir;
+            const mk = mkey(nx, ny);
+            if (!manifoldInfo.has(mk)) { manifoldInfo.set(mk, { net, ends: { 1: 0, 2: 0 } }); q.push(['f', mf]); }
+          }
+        }
+      } else {
+        net.manifolds.push(c);
+        const ci = manifoldInfo.get(mkey(c.x, c.y));
+        for (const dir of CARD) {
+          if (!(MANIFOLD_AXIS & dir)) continue;
+          const [dx, dy] = DXY[dir];
+          for (const nd of ductsAt(c.x + dx, c.y + dy)) { ci.ends[dir] |= nd.layer; addDuct(nd); }
+        }
       }
     }
-  }
+  };
+  for (const [k, d] of st.ducts) if (!ductInfo.has(k)) flood('d', d);
+  for (const [k, f] of st.manifolds) if (!manifoldInfo.has(k)) flood('f', f);
   // Машины: к трубе стандартного слоя или напрямую к соседней машине (supply -> demand)
   const direct = new Map();
   for (const m of st.machines) {
@@ -1167,6 +1203,7 @@ const fmtTime = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 function placeDuct(x, y) {
   if (!inBounds(x, y)) return false;
   if (machineAt(x, y)) { flash('Трубу нельзя проложить под машиной'); return false; }
+  if (manifoldAt(x, y)) return false; // на тайле манифольда труб нет — протяжка просто проходит сквозь него
   const k = dkey(x, y, ductLayer);
   if (st.ducts.has(k)) return false;
   st.ducts.set(k, { x, y, layer: ductLayer, color: ductColor });
@@ -1175,13 +1212,38 @@ function placeDuct(x, y) {
 function placeMachine(type, x, y) {
   if (!inBounds(x, y)) return false;
   if (machineAt(x, y)) { flash('Тайл уже занят машиной'); return false; }
-  for (const d of ductsAt(x, y)) st.ducts.delete(dkey(x, y, d.layer)); // plumbing/enable() сносит трубы под собой
+  clearDucts(x, y); // plumbing/enable() сносит трубы (и манифольд) под собой
+  st.manifolds.delete(mkey(x, y));
   st.machines.push(makeMachine(type, x, y, placeDir));
+  return true;
+}
+function clearDucts(x, y) { const ds = ductsAt(x, y); for (const d of ds) st.ducts.delete(dkey(x, y, d.layer)); return ds.length; }
+function placeManifold(x, y) {
+  if (!inBounds(x, y)) return false;
+  if (machineAt(x, y)) { flash('Тайл уже занят машиной'); return false; }
+  if (manifoldAt(x, y)) return false;
+  // в игре манифольд не встаёт на тайл, где уже есть труба, — здесь трубы снимаются сами
+  if (clearDucts(x, y)) flash('Трубы с этого тайла сняты: манифольд занимает весь тайл');
+  st.manifolds.set(mkey(x, y), { x, y });
+  return true;
+}
+// Переставить машину или манифольд со всеми настройками и содержимым
+function moveObj(obj, x, y) {
+  if (!obj || !inBounds(x, y)) return false;
+  const o = obj.o;
+  if (o.x === x && o.y === y) return false;
+  const other = objAt(x, y);
+  if (other) { flash(other.kind === 'm' ? 'Тайл уже занят машиной' : 'Тайл занят манифольдом'); return false; }
+  if (clearDucts(x, y)) flash('Трубы под новым местом сняты (машина/манифольд встаёт на весь тайл)');
+  if (obj.kind === 'f') { st.manifolds.delete(mkey(o.x, o.y)); st.manifolds.set(mkey(x, y), o); }
+  if (selected && selected[0] === o.x && selected[1] === o.y) selected = [x, y];
+  o.x = x; o.y = y;
   return true;
 }
 function eraseAt(x, y) {
   const m = machineAt(x, y);
   if (m) { st.machines.splice(st.machines.indexOf(m), 1); return true; }
+  if (st.manifolds.delete(mkey(x, y))) return true;
   const ds = ductsAt(x, y);
   if (!ds.length) return false;
   const own = ds.find(d => d.layer === ductLayer);
@@ -1240,6 +1302,7 @@ function draw() {
     const ds = ductsAt(...focus);
     const pick = ds.find(d => d.layer === ductLayer) || ds[0];
     if (pick) hiNet = ductInfo.get(dkey(pick.x, pick.y, pick.layer))?.net;
+    else if (manifoldAt(...focus)) hiNet = manifoldInfo.get(mkey(...focus))?.net;
   }
 
   // трубы
@@ -1268,8 +1331,30 @@ function draw() {
     }
   }
 
+  // манифольды слоёв
+  for (const f of st.manifolds.values()) {
+    const info = manifoldInfo.get(mkey(f.x, f.y));
+    drawManifold(f.x * s, f.y * s, s, 1, info, hiNet && info && info.net === hiNet);
+  }
+
   // машины
   for (const m of st.machines) drawMachine(m, m.x * s, m.y * s, s, 1);
+
+  // перенос машины/манифольда: призрак на новом месте
+  const mv = movingNow();
+  if (mv && mv.t && inBounds(...mv.t)) {
+    const [tx, ty] = mv.t, o = mv.obj.o, same = o.x === tx && o.y === ty;
+    const blocked = !same && objAt(tx, ty);
+    ctx.save(); ctx.globalAlpha = .35; ctx.fillStyle = '#000'; ctx.fillRect(o.x * s, o.y * s, s, s); ctx.restore();
+    if (!same) {
+      if (mv.obj.kind === 'm') {
+        const g = Object.assign({}, o, { ports: {} });
+        drawMachine(g, tx * s, ty * s, s, .6);
+      } else drawManifold(tx * s, ty * s, s, .6, null, false);
+    }
+    ctx.strokeStyle = blocked ? '#e0524a' : '#5eea8c'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+    ctx.strokeRect(tx * s + 1.5, ty * s + 1.5, s - 3, s - 3); ctx.setLineDash([]);
+  }
 
   // предпросмотр размещения
   if (focus && tool.startsWith('m:') && !machineAt(...focus)) {
@@ -1277,6 +1362,7 @@ function draw() {
     ghost._sup = sup(ghost); ghost._dem = dem(ghost);
     drawMachine(ghost, focus[0] * s, focus[1] * s, s, .5);
   }
+  if (focus && tool === 'manifold' && !objAt(...focus)) drawManifold(focus[0] * s, focus[1] * s, s, .5, null, false);
   if (selected) { ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 2; ctx.strokeRect(selected[0] * s + 1, selected[1] * s + 1, s - 2, s - 2); }
   if (focus) { ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.strokeRect(focus[0] * s + .5, focus[1] * s + .5, s - 1, s - 1); }
   ctx.restore();
@@ -1329,49 +1415,218 @@ function drawMachine(m, x, y, s, alpha) {
   ctx.fillText(def.abbr, x + s / 2, y + s / 2);
   ctx.restore();
 }
+// Манифольд: спрайт билда (lduct_vertical) + гребёнки сверху и снизу, к которым приходят трубы своих слоёв
+function drawManifold(x, y, s, alpha, info, lit) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  if (lit) { ctx.fillStyle = 'rgba(255,230,120,.28)'; ctx.fillRect(x + 1, y + 1, s - 2, s - 2); }
+  ctx.fillStyle = 'rgba(16,18,21,.75)'; roundRect(x + s * .12, y + s * .04, s * .76, s * .92, s * .08); ctx.fill();
+  ctx.strokeStyle = '#7d8696'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.imageSmoothingEnabled = false;
+  if (MANIFOLD_IMG.complete && MANIFOLD_IMG.naturalWidth) ctx.drawImage(MANIFOLD_IMG, x, y, s, s);
+  const cx = x + s / 2;
+  for (const dir of [N, S]) {
+    const mask = info ? info.ends[dir] : 0;
+    const hy = dir === N ? y + s * .16 : y + s * .84; // гребёнка
+    // гребёнка на всю ширину 5 слоёв
+    ctx.strokeStyle = '#9aa3b1'; ctx.lineWidth = Math.max(1.5, s * .07); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx + LAYER_OFF[1] / TS * s, hy); ctx.lineTo(cx + LAYER_OFF[16] / TS * s, hy); ctx.stroke();
+    for (const l of LAYERS) {
+      const off = LAYER_OFF[l] / TS * s, lx = cx + off;
+      if (mask & l) {
+        // труба соседнего тайла кончается на y = край тайла − смещение слоя
+        const ey = dir === N ? y - off : y + s - off;
+        ctx.strokeStyle = '#c9ced6'; ctx.lineWidth = Math.max(1.5, s * .09);
+        ctx.beginPath(); ctx.moveTo(lx, ey); ctx.lineTo(lx, hy); ctx.stroke();
+      }
+      ctx.fillStyle = mask & l ? '#5eea8c' : '#4a5260';
+      ctx.beginPath(); ctx.arc(lx, hy, Math.max(1.2, s * .035), 0, 7); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
 function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
 
 // ===== Мышь / клавиатура =====
+// Мышь и касания идут через pointer events. Касания: тап — действие инструмента; в «Осмотре» тянуть по пустому —
+// двигать поле, удержать машину/манифольд и тянуть — переставить; трубы/снос — вести пальцем; два пальца — масштаб и сдвиг.
 let drag = null, spaceDown = false, spacePanned = false;
-cv.addEventListener('contextmenu', e => e.preventDefault());
-cv.addEventListener('mousedown', e => {
-  const [x, y] = toTile(e.offsetX, e.offsetY);
-  hover = [x, y];
-  if (e.button === 1|| (e.button === 0 && spaceDown)) { if (spaceDown) spacePanned = true; drag ={ pan: true, sx: e.clientX, sy: e.clientY, ox: view.ox, oy: view.oy }; e.preventDefault(); return; }
-  if (e.button === 2) { drag = { erase: true }; if (inBounds(x, y) && eraseAt(x, y)) changed(); return; }
-  if (e.button !== 0 || !inBounds(x, y)) return;
+let moveArm = null;   // «Переставить» из инспектора: ждём тап/клик по новому месту
+let gesture = null;   // текущее касание одним пальцем
+let pinch = null;     // два пальца
+const touches = new Map(); // pointerId -> [x, y]
+const LONG_PRESS = 380, TAP_SLOP = 8;
+const evPos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+const sameTile = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
+function movingNow() {
+  if (drag && drag.move && drag.started) return { obj: drag.move, t: hover };
+  if (gesture && gesture.mode === 'move') return { obj: gesture.obj, t: hover };
+  if (moveArm) return { obj: moveArm, t: hover };
+  return null;
+}
+function armMove(obj) {
+  moveArm = obj; setTool('select');
+  flash(document.body.classList.contains('touch') ? 'Коснитесь тайла, куда переставить (Esc/повторно «Переставить» — отмена)' : 'Кликните по тайлу, куда переставить (Esc — отмена)', 4000);
+  renderInspector(); draw();
+}
+function finishArmedMove(t) {
+  const obj = moveArm; moveArm = null;
+  if (!sameTile(t, [obj.o.x, obj.o.y]) && moveObj(obj, ...t)) { changed(); return; }
+  renderInspector(); draw();
+}
+// при быстром движении проходим все промежуточные тайлы (Г-образно, чтобы трубы не стыковались по диагонали)
+function paintPath(from, t, isDuct) {
+  const path = [];
+  let [x, y] = from || t;
+  while (x !== t[0]) { x += Math.sign(t[0] - x); path.push([x, y]); }
+  while (y !== t[1]) { y += Math.sign(t[1] - y); path.push([x, y]); }
+  if (!path.length) path.push(t);
+  let any = false;
+  for (const [x, y] of path) {
+    if (!inBounds(x, y)) continue;
+    if (isDuct ? placeDuct(x, y) : eraseAt(x, y)) any = true;
+  }
+  if (any) changed(!isDuct);
+}
+// одиночное действие по тайлу (клик ЛКМ / тап)
+function actAt(x, y) {
+  if (!inBounds(x, y)) { if (moveArm) { moveArm = null; draw(); } return; }
+  if (moveArm) return finishArmedMove([x, y]);
   if (tool === 'select') { selected = [x, y]; renderInspector(); draw(); return; }
+  if (tool === 'duct') { if (placeDuct(x, y)) changed(false); renderInspector(); return; }
+  if (tool === 'erase') { if (eraseAt(x, y)) changed(); return; }
+  if (tool === 'manifold') { if (placeManifold(x, y)) { selected = [x, y]; changed(); } return; }
+  if (tool.startsWith('m:')) { if (placeMachine(tool.slice(2), x, y)) { selected = [x, y]; changed(); } }
+}
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+// ---- мышь ----
+function mouseDown(e) {
+  const [px, py] = evPos(e);
+  const [x, y] = toTile(px, py);
+  hover = [x, y];
+  if (e.button === 1 || (e.button === 0 && spaceDown)) { if (spaceDown) spacePanned = true; drag = { pan: true, sx: e.clientX, sy: e.clientY, ox: view.ox, oy: view.oy }; e.preventDefault(); return; }
+  if (e.button === 2) { if (moveArm) { moveArm = null; draw(); return; } drag = { erase: true }; if (inBounds(x, y) && eraseAt(x, y)) changed(); return; }
+  if (e.button !== 0 || !inBounds(x, y)) return;
+  if (moveArm) return finishArmedMove([x, y]);
+  if (tool === 'select') {
+    selected = [x, y]; renderInspector();
+    const obj = objAt(x, y);
+    if (obj) drag = { move: obj, from: [x, y], started: false };
+    draw(); return;
+  }
   if (tool === 'duct') { drag = { duct: true }; if (placeDuct(x, y)) changed(false); return; }
   if (tool === 'erase') { drag = { erase: true }; if (eraseAt(x, y)) changed(); return; }
-  if (tool.startsWith('m:')) {
-    if (placeMachine(tool.slice(2), x, y)) { selected = [x, y]; changed(); }
+  actAt(x, y);
+}
+function mouseUp() {
+  if (drag && drag.duct) renderInspector();
+  if (drag && drag.move && drag.started && hover && !sameTile(hover, drag.from)) {
+    if (moveObj(drag.move, ...hover)) { drag = null; changed(); return; }
   }
-});
-addEventListener('mouseup', () => { if (drag && drag.duct) renderInspector(); drag = null; });
-cv.addEventListener('mousemove', e => {
+  const wasMove = drag && drag.move && drag.started;
+  drag = null;
+  if (wasMove) draw();
+}
+function mouseMove(e) {
   if (drag && drag.pan) { view.ox = drag.ox + e.clientX - drag.sx; view.oy = drag.oy + e.clientY - drag.sy; draw(); return; }
-  const t = toTile(e.offsetX, e.offsetY);
+  const t = toTile(...evPos(e));
   const prev = hover;
-  const movedTile = !hover || hover[0] !== t[0] || hover[1] !== t[1];
+  const movedTile = !sameTile(hover, t);
   hover = t;
-  if (drag && movedTile && (drag.duct || drag.erase)) {
-    // при быстром движении мыши проходим все промежуточные тайлы
-    // (Г-образно, чтобы трубы не стыковались по диагонали)
-    const from = prev || t, path = [];
-    let [x, y] = from;
-    while (x !== t[0]) { x += Math.sign(t[0] - x); path.push([x, y]); }
-    while (y !== t[1]) { y += Math.sign(t[1] - y); path.push([x, y]); }
-    if (!path.length) path.push(t);
-    let any = false;
-    for (const [x, y] of path) {
-      if (!inBounds(x, y)) continue;
-      if (drag.duct ? placeDuct(x, y) : eraseAt(x, y)) any = true;
-    }
-    if (any) changed(drag.erase);
-  }
+  if (drag && drag.move && movedTile && !sameTile(t, drag.from)) drag.started = true;
+  if (drag && movedTile && (drag.duct || drag.erase)) paintPath(prev, t, !!drag.duct);
+  cv.style.cursor = (drag && drag.move && drag.started) || moveArm ? 'grabbing' : (tool === 'select' && inBounds(...t) && objAt(...t) ? 'grab' : '');
   if (movedTile) { updateHover(); draw(); }
+}
+
+// ---- касания ----
+function touchStart(e) {
+  const p = evPos(e), t = toTile(...p);
+  hover = t; updateHover();
+  const obj = tool === 'select' && !moveArm && inBounds(...t) ? objAt(...t) : null;
+  gesture = { id: e.pointerId, sx: p[0], sy: p[1], ox: view.ox, oy: view.oy, tile: t, last: t, mode: 'pending', obj };
+  if (obj) gesture.lp = setTimeout(() => {
+    if (!gesture || gesture.mode !== 'pending') return;
+    gesture.mode = 'move'; selected = t; renderInspector();
+    try { navigator.vibrate && navigator.vibrate(25); } catch (err) {}
+    flash('Тяните на новое место и отпустите');
+    draw();
+  }, LONG_PRESS);
+  draw();
+}
+function touchMove(p) {
+  const g = gesture; if (!g || g.dead) return;
+  const t = toTile(...p);
+  if (g.mode === 'pending' && Math.hypot(p[0] - g.sx, p[1] - g.sy) > TAP_SLOP) {
+    clearTimeout(g.lp);
+    if (!moveArm && (tool === 'duct' || tool === 'erase')) { g.mode = 'paint'; paintPath(null, g.tile, tool === 'duct'); }
+    else g.mode = 'pan';
+  }
+  if (g.mode === 'pan') { view.ox = g.ox + p[0] - g.sx; view.oy = g.oy + p[1] - g.sy; draw(); return; }
+  if (g.mode === 'move') { if (!sameTile(hover, t)) { hover = t; updateHover(); draw(); } return; }
+  if (g.mode === 'paint' && !sameTile(g.last, t)) { paintPath(g.last, t, tool === 'duct'); g.last = t; hover = t; updateHover(); draw(); }
+}
+function touchEnd(p, cancelled) {
+  const g = gesture; gesture = null;
+  if (!g) return;
+  clearTimeout(g.lp);
+  if (g.dead || cancelled) { draw(); return; }
+  if (g.mode === 'pending') actAt(...g.tile);
+  else if (g.mode === 'move') { const t = toTile(...p); if (moveObj(g.obj, ...t)) changed(); else { renderInspector(); draw(); } }
+  else if (g.mode === 'paint') renderInspector();
+}
+function pinchState() {
+  const [a, b] = [...touches.values()];
+  return { d: Math.max(1, Math.hypot(a[0] - b[0], a[1] - b[1])), cx: (a[0] + b[0]) / 2, cy: (a[1] + b[1]) / 2 };
+}
+function startPinch() {
+  if (gesture) {
+    clearTimeout(gesture.lp);
+    if (gesture.mode === 'paint') renderInspector();
+  }
+  gesture = { dead: true }; // оставшийся палец ничего не делает, пока его не отпустят
+  pinch = Object.assign(pinchState(), { scale: view.scale, ox: view.ox, oy: view.oy });
+  draw();
+}
+function updatePinch() {
+  const c = pinchState();
+  const ns = Math.max(.3, Math.min(5, pinch.scale * c.d / pinch.d));
+  // точка поля под начальным центром щипка остаётся под пальцами
+  const wx = (pinch.cx - pinch.ox) / pinch.scale, wy = (pinch.cy - pinch.oy) / pinch.scale;
+  view.scale = ns; view.ox = c.cx - wx * ns; view.oy = c.cy - wy * ns;
+  draw();
+}
+function useTouchUi(on) { document.body.classList.toggle('touch', on); }
+try { useTouchUi(matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches); } catch (e) {}
+
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse') { useTouchUi(false); try { cv.setPointerCapture(e.pointerId); } catch (err) {} return mouseDown(e); }
+  useTouchUi(true);
+  e.preventDefault();
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  touches.set(e.pointerId, evPos(e));
+  if (touches.size === 2) return startPinch();
+  if (touches.size > 2) return;
+  if (!pinch) touchStart(e);
 });
-cv.addEventListener('mouseleave', () => { hover = null; updateHover(); draw(); });
+cv.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse') return mouseMove(e);
+  if (!touches.has(e.pointerId)) return;
+  const p = evPos(e); touches.set(e.pointerId, p);
+  if (pinch) { if (touches.size >= 2) updatePinch(); return; }
+  if (gesture && gesture.id === e.pointerId) touchMove(p);
+});
+const pointerEnd = e => {
+  if (e.pointerType === 'mouse') { if (e.type === 'pointerup' || e.type === 'pointercancel') mouseUp(); return; }
+  if (!touches.has(e.pointerId)) return;
+  const p = touches.get(e.pointerId);
+  touches.delete(e.pointerId);
+  if (pinch) { if (!touches.size) { pinch = null; gesture = null; } return; }
+  if (gesture && gesture.id === e.pointerId) touchEnd(evPos(e) || p, e.type === 'pointercancel');
+};
+cv.addEventListener('pointerup', pointerEnd);
+cv.addEventListener('pointercancel', pointerEnd);
+cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !drag) { hover = null; updateHover(); draw(); } });
 cv.addEventListener('wheel', e => {
   e.preventDefault();
   const k = e.deltaY < 0 ? 1.15 : 1 / 1.15;
@@ -1386,10 +1641,13 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (k === 'r' || k === 'к') {
     const target = hover && machineAt(...hover);
-    if (target && !tool.startsWith('m:')) { rotateMachine(target, !e.shiftKey); changed(); }
+    if (hover && !target && manifoldAt(...hover) && !tool.startsWith('m:')) flash('Манифольд в этом билде всегда соединяет север и юг — повернуть нельзя');
+    else if (target && !tool.startsWith('m:')) { rotateMachine(target, !e.shiftKey); changed(); }
     else { const order = [N, E, S, W]; placeDir = order[(order.indexOf(placeDir) + (e.shiftKey ? 3 : 1)) % 4]; renderTools(); draw(); }
   }
+  else if (k === 'escape' && moveArm) { moveArm = null; updateHover(); draw(); }
   else if (k === 'v' || k === 'м' || k === 'escape') setTool('select');
+  else if (k === 'l' || k === 'д') setTool('manifold');
   else if (k === 'd' || k === 'в') setTool('duct');
   else if (k === 'x' || k === 'ч') setTool('erase');
   else if (k === 'delete' && selected) { if (eraseAt(...selected)) changed(); }
@@ -1415,6 +1673,7 @@ function renderTools() {
     ${btn('erase', 'Снести', '<span class="sw" style="background:#7a2f2f">✕</span>', 'X')}
     <div class="row"><label>Цвет</label><select id="selColor">${Object.keys(PIPE_COLORS).map(c => `<option ${c === ductColor ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
     <div class="row"><label>Слой</label><select id="selLayer">${LAYERS.map(l => `<option value="${l}" ${l === ductLayer ? 'selected' : ''}>${LAYER_NAME[l]}</option>`).join('')}</select></div>
+    ${btn('manifold', 'Манифольд слоёв (RPD)', `<span class="sw" style="background:#3b4250"><img src="${MANIFOLD_IMG.src}" width="16" height="16" style="image-rendering:pixelated" alt=""></span>`, 'L')}
     <h3>Plumbing Constructor</h3>
     <div class="row"><label>Поворот</label><span class="seg">${[N, E, S, W].map(d => `<button class="${d === placeDir ? 'on' : ''}" data-pdir="${d}" title="${DIR_NAME[d]}">${DIR_SHORT[d]}</button>`).join('')}</span></div>
     ${MACHINE_ORDER.map(t => btn('m:' + t, DEFS[t].name, `<span class="sw" style="background:${DEFS[t].color}">${DEFS[t].abbr}</span>`)).join('')}
@@ -1424,8 +1683,9 @@ function renderTools() {
       <div><i style="background:#3f86e8"></i>отдаёт в сеть (supply)</div>
       <div>Тусклый порт — ни к чему не подключён.</div>
       <div>Треугольник — куда «смотрит» машина.</div>
-      <div>Машины подключаются только к трубам 3-го (стандартного) слоя. Трубы разных цветов и слоёв не соединяются.</div>
-      <div>Наведи на трубу — подсветится вся её сеть.</div>
+      <div>Машины подключаются только к трубам 3-го (стандартного) слоя. Трубы разных цветов и слоёв сами не соединяются.</div>
+      <div>Манифольд слоёв (RPD → Fluid Ducts → Duct Layer-Manifold) сводит в одну сеть все трубы сверху и снизу от себя — любого слоя и цвета. К машине его подводят трубой 3-го слоя: машина ← труба 3-го слоя ← манифольд ← труба нужного слоя. В этом билде он всегда соединяет север–юг.</div>
+      <div><span class="hint-mouse">Наведи на трубу — подсветится вся её сеть. В «Осмотре» машину или манифольд можно перетащить ЛКМ на новое место — настройки и содержимое сохранятся.</span><span class="hint-touch">Коснись трубы — подсветится вся её сеть. В «Осмотре» удержи машину или манифольд и тяни на новое место (или кнопка «Переставить» в инспекторе) — настройки и содержимое сохранятся. Масштаб — двумя пальцами.</span></div>
     </div>`;
   document.getElementById('stTool').innerHTML = `Инструмент: <b>${toolLabel()}</b>${tool.startsWith('m:') ? ` · направление <b>${DIR_NAME[placeDir]}</b>` : ''}`;
 }
@@ -1433,6 +1693,7 @@ function toolLabel() {
   if (tool === 'select') return 'Осмотр';
   if (tool === 'duct') return `Трубы (${ductColor}, ${LAYER_NAME[ductLayer]})`;
   if (tool === 'erase') return 'Снести';
+  if (tool === 'manifold') return 'Манифольд слоёв (север–юг)';
   return DEFS[tool.slice(2)].name;
 }
 document.getElementById('tools').addEventListener('click', e => {
@@ -1450,7 +1711,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const r2 = v => Math.round(v * 100) / 100;
 function netSummary(net) {
   const names = arr => arr.map(p => `${DEFS[p.m.type].abbr}#${p.m.id}`).join(', ') || '—';
-  return `сеть #${net.id}${net.direct ? ' (напрямую)' : `, труб: ${net.ducts.length}`}<br>
+  const mf = (net.manifolds || []).length;
+  return `сеть #${net.id}${net.direct ? ' (напрямую)' : `, труб: ${net.ducts.length}${mf ? `, манифольдов: ${mf}` : ''}`}<br>
     <span class="muted">отдают:</span> ${names(net.suppliers)}<br><span class="muted">забирают:</span> ${names(net.demanders)}`;
 }
 function renderInspector() {
@@ -1472,11 +1734,24 @@ function renderInspector() {
   for (const d of ds) {
     const info = ductInfo.get(dkey(x, y, d.layer));
     h += `<div class="card"><div class="title">Труба · ${LAYER_NAME[d.layer]}</div>
-      <div class="sub">цвет: ${d.color}${d.layer !== DEFAULT_LAYER ? ' · машины к этому слою не подключаются' : ''}</div>
+      <div class="sub">цвет: ${d.color}${d.layer !== DEFAULT_LAYER ? ' · машины к этому слою напрямую не подключаются — переход на 3-й слой через манифольд слоёв' : ''}</div>
       <div style="font-size:12px">${info ? netSummary(info.net) : ''}</div>
       <div class="row"><button data-act="delduct" data-layer="${d.layer}">Снять трубу</button></div></div>`;
   }
-  if (!m && !ds.length) h += `<div class="muted">Пустой тайл.</div>`;
+  const mf = manifoldAt(x, y);
+  if (mf) {
+    const info = manifoldInfo.get(mkey(x, y));
+    const ends = dir => { const mask = info ? info.ends[dir] : 0; return mask ? LAYERS.filter(l => mask & l).map(l => l === DEFAULT_LAYER ? '3 (стандарт)' : String(LAYERS.indexOf(l) + 1)).join(', ') : '<span class="muted">ничего</span>'; };
+    const nearMachine = [N, S, E, W].some(d => { const [dx, dy] = DXY[d]; return machineAt(x + dx, y + dy); });
+    h += `<div class="card"><div class="title">Манифольд слоёв труб</div>
+      <div class="sub">duct layer-manifold (/obj/machinery/duct/multilayered) · RPD → Fluid Ducts → Duct Layer-Manifold. Соединяет трубы всех 5 слоёв и любых цветов на тайлах с севера и с юга в одну сеть. Сам к машинам не подключается, с другими манифольдами не соединяется. После установки — затянуть гаечным ключом (или RPD в режиме ключа).</div>
+      <div style="font-size:12px">Север: слои ${ends(N)}<br>Юг: слои ${ends(S)}</div>
+      <div style="font-size:12px;margin-top:4px">${info ? netSummary(info.net) : ''}</div>
+      ${nearMachine ? '<div class="warn">Рядом машина: к манифольду она не подключится — нужна труба 3-го слоя между ними.</div>' : ''}
+      <div class="warn" style="color:var(--muted)">В этом билде ось всегда север–юг: RPD передаёт «горизонтальное» направление, но update_connects() берёт dir объекта, а он остаётся SOUTH.</div>
+      <div class="row"><button data-act="move" class="${moveArm && moveArm.o === mf ? 'on' : ''}">Переставить</button><button data-act="delmf">Снять манифольд</button></div></div>`;
+  }
+  if (!m && !ds.length && !mf) h += `<div class="muted">Пустой тайл.</div>`;
   el.innerHTML = h;
   updateDynamic();
 }
@@ -1488,7 +1763,7 @@ function machineCard(m) {
     <div id="ports"></div></div>`;
   h += `<div class="card">${settingsHtml(m)}</div>`;
   h += `<div class="card"><div class="title">Содержимое</div><div id="contents"></div>
-    <div class="row"><button data-act="plunge" title="Вантуз: вылить всё на пол">Вантуз (очистить)</button><button data-act="delete">Разобрать</button></div></div>`;
+    <div class="row"><button data-act="plunge" title="Вантуз: вылить всё на пол">Вантуз (очистить)</button><button data-act="move" class="${moveArm && moveArm.o === m ? 'on' : ''}" title="Перенести на другой тайл с настройками и содержимым">Переставить</button><button data-act="delete">Разобрать</button></div></div>`;
   h += `<div class="card"><div class="title">Реакции в этой машине</div><div id="mlog"></div></div>`;
   return h;
 }
@@ -1588,6 +1863,12 @@ insp.addEventListener('click', e => {
   const m = machineAt(...selected);
   const a = b.dataset.act;
   if (a === 'delduct') { st.ducts.delete(dkey(selected[0], selected[1], +b.dataset.layer)); return changed(); }
+  if (a === 'delmf') { st.manifolds.delete(mkey(...selected)); return changed(); }
+  if (a === 'move') {
+    const obj = objAt(...selected); if (!obj) return;
+    if (moveArm && moveArm.o === obj.o) { moveArm = null; updateHover(); renderInspector(); draw(); return; }
+    return armMove(obj);
+  }
   if (!m) return;
   switch (a) {
     case 'dir': m.dir = +b.dataset.v; break;
@@ -1640,15 +1921,17 @@ insp.addEventListener('change', e => {
 
 function updateHover() {
   const el = document.getElementById('stHover');
-  if (!hover || !inBounds(...hover)) { el.textContent = '—'; return; }
+  if (!hover || !inBounds(...hover)) { if (!flashT) el.textContent = '—'; return; }
+  if (flashT) return; // не затираем свежее сообщение
   const [x, y] = hover; const m = machineAt(x, y); const ds = ductsAt(x, y);
   let s = `<b>${x}, ${y}</b>`;
   if (m) s += ` · ${DEFS[m.type].name} #${m.id} (${r2(total(m))}/${m.maxVol})`;
+  if (manifoldAt(x, y)) { const mi = manifoldInfo.get(mkey(x, y)); s += ` · манифольд слоёв → ${mi ? 'сеть #' + mi.net.id : 'не подключён'}`; }
   if (ds.length) s += ` · трубы: ${ds.map(d => `${d.color}/${LAYER_NAME[d.layer]} → сеть #${ductInfo.get(dkey(x, y, d.layer))?.net.id}`).join('; ')}`;
   el.innerHTML = s;
 }
 let flashT;
-function flash(msg) { const el = document.getElementById('stHover'); el.innerHTML = `<span style="color:var(--warn)">${esc(msg)}</span>`; clearTimeout(flashT); flashT = setTimeout(updateHover, 1500); }
+function flash(msg, ms = 1800) { const el = document.getElementById('stHover'); el.innerHTML = `<span style="color:var(--warn)">${esc(msg)}</span>`; clearTimeout(flashT); flashT = setTimeout(() => { flashT = null; updateHover(); }, ms); }
 
 // ===== Симуляция: запуск =====
 let timer = null;
@@ -1676,7 +1959,8 @@ document.getElementById('bReset').onclick = () => {
 const dlg = document.getElementById('sizeDlg'), inW = document.getElementById('inW'), inH = document.getElementById('inH');
 function sizeWarn() {
   const w = +inW.value, h = +inH.value;
-  const lost = st.machines.filter(m => m.x >= w || m.y >= h).length + [...st.ducts.values()].filter(d => d.x >= w || d.y >= h).length;
+  const out = o => o.x >= w || o.y >= h;
+  const lost = st.machines.filter(out).length + [...st.ducts.values()].filter(out).length + [...st.manifolds.values()].filter(out).length;
   document.getElementById('sizeWarn').textContent = lost ? `Вне нового поля окажутся объекты (${lost} шт.) — они будут удалены.` : '';
 }
 document.getElementById('bSize').onclick = () => { inW.value = st.w; inH.value = st.h; sizeWarn(); dlg.showModal(); inW.select(); };
@@ -1689,7 +1973,9 @@ document.getElementById('sizeOk').onclick = () => {
   st.w = w; st.h = h;
   st.machines = st.machines.filter(m => m.x < w && m.y < h);
   for (const [k, d] of st.ducts) if (d.x >= w || d.y >= h) st.ducts.delete(k);
+  for (const [k, f] of st.manifolds) if (f.x >= w || f.y >= h) st.manifolds.delete(k);
   if (selected && !inBounds(...selected)) selected = null;
+  moveArm = null;
   dlg.close(); fitView(); changed();
 };
 dlg.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('sizeOk').click(); });
@@ -1699,13 +1985,15 @@ const SAVE_KEY = 'ss13-chemfactory-v1';
 function serialize() {
   return { v: 1, w: st.w, h: st.h, nextId: st.nextId, tick: st.tick,
     machines: st.machines.map(m => { const o = { ...m }; delete o.ports; delete o._sup; delete o._dem; return o; }),
-    ducts: [...st.ducts.values()] };
+    ducts: [...st.ducts.values()], manifolds: [...st.manifolds.values()].map(f => ({ x: f.x, y: f.y })) };
 }
 function load(data) {
   st.w = data.w; st.h = data.h; st.nextId = data.nextId || 1; st.tick = data.tick || 0;
   st.machines = (data.machines || []).filter(m => DEFS[m.type]).map(m => Object.assign(makeMachine(m.type, m.x, m.y, m.dir), m));
   st.nextId = Math.max(st.nextId, ...st.machines.map(m => m.id + 1), 1);
   st.ducts = new Map((data.ducts || []).map(d => [dkey(d.x, d.y, d.layer), d]));
+  st.manifolds = new Map((data.manifolds || []).map(f => [mkey(f.x, f.y), { x: f.x, y: f.y }]));
+  moveArm = null;
 }
 let saveT;
 function save() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(serialize())); } catch (e) {} }, 300); }
@@ -1722,13 +2010,13 @@ document.getElementById('fImport').onchange = async e => {
 };
 document.getElementById('bClear').onclick = () => {
   if (!confirm('Удалить все машины и трубы?')) return;
-  st.machines = []; st.ducts.clear(); st.tick = 0; selected = null; changed();
+  st.machines = []; st.ducts.clear(); st.manifolds.clear(); st.tick = 0; selected = null; moveArm = null; changed();
 };
 
 document.getElementById('bDemo').onclick = () => {
-  if ((st.machines.length || st.ducts.size) && !confirm('Заменить текущую постройку примером?')) return;
+  if ((st.machines.length || st.ducts.size || st.manifolds.size) && !confirm('Заменить текущую постройку примером?')) return;
   const keep = { placeDir, ductColor, ductLayer };
-  st.machines = []; st.ducts.clear(); st.tick = 0; st.w = Math.max(st.w, 14); st.h = Math.max(st.h, 8);
+  st.machines = []; st.ducts.clear(); st.manifolds.clear(); moveArm = null; st.tick = 0; st.w = Math.max(st.w, 14); st.h = Math.max(st.h, 8);
   ductColor = 'grey'; ductLayer = DEFAULT_LAYER; placeDir = S;
   placeMachine('synthesizer', 2, 4); placeMachine('synthesizer', 4, 4);
   for (let x = 2; x <= 6; x++) placeDuct(x, 3);
