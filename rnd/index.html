@@ -87,11 +87,20 @@ input[type=search],input[type=number],select{padding:6px 9px;border:1px solid va
 
 /* карта */
 .mapwrap{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:14px;align-items:start}
-.map{position:relative;overflow:auto;padding:10px;max-height:calc(100vh - 150px)}
+.map{position:relative;overflow:auto;padding:0;height:calc(100vh - 250px);min-height:420px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;overscroll-behavior:contain}
+.map.panning{cursor:grabbing}
+.map.panning .nd{pointer-events:none}
+.zoomer{position:relative}
+.zin{position:absolute;left:0;top:0;transform-origin:0 0;padding:10px}
 .cols{display:flex;gap:26px;position:relative;z-index:1;width:max-content}
-.col{display:flex;flex-direction:column;gap:4px;width:188px}
-.col h4{margin:0 0 4px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);position:sticky;top:-10px;background:var(--panel);padding:4px 0;z-index:2}
-.nd{display:flex;gap:6px;align-items:center;text-align:left;border:1px solid var(--line);border-left:4px solid var(--cc);background:var(--panel);border-radius:7px;padding:3px 7px;cursor:pointer;font-size:12.5px;line-height:1.25;min-height:28px}
+.col{display:flex;flex-direction:column;gap:4px;width:206px}
+.col h4{margin:0 0 4px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);padding:4px 0}
+.nd{display:flex;gap:6px;align-items:center;text-align:left;border:1px solid var(--line);border-left:4px solid var(--cc);background:var(--panel);border-radius:7px;padding:2px 7px 2px 4px;cursor:pointer;font-size:12.5px;line-height:1.25;min-height:32px;transition:transform .12s,box-shadow .2s}
+.nd:active{transform:scale(.97)}
+.nd.afford{box-shadow:0 0 0 2px var(--ok);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 45%,transparent)}}
+.nd.boom{animation:boom .9s ease-out}
+@keyframes boom{0%{transform:scale(1.18);box-shadow:0 0 0 0 var(--ok)}100%{transform:scale(1);box-shadow:0 0 0 14px transparent}}
 .nd:hover{border-color:var(--line2);background:var(--panel2)}
 .nd span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .nd small{color:var(--faint);font-variant-numeric:tabular-nums;font-size:11px}
@@ -104,7 +113,7 @@ input[type=search],input[type=number],select{padding:6px 9px;border:1px solid va
 .nd.anc{background:color-mix(in srgb,var(--warn) 16%,var(--panel))}
 .nd.kid{background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
 .nd.hit{box-shadow:0 0 0 2px var(--warn)}
-svg.links{position:absolute;left:0;top:0;pointer-events:none;z-index:0;overflow:visible}
+svg.links{position:absolute;left:10px;top:10px;pointer-events:none;z-index:0;overflow:visible}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:0 0 10px}
 .legend b{display:inline-block;width:14px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid var(--line2)}
 
@@ -157,11 +166,66 @@ td .dot{width:8px;height:8px;border-radius:50%;background:var(--cc);flex:none}
 @media (max-width:1000px){
   .mapwrap,.plan{grid-template-columns:minmax(0,1fr)}
   .detail{position:static;max-height:none}
-  .map{max-height:70vh}
+  .map{height:70vh}
 }
 @media (max-width:560px){
   .brand small{display:none} nav{margin-left:0;width:100%;overflow-x:auto} nav button{flex:1;padding:7px 8px}
 }
+
+/* спрайты */
+.spr{display:inline-block;flex:none;image-rendering:pixelated;background-repeat:no-repeat;vertical-align:middle}
+.spr.none{background:none}
+.detail .hrow{display:flex;gap:10px;align-items:center}
+.detail .hrow .spr{background-color:var(--panel);border:1px solid var(--line);border-radius:8px}
+.sec.why{background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
+.sec.why p{font-size:14.5px;margin:0}
+.dgrid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.dtile{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:var(--panel2);cursor:pointer;padding:0}
+.dtile:hover{border-color:var(--accent);transform:translateY(-1px)}
+.dz{display:grid;grid-template-columns:32px minmax(0,1fr);gap:9px;align-items:start}
+.dz.flash{animation:dzf 1.2s ease-out}
+@keyframes dzf{0%{background:color-mix(in srgb,var(--accent) 30%,var(--panel2))}}
+.path li button{display:flex;gap:6px;align-items:center}
+.zoombar{display:flex;gap:2px}
+.zoombar .btn{min-width:34px}
+.sheetx{display:none;position:absolute;top:8px;right:10px;border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--muted)}
+.detail .head{position:relative}
+/* симуляция */
+.simbar{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;padding:7px 12px;margin-bottom:12px;font-size:13.5px}
+.simbar.on{border-color:color-mix(in srgb,var(--ok) 55%,var(--line));background:color-mix(in srgb,var(--ok) 6%,var(--panel))}
+.simbar .seg{display:flex;gap:2px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:2px}
+.simbar .seg button{border:0;background:none;padding:2px 8px;border-radius:6px;cursor:pointer;color:var(--muted);font-size:12.5px}
+.simbar .seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.simbar .auto{display:flex;gap:5px;align-items:center;color:var(--muted)}
+.siminfo{flex:1 1 260px;min-width:0}
+.siminfo .pts{font-size:16px;font-variant-numeric:tabular-nums;color:var(--ok)}
+/* подсказка при наведении */
+.tip{position:fixed;z-index:30;width:300px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:13px;pointer-events:none}
+.tip b{font-size:14px}
+.tip p{margin:6px 0 0}
+.tmeta{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.ticons{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.ticons .spr{background-color:var(--panel2);border-radius:5px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:40;background:var(--fg);color:var(--bg);padding:7px 14px;border-radius:9px;font-size:13.5px;box-shadow:0 6px 18px rgba(0,0,0,.25);max-width:calc(100vw - 32px)}
+.toast.show{animation:toastin .25s ease-out}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,8px)}}
+@media (prefers-reduced-motion:reduce){.nd.afford,.nd.boom,.toast.show,.dz.flash{animation:none}}
+
+/* Компактное окно Пульта: только дерево, карточка узла выезжает снизу */
+.pult-compact header,.pult-compact .chips,.pult-compact .legend,.pult-compact .hidechk,.pult-compact .resetbtn,.pult-compact .foot{display:none!important}
+.pult-compact main{padding-top:6px}
+.pult-compact .maptools{flex-wrap:nowrap;gap:6px;margin-bottom:6px}
+.pult-compact .maptools input[type=search]{flex:1 1 auto;min-width:0;padding:4px 8px}
+.pult-compact .simbar{padding:5px 8px;gap:5px 8px;margin-bottom:6px;font-size:12.5px}
+.pult-compact .simbar .auto{font-size:12px}
+.pult-compact .siminfo{flex-basis:100%}
+.pult-compact .simbar:not(.on) .siminfo{display:none}
+.pult-compact .map{height:calc(100vh - 128px);min-height:240px}
+.pult-compact .detail{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:25;max-height:68vh;border-radius:14px 14px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.28);transform:translateY(105%);transition:transform .22s ease-out;overflow:auto}
+.pult-compact .detail.open{transform:none}
+.pult-compact .sheetx{display:block}
+.pult-compact .detail .head{padding-right:36px}
+.pult-compact .tip{display:none}
 /* В компактном окне Пульта */
 .pult-compact body{padding:0 10px 40px}
 .pult-compact header{padding:8px 0 6px;gap:8px}
@@ -171,7 +235,6 @@ td .dot{width:8px;height:8px;border-radius:50%;background:var(--cc);flex:none}
 .pult-compact .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 .pult-compact .grid,.pult-compact .mapwrap,.pult-compact .plan{grid-template-columns:minmax(0,1fr)}
 .pult-compact .detail{position:static;max-height:none}
-.pult-compact .map{max-height:60vh}
 .pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .tbl,.pult-compact .kpis,.pult-compact .sec{padding-left:10px;padding-right:10px}
 .pult-compact .bul{padding-left:28px;padding-right:10px}
 .pult-compact .note{margin-left:10px;margin-right:10px}
@@ -194,25 +257,36 @@ td .dot{width:8px;height:8px;border-radius:50%;background:var(--cc);flex:none}
 
 <!-- Дерево -->
 <section id="tab-map">
-  <div class="tools">
+  <div class="tools maptools">
     <input type="search" id="mapq" placeholder="Узел или то, что он открывает: «magboots», «Gygax», «bag of holding»…" aria-label="Поиск по дереву">
-    <label><input type="checkbox" id="showHidden"> скрытые и BEPIS</label>
-    <span class="grow"></span>
-    <button class="btn sm" id="resetDone" title="Оставить изученными только стартовые узлы">Сбросить изученное</button>
+    <label class="hidechk"><input type="checkbox" id="showHidden"> скрытые и BEPIS</label>
+    <div class="zoombar" role="group" aria-label="Масштаб"><button class="btn sm" id="zOut" title="Мельче (Ctrl+колесо)">−</button><button class="btn sm" id="zFit" title="Вписать по ширине">100%</button><button class="btn sm" id="zIn" title="Крупнее (Ctrl+колесо)">+</button></div>
+    <button class="btn sm resetbtn" id="resetDone" title="Оставить изученными только стартовые узлы">Сбросить изученное</button>
+  </div>
+  <div class="panel simbar" id="simbar">
+    <button class="btn sm pri" id="simGo">▶ Начать раунд</button>
+    <button class="btn sm" id="simStop" hidden title="Закончить симуляцию и вернуть свои отметки">■ Стоп</button>
+    <div class="seg" id="simSpeed" title="Скорость времени"><button data-s="1">×1</button><button data-s="10">×10</button><button data-s="60">×60</button></div>
+    <label class="auto" title="Само изучает следующий узел плана (или самый дешёвый), как только хватает очков"><input type="checkbox" id="simAuto"> автоизучение</label>
+    <div class="siminfo" id="simInfo"></div>
   </div>
   <div class="chips" id="catChips"></div>
   <div class="legend">
     <span><b style="background:color-mix(in srgb,var(--ok) 25%,var(--panel))"></b>изучено</span>
     <span><b style="box-shadow:inset 0 0 0 1px var(--accent)"></b>можно изучить</span>
+    <span><b style="box-shadow:0 0 0 2px var(--ok)"></b>хватает очков (симуляция)</span>
     <span><b></b>закрыто</span>
     <span><b style="border-style:dashed"></b>скрыто до разборки предмета</span>
     <span><b style="background:color-mix(in srgb,var(--warn) 25%,var(--panel))"></b>нужно для выбранного</span>
     <span><b style="background:color-mix(in srgb,var(--accent) 22%,var(--panel))"></b>открывает выбранный</span>
+    <span class="faint">Тяни мышью — двигать, Ctrl+колесо — масштаб</span>
   </div>
   <div class="mapwrap">
-    <div class="panel map" id="map"><svg class="links" id="links"></svg><div class="cols" id="cols"></div></div>
+    <div class="panel map" id="map"><div class="zoomer" id="zoomer"><div class="zin" id="zin"><svg class="links" id="links"></svg><div class="cols" id="cols"></div></div></div></div>
     <aside class="panel detail" id="detail"></aside>
   </div>
+  <div class="tip" id="tip" hidden></div>
+  <div class="toast" id="toast" hidden role="status"></div>
 </section>
 
 <!-- Порядок изучения -->
@@ -271,11 +345,13 @@ td .dot{width:8px;height:8px;border-radius:50%;background:var(--cc);flex:none}
 </main>
 </div>
 <script src="data.js"></script>
+<script src="hints.js"></script>
 <script>
 'use strict';
 const D = window.RND_DATA || { nodes: {}, designs: {}, points: [], consts: {} };
 const N = D.nodes, DS = D.designs, C = D.consts;
 const $ = (id) => document.getElementById(id);
+const root = document.documentElement;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = (n) => Math.round(n).toLocaleString('ru-RU');
 const store = {
@@ -371,10 +447,11 @@ const payout = (pts) => Math.round(pts / (C.node_pay_unit || 1000) * (C.node_pay
 // ---------------- Вкладки ----------------
 let tab = store.get('tab', 'map');
 function setTab(t) {
-  tab = t; store.set('tab', t);
+  if (root.classList.contains('pult-compact')) t = 'map';   // в компактном окне — только дерево
+  tab = t; if (!root.classList.contains('pult-compact')) store.set('tab', t);
   document.querySelectorAll('nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'));
   document.querySelectorAll('main > section').forEach((s) => { s.hidden = s.id !== 'tab-' + t; });
-  if (t === 'map') requestAnimationFrame(drawLinks);
+  if (t === 'map') requestAnimationFrame(() => { sizeZoom(); drawLinks(); });
   if (t === 'plan') renderPlan();
 }
 document.querySelector('nav').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); });
@@ -385,6 +462,37 @@ if (!N[sel]) sel = 'base';
 let catFilter = store.get('cat', '');
 let showHidden = store.get('hidden', false);
 $('showHidden').checked = showHidden;
+const isCompact = () => root.classList.contains('pult-compact');
+
+// спрайты: один атлас из data.js, иконка — фон-позиция в нём
+const SP = D.sprites || {};
+if (SP.png) {
+  const st = document.createElement('style');
+  st.textContent = `.spr{background-image:url(${SP.png})}`;
+  document.head.appendChild(st);
+}
+const sprHtml = (i, px = 32, extra = '') => {
+  if (i == null || !SP.png) return `<i class="spr none" style="width:${px}px;height:${px}px" ${extra}></i>`;
+  const k = px / SP.size, x = (i % SP.cols) * px, y = Math.floor(i / SP.cols) * px;
+  return `<i class="spr" style="width:${px}px;height:${px}px;background-position:-${x}px -${y}px;background-size:${SP.cols * px}px auto" ${extra}></i>`;
+};
+// иконка узла: первый дизайн, который печатается не на принтере плат (плата у всех одинаковая)
+const nodeIcon = {};
+IDS.forEach((id) => {
+  const ds = N[id].des.filter((d) => DS[d] && DS[d].i != null);
+  const best = ds.find((d) => !(DS[d].b || []).every((b) => b === 'imp')) || ds[0];
+  nodeIcon[id] = best ? DS[best].i : null;
+});
+
+// подсказка «для чего»: из hints.js, иначе собираем из дизайнов
+const HINTS = window.RND_HINTS || {};
+function hintOf(id) {
+  if (HINTS[id]) return HINTS[id];
+  const n = N[id];
+  if (!n.des.length) return 'Своих дизайнов нет — ступень к ' + kids[id].slice(0, 3).map((k) => N[k].name).join(', ') + '.';
+  const names = n.des.slice(0, 4).map((d) => DS[d].item || DS[d].n);
+  return 'Даёт: ' + names.join(', ') + (n.des.length > 4 ? ` и ещё ${n.des.length - 4}.` : '.');
+}
 
 function renderChips() {
   const used = {};
@@ -402,10 +510,11 @@ $('showHidden').addEventListener('change', (e) => { showHidden = e.target.checke
 function matchNode(id, q) {
   if (!q) return false;
   const n = N[id];
-  if ((n.name + ' ' + id + ' ' + n.desc).toLowerCase().includes(q)) return true;
+  if ((n.name + ' ' + id + ' ' + n.desc + ' ' + (HINTS[id] || '')).toLowerCase().includes(q)) return true;
   return n.des.some((d) => { const x = DS[d]; return x && ((x.n + ' ' + (x.item || '') + ' ' + d).toLowerCase().includes(q)); });
 }
 
+const kCost = (c) => c ? (c / 1000).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + 'к' : '0';
 function renderMap() {
   const q = $('mapq').value.trim().toLowerCase();
   const vis = IDS.filter((id) => showHidden || !N[id].hidden || done.has(id) || id === sel);
@@ -413,7 +522,7 @@ function renderMap() {
   vis.forEach((id) => { (cols[tier[id]] = cols[tier[id]] || []).push(id); });
   const order = Object.keys(CATS);
   const anc = sel ? ancestors(sel) : new Set(), des = sel ? new Set(kids[sel] || []) : new Set();
-  const html = Object.keys(cols).sort((a, b) => a - b).map((t) => {
+  $('cols').innerHTML = Object.keys(cols).sort((a, b) => a - b).map((t) => {
     const list = cols[t].sort((a, b) => order.indexOf(N[a].cat) - order.indexOf(N[b].cat) || N[a].name.localeCompare(N[b].name));
     return `<div class="col"><h4>${+t === 0 ? 'Старт' : 'Уровень ' + t}</h4>` + list.map((id) => {
       const n = N[id], st = state(id);
@@ -421,63 +530,176 @@ function renderMap() {
       if (catFilter && n.cat !== catFilter) cls.push('dim');
       if (id === sel) cls.push('sel'); else if (anc.has(id)) cls.push('anc'); else if (des.has(id)) cls.push('kid');
       if (matchNode(id, q)) cls.push('hit');
-      return `<button class="${cls.join(' ')}" data-id="${id}" style="--cc:${catOf(id)[1]}" title="${esc(n.name)} — ${STATE_RU[st]}"><span>${esc(n.name)}</span><small>${n.cost ? (n.cost / 1000).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + 'к' : '0'}</small></button>`;
+      if (sim.on && st === 'avail' && n.cost <= sim.pts) cls.push('afford');
+      return `<button class="${cls.join(' ')}" data-id="${id}" style="--cc:${catOf(id)[1]}">${sprHtml(nodeIcon[id], 24)}<span>${esc(n.name)}</span><small>${kCost(n.cost)}</small></button>`;
     }).join('') + '</div>';
   }).join('');
-  $('cols').innerHTML = html;
-  requestAnimationFrame(drawLinks);
+  requestAnimationFrame(() => { sizeZoom(); drawLinks(); });
 }
 
+// координаты узла внутри .cols — до масштаба (масштаб делает transform у .zin)
+function nodePos(id) {
+  const el = $('cols').querySelector(`[data-id="${CSS.escape(id)}"]`);
+  if (!el) return null;
+  const col = el.parentElement;
+  const l = col.offsetLeft + el.offsetLeft, t = col.offsetTop + el.offsetTop;
+  return { l, r: l + el.offsetWidth, y: t + el.offsetHeight / 2, el };
+}
 function drawLinks() {
   const svg = $('links'), box = $('cols');
   if (!box.offsetParent) return;
-  const W = box.scrollWidth + 20, H = box.scrollHeight + 20;
-  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  svg.setAttribute('width', box.scrollWidth + 20); svg.setAttribute('height', box.scrollHeight + 20);
   if (!sel || !N[sel]) { svg.innerHTML = ''; return; }
-  const base = box.getBoundingClientRect();
-  const off = { x: box.offsetLeft, y: box.offsetTop };
-  const pos = (id) => {
-    const el = box.querySelector(`[data-id="${CSS.escape(id)}"]`);
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return { l: r.left - base.left + off.x, r: r.right - base.left + off.x, y: r.top - base.top + off.y + r.height / 2 };
-  };
   const edge = (a, b, col, w) => {
-    const pa = pos(a), pb = pos(b);
+    const pa = nodePos(a), pb = nodePos(b);
     if (!pa || !pb) return '';
     const x1 = pa.r, x2 = pb.l, dx = Math.max(30, (x2 - x1) / 2);
     return `<path d="M${x1} ${pa.y} C${x1 + dx} ${pa.y} ${x2 - dx} ${pb.y} ${x2} ${pb.y}" fill="none" stroke="${col}" stroke-width="${w}" stroke-opacity=".85"/>`;
   };
   let out = '';
-  const anc = ancestors(sel);
-  [...anc].forEach((a) => N[a].pre.forEach((p) => { out += edge(p, a, 'var(--warn)', 1.2); }));
+  [...ancestors(sel)].forEach((a) => N[a].pre.forEach((p) => { out += edge(p, a, 'var(--warn)', 1.2); }));
   N[sel].pre.forEach((p) => { out += edge(p, sel, 'var(--warn)', 2.4); });
   kids[sel].forEach((k) => { out += edge(sel, k, 'var(--accent)', 2.4); });
   svg.innerHTML = out;
 }
-window.addEventListener('resize', () => { if (tab === 'map') drawLinks(); });
+window.addEventListener('resize', () => { if (tab === 'map') { sizeZoom(); drawLinks(); } });
 
-$('cols').addEventListener('click', (e) => { const b = e.target.closest('.nd'); if (b) select(b.dataset.id); });
+// ---------- Масштаб и перетаскивание ----------
+let zoom = +store.get(isCompact() ? 'zoomC' : 'zoom', isCompact() ? 0.7 : 1) || 1;
+const ZMIN = 0.3, ZMAX = 1.8;
+function sizeZoom() {
+  const c = $('cols');
+  $('zin').style.transform = `scale(${zoom})`;
+  $('zoomer').style.width = (c.scrollWidth + 20) * zoom + 'px';
+  $('zoomer').style.height = (c.scrollHeight + 20) * zoom + 'px';
+  $('zFit').textContent = Math.round(zoom * 100) + '%';
+}
+function setZoom(z, cx, cy) {
+  const map = $('map');
+  z = Math.min(ZMAX, Math.max(ZMIN, z));
+  if (cx == null) { cx = map.clientWidth / 2; cy = map.clientHeight / 2; }
+  // точка под курсором остаётся на месте
+  const wx = (map.scrollLeft + cx) / zoom, wy = (map.scrollTop + cy) / zoom;
+  zoom = z; store.set(isCompact() ? 'zoomC' : 'zoom', zoom);
+  sizeZoom();
+  map.scrollLeft = wx * zoom - cx; map.scrollTop = wy * zoom - cy;
+}
+function fitZoom() {
+  const map = $('map'), c = $('cols');
+  setZoom(Math.min((map.clientWidth - 10) / (c.scrollWidth + 20), 1));
+  map.scrollTop = 0; map.scrollLeft = 0;
+}
+$('zIn').addEventListener('click', () => setZoom(zoom * 1.2));
+$('zOut').addEventListener('click', () => setZoom(zoom / 1.2));
+$('zFit').addEventListener('click', fitZoom);
+$('map').addEventListener('wheel', (e) => {
+  if (!e.ctrlKey && !e.altKey) return;   // обычное колесо — прокрутка, Ctrl/Alt + колесо — масштаб
+  e.preventDefault();
+  const r = $('map').getBoundingClientRect();
+  setZoom(zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12), e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+// перетаскивание мышью и пальцем, щипок двумя пальцами
+const ptrs = new Map();
+let drag = null, moved = false, pinch = null;
+$('map').addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 && e.pointerType === 'mouse') return;
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  hideTip();
+  if (ptrs.size === 1) { drag = { x: e.clientX, y: e.clientY, sl: $('map').scrollLeft, st: $('map').scrollTop }; moved = false; }
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    const r = $('map').getBoundingClientRect();
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom, cx: (a.x + b.x) / 2 - r.left, cy: (a.y + b.y) / 2 - r.top };
+    drag = null; moved = true;
+  }
+});
+window.addEventListener('pointermove', (e) => {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch && ptrs.size >= 2) {
+    const [a, b] = [...ptrs.values()];
+    setZoom(pinch.z * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d, pinch.cx, pinch.cy);
+    return;
+  }
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!moved && Math.hypot(dx, dy) < 6) return;
+  if (!moved) { moved = true; $('map').classList.add('panning'); try { $('map').setPointerCapture(e.pointerId); } catch (er) { /* нет захвата */ } }
+  $('map').scrollLeft = drag.sl - dx; $('map').scrollTop = drag.st - dy;
+});
+const endPtr = (e) => {
+  ptrs.delete(e.pointerId);
+  if (ptrs.size < 2) pinch = null;
+  if (!ptrs.size) { drag = null; $('map').classList.remove('panning'); }
+};
+window.addEventListener('pointerup', endPtr);
+window.addEventListener('pointercancel', endPtr);
+
+// ---------- Подсказка при наведении ----------
+function showTip(id, el) {
+  const n = N[id], st = state(id), tip = $('tip');
+  const icons = n.des.filter((d) => DS[d].i != null).slice(0, 10).map((d) => sprHtml(DS[d].i, 32, `title="${esc(DS[d].n)}"`)).join('');
+  tip.innerHTML = `<b>${esc(n.name)}</b><div class="tmeta"><span class="tag ${STATE_TAG[st]}">${STATE_RU[st]}</span><span class="tag">${n.cost ? fmt(n.cost) + ' очков' : 'бесплатно'}</span>${n.des.length ? `<span class="tag">${n.des.length} дизайн.</span>` : ''}</div>
+    <p>${esc(hintOf(id))}</p>${icons ? `<div class="ticons">${icons}</div>` : ''}<p class="faint">Клик — подробности${sim.on ? ' · двойной клик — изучить' : ''}</p>`;
+  tip.hidden = false;
+  const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+  let x = r.right + 10, y = r.top - 6;
+  if (x + tw > innerWidth - 8) x = r.left - tw - 10;
+  if (x < 8) x = Math.min(innerWidth - tw - 8, Math.max(8, r.left));
+  if (y + th > innerHeight - 8) y = innerHeight - th - 8;
+  tip.style.left = x + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+function hideTip() { $('tip').hidden = true; }
+$('cols').addEventListener('pointerover', (e) => {
+  if (e.pointerType !== 'mouse' || drag && moved) return;
+  const b = e.target.closest('.nd'); if (b) showTip(b.dataset.id, b);
+});
+$('cols').addEventListener('pointerleave', hideTip);
+$('cols').addEventListener('pointerout', (e) => { if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.nd')) hideTip(); });
+$('map').addEventListener('scroll', hideTip, { passive: true });
+
+// клик — выбрать, второй клик по тому же узлу в симуляции — изучить (DOM перерисовывается, поэтому не dblclick)
+let lastTap = { id: '', t: 0 };
+$('cols').addEventListener('click', (e) => {
+  if (moved) { moved = false; return; }
+  const b = e.target.closest('.nd'); if (!b) return;
+  const id = b.dataset.id, now = Date.now();
+  if (sim.on && lastTap.id === id && now - lastTap.t < 450) { lastTap = { id: '', t: 0 }; simResearch(id); return; }
+  lastTap = { id, t: now };
+  select(id);
+});
 let qTimer = 0;
 $('mapq').addEventListener('input', () => {
   clearTimeout(qTimer);
   qTimer = setTimeout(() => {
     renderMap();
     const hit = $('cols').querySelector('.nd.hit');
-    if (hit) hit.scrollIntoView({ block: 'nearest', inline: 'center' });
+    if (hit) centerOn(hit.dataset.id);
   }, 160);
 });
 $('resetDone').addEventListener('click', () => { done = new Set(START); saveDone(); renderAll(); });
 
+function centerOn(id) {
+  const p = nodePos(id), map = $('map');
+  if (!p) return;
+  map.scrollTo({ left: (p.l + p.r) / 2 * zoom - map.clientWidth / 2, top: p.y * zoom - map.clientHeight / 2, behavior: 'smooth' });
+}
 function select(id, scroll) {
   if (!N[id]) return;
   sel = id; store.set('sel', id);
   if (N[id].hidden && !showHidden) { showHidden = true; $('showHidden').checked = true; store.set('hidden', true); }
   renderMap(); renderDetail();
+  if (isCompact()) openSheet(true);
   if (scroll) {
     if (tab !== 'map') setTab('map');
-    requestAnimationFrame(() => { const el = $('cols').querySelector(`[data-id="${CSS.escape(id)}"]`); if (el) el.scrollIntoView({ block: 'center', inline: 'center' }); });
+    requestAnimationFrame(() => centerOn(id));
   }
+}
+
+// ---------- Карточка узла (в компактном окне — выезжает снизу) ----------
+function openSheet(on) {
+  $('detail').classList.toggle('open', on);
+  $('detail').setAttribute('aria-hidden', on || !isCompact() ? 'false' : 'true');
 }
 
 // путь до узла: недостающие предки в порядке изучения (сначала дешёвые доступные)
@@ -499,7 +721,7 @@ function planFor(targets) {
 }
 
 function nodeLink(id) {
-  return `<button class="ln st-${state(id)}" data-go="${id}" title="${STATE_RU[state(id)]}">${esc(N[id].name)}</button>`;
+  return `<button class="ln st-${state(id)}" data-go="${id}" title="${esc(hintOf(id))}">${esc(N[id].name)}</button>`;
 }
 
 function designHtml(d) {
@@ -512,9 +734,9 @@ function designHtml(d) {
   const deptTxt = (x.b || []).some((b) => b === 'pro' || b === 'imp')
     ? (x.dp && x.dp.includes('all') ? 'отделы: все' : dp ? 'отделы: ' + dp : 'только у науки')
     : '';
-  return `<div class="dz"><b>${esc(x.n)}</b>${x.item ? ` <span class="faint">→ ${esc(x.item)}</span>` : ''}
+  return `<div class="dz">${sprHtml(x.i, 32)}<div><b>${esc(x.n)}</b>${x.item ? ` <span class="faint">→ ${esc(x.item)}</span>` : ''}
     <div class="meta">${where}${deptTxt ? `<span class="tag">${deptTxt}</span>` : ''}${x.sec ? `<span class="tag warn">с кода «${SECL[x.sec] || x.sec}»</span>` : ''}${x.t ? `<span class="tag">${x.t} с</span>` : ''}</div>
-    ${mats || reag ? `<div class="mats">${esc(mats)}${mats && reag ? '; ' : ''}${esc(reag)} ${mats ? '<span class="faint">(в листах)</span>' : ''}</div>` : ''}</div>`;
+    ${mats || reag ? `<div class="mats">${esc(mats)}${mats && reag ? '; ' : ''}${esc(reag)} ${mats ? '<span class="faint">(в листах)</span>' : ''}</div>` : ''}</div></div>`;
 }
 
 function renderDetail() {
@@ -525,14 +747,18 @@ function renderDetail() {
   const { order, blocked } = planFor([id]);
   const pathCost = order.reduce((s, x) => s + N[x].cost, 0);
   const ip = incomePerSec().total;
-  let h = `<div class="head" style="--cc:${cc[1]}"><h2>${esc(n.name)}</h2><div class="id">${esc(id)}</div>
+  const simBtn = sim.on && st === 'avail'
+    ? `<button class="btn sm pri" data-simres="${id}" ${n.cost > sim.pts ? 'disabled' : ''}>Изучить за ${fmt(n.cost)}${n.cost > sim.pts ? ` · ждать ${fmtTime((n.cost - sim.pts) / Math.max(ip, 1e-9))}` : ''}</button>` : '';
+  let h = `<div class="head" style="--cc:${cc[1]}"><button class="x sheetx" data-close aria-label="Закрыть">×</button>
+    <div class="hrow">${sprHtml(nodeIcon[id], 48)}<div><h2>${esc(n.name)}</h2><div class="id">${esc(id)}</div></div></div>
     <div class="row"><span class="tag" style="--tc:${cc[1]}">${cc[0]}</span><span class="tag ${STATE_TAG[st]}">${STATE_RU[st]}</span>
     <span class="tag">${n.cost ? fmt(n.cost) + ' очков' : 'бесплатно'}</span>${n.exp ? '<span class="tag warn">BEPIS</span>' : ''}${n.src ? `<span class="tag">${esc(n.src)}</span>` : ''}</div>
-    <div class="row">${n.start ? '<span class="muted" style="font-size:13px">Стартовый узел — изучен с начала раунда.</span>'
-      : `<button class="btn sm ${done.has(id) ? '' : 'pri'}" data-toggle="${id}">${done.has(id) ? 'Снять отметку' : 'Отметить изученным'}</button>`}
-      ${!done.has(id) && order.length > 1 ? `<button class="btn sm" data-markpath="${id}">Отметить весь путь</button>` : ''}
+    <div class="row">${simBtn}${n.start ? '<span class="muted" style="font-size:13px">Стартовый узел — изучен с начала раунда.</span>'
+      : sim.on ? '' : `<button class="btn sm ${done.has(id) ? '' : 'pri'}" data-toggle="${id}">${done.has(id) ? 'Снять отметку' : 'Отметить изученным'}</button>`}
+      ${!sim.on && !done.has(id) && order.length > 1 ? `<button class="btn sm" data-markpath="${id}">Отметить весь путь</button>` : ''}
       <button class="btn sm" data-goal="${id}">В план</button></div></div>`;
-  if (n.desc) h += `<div class="sec"><p>${esc(n.desc)}</p>${n.cost ? `<p class="faint" style="font-size:12.5px;margin:0">Бюджет науки получит ${payout(n.cost)} кр. за изучение с консоли станции.</p>` : ''}</div>`;
+  h += `<div class="sec why"><h4>Для чего</h4><p>${esc(hintOf(id))}</p></div>`;
+  if (n.desc) h += `<div class="sec"><p class="muted">${esc(n.desc)}</p>${n.cost ? `<p class="faint" style="font-size:12.5px;margin:0">Бюджет науки получит ${payout(n.cost)} кр. за изучение с консоли станции.</p>` : ''}</div>`;
   if (n.hidden) {
     const how = n.exp ? 'Узел экспериментальный. При крупном успехе BEPIS печатает диск технологий с таким узлом — его загружают в консоль R&D. Сам по себе на консоли он не появится.'
       : n.boost && n.boost.length ? 'Узел скрыт. Он появится на консоли, когда разберёшь в деструктивном анализаторе один из предметов ниже (режим «раскрыть узел»).'
@@ -545,24 +771,126 @@ function renderDetail() {
   if (kids[id].length) h += `<div class="sec"><h4>Открывает узлы <span class="faint">${kids[id].length}</span></h4><div class="links-list">${kids[id].map(nodeLink).join('')}</div></div>`;
   if (!done.has(id) && order.length) {
     h += `<div class="sec"><h4>Путь отсюда <span class="faint">${order.length} узл. · ${fmt(pathCost)} очков · ${fmtTime(pathCost / ip)}</span></h4>
-      <ol class="path">${order.map((x) => `<li><button data-go="${x}">${esc(N[x].name)}</button><small>${fmt(N[x].cost)}</small></li>`).join('')}</ol>
+      <ol class="path">${order.map((x) => `<li><button data-go="${x}">${sprHtml(nodeIcon[x], 20)} ${esc(N[x].name)}</button><small>${fmt(N[x].cost)}</small></li>`).join('')}</ol>
       ${blocked.length ? `<p class="note warn" style="margin:8px 0 0">Сначала нужно раскрыть скрытые узлы: ${blocked.filter((b) => N[b].hidden).map((b) => esc(N[b].name)).join(', ')}.</p>` : ''}</div>`;
   }
-  h += `<div class="sec"><h4>Дизайны <span class="faint">${n.des.length}</span></h4>${n.des.length ? `<div class="dl">${n.des.map(designHtml).join('')}</div>` : '<p class="faint">Своих дизайнов нет — узел нужен как ступень к другим.</p>'}</div>`;
+  if (n.des.length) {
+    h += `<div class="sec"><h4>Дизайны <span class="faint">${n.des.length}</span></h4>
+      <div class="dgrid">${n.des.map((d) => `<button class="dtile" data-dz="${d}" title="${esc(DS[d].n)}">${sprHtml(DS[d].i, 32)}</button>`).join('')}</div>
+      <div class="dl" id="dlist">${n.des.map(designHtml).join('')}</div></div>`;
+  } else h += '<div class="sec"><h4>Дизайны</h4><p class="faint">Своих дизайнов нет — узел нужен как ступень к другим.</p></div>';
   el.innerHTML = h;
   el.style.setProperty('--cc', cc[1]);
 }
 
 document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-close]')) { openSheet(false); return; }
+  const dz = e.target.closest('[data-dz]');
+  if (dz) {
+    const i = DS[dz.dataset.dz] ? N[sel].des.indexOf(dz.dataset.dz) : -1;
+    const row = $('dlist') && $('dlist').children[i];
+    if (row) { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+    return;
+  }
+  const sr = e.target.closest('[data-simres]');
+  if (sr) { simResearch(sr.dataset.simres); return; }
   const go = e.target.closest('[data-go]');
   if (go) { select(go.dataset.go, tab !== 'map' || !go.closest('#detail')); if (go.closest('#detail')) $('detail').scrollTop = 0; return; }
   const tg = e.target.closest('[data-toggle]');
-  if (tg) { const id = tg.dataset.toggle; if (done.has(id)) { done.delete(id); [...descendants(id)].forEach((d) => done.delete(d)); } else done.add(id); saveDone(); renderAll(); return; }
+  if (tg) { const id = tg.dataset.toggle; if (done.has(id)) { done.delete(id); [...descendants(id)].forEach((d) => done.delete(d)); } else done.add(id); saveDone(); renderAll(); flash(id); return; }
   const mp = e.target.closest('[data-markpath]');
-  if (mp) { planFor([mp.dataset.markpath]).order.forEach((x) => done.add(x)); saveDone(); renderAll(); return; }
+  if (mp) { const o = planFor([mp.dataset.markpath]).order; o.forEach((x) => done.add(x)); saveDone(); renderAll(); o.forEach(flash); return; }
   const gl = e.target.closest('[data-goal]');
-  if (gl) { addGoal(gl.dataset.goal); setTab('plan'); return; }
+  if (gl) { addGoal(gl.dataset.goal); if (!isCompact()) setTab('plan'); else toast('Добавлено в план'); return; }
 });
+
+function flash(id) {
+  const el = $('cols').querySelector(`[data-id="${CSS.escape(id)}"]`);
+  if (el) { el.classList.remove('boom'); void el.offsetWidth; el.classList.add('boom'); }
+}
+let toastT = 0;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.hidden = false; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600);
+}
+
+// ---------- Симуляция раунда ----------
+// Очки капают с дохода из «Порядка» (серверы, модуль, температура). Изучаешь двойным кликом или кнопкой в карточке.
+const sim = { on: false, run: false, pts: 0, t: 0, speed: +store.get('simSpeed', 10) || 10, auto: !!store.get('simAuto', false), timer: 0, saved: null };
+function simUi() {
+  $('simbar').classList.toggle('on', sim.on);
+  $('simGo').textContent = !sim.on ? '▶ Начать раунд' : sim.run ? '⏸ Пауза' : '▶ Дальше';
+  $('simStop').hidden = !sim.on;
+  $('simSpeed').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', +b.dataset.s === sim.speed ? 'true' : 'false'));
+  $('simAuto').checked = sim.auto;
+  simStats();
+}
+function simStats() {
+  const ip = incomePerSec().total;
+  const doneCost = [...done].reduce((s, id) => s + N[id].cost, 0);
+  $('simInfo').innerHTML = sim.on
+    ? `<b class="pts">${fmt(sim.pts)}</b> очков <span class="faint">+${(Math.round(ip * 10) / 10).toLocaleString('ru-RU')}/с</span> · раунд <b>${fmtTime(sim.t)}</b> · изучено <b>${done.size}</b>/${IDS.length} · <span class="faint">${fmt(payout(doneCost))} кр. науке</span>`
+    : `<span class="muted">Симуляция: очки капают с твоего дохода, а ты решаешь, что изучать. Доход настраивается во вкладке «Порядок».</span>`;
+}
+function simStart() {
+  if (!sim.on) {
+    sim.saved = [...done];
+    done = new Set(START); sim.on = true; sim.pts = 0; sim.t = 0;
+    renderAll(); toast('Раунд начался: всё, кроме стартовых узлов, закрыто');
+  }
+  sim.run = !sim.run;
+  clearInterval(sim.timer);
+  if (sim.run) sim.timer = setInterval(simTick, 200);
+  simUi();
+}
+function simStopFn() {
+  clearInterval(sim.timer); sim.run = false; sim.on = false;
+  if (sim.saved) { done = new Set(sim.saved); sim.saved = null; }
+  renderAll(); simUi();
+}
+let lastAfford = '';
+function simTick() {
+  const dt = 0.2 * sim.speed;
+  sim.t += dt; sim.pts += incomePerSec().total * dt;
+  if (sim.auto) {
+    const next = (goals.length ? planFor(goals).order : IDS.filter((id) => state(id) === 'avail').sort((a, b) => N[a].cost - N[b].cost))[0];
+    if (next && N[next].cost <= sim.pts) simResearch(next, true);
+    else if (!next && goals.length) { sim.auto = false; store.set('simAuto', false); simUi(); toast('Все цели плана изучены'); }
+  }
+  // подсветка «хватает очков» без полной перерисовки
+  const aff = IDS.filter((id) => state(id) === 'avail' && N[id].cost <= sim.pts);
+  const key = aff.join();
+  if (key !== lastAfford) {
+    lastAfford = key;
+    $('cols').querySelectorAll('.nd').forEach((el) => el.classList.toggle('afford', aff.includes(el.dataset.id)));
+    if (sel && state(sel) === 'avail') renderDetail();
+  }
+  simStats();
+}
+function simResearch(id, auto) {
+  if (!sim.on || state(id) !== 'avail') return;
+  if (N[id].cost > sim.pts) { toast(`Не хватает ${fmt(N[id].cost - sim.pts)} очков`); return; }
+  sim.pts -= N[id].cost; done.add(id);
+  renderMap(); if (!auto || id === sel) renderDetail(); renderPlan(false);
+  requestAnimationFrame(() => flash(id));
+  toast(`Изучено: ${N[id].name}` + (N[id].des.length ? ` · ${N[id].des.length} дизайн.` : ''));
+  simStats();
+}
+$('simGo').addEventListener('click', simStart);
+$('simStop').addEventListener('click', simStopFn);
+$('simSpeed').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; sim.speed = +b.dataset.s; store.set('simSpeed', sim.speed); simUi(); });
+$('simAuto').addEventListener('change', (e) => { sim.auto = e.target.checked; store.set('simAuto', sim.auto); });
+
+// компактный режим включает оболочка (класс pult-compact) — подстраиваемся на лету
+new MutationObserver(() => {
+  const c = isCompact();
+  if (c === root._wasCompact) return;
+  root._wasCompact = c;
+  zoom = +store.get(c ? 'zoomC' : 'zoom', c ? 0.7 : 1) || 1;
+  if (c) { setTab('map'); openSheet(false); } else openSheet(true);
+  requestAnimationFrame(() => { sizeZoom(); drawLinks(); });
+}).observe(root, { attributes: true, attributeFilter: ['class'] });
+root._wasCompact = isCompact();
 
 // ---------------- Порядок изучения ----------------
 const PRESETS = [
@@ -771,6 +1099,8 @@ renderAll();
 renderFind();
 renderPoints();
 renderBasics();
+simUi();
+if (isCompact()) openSheet(false);
 setTab(['map', 'plan', 'find', 'points', 'basics'].includes(tab) ? tab : 'map');
 </script>
 </body>

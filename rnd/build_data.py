@@ -118,6 +118,7 @@ types = {}           # путь → слитые var (поздний файл п
 type_file = {}       # путь → файл, где объявлен id (для категорий)
 procs = []           # (путь, тело New())
 names = {}           # путь предмета → name (для бустов и разборки)
+objvars = {}         # путь /obj → name, icon, icon_state (для спрайтов)
 texts = {}
 
 for f in files:
@@ -144,11 +145,14 @@ for f in files:
             types.setdefault(path, {}).update(v)
             if 'id' in v:
                 type_file[path] = f
-        elif path.startswith('/obj/') and '(' not in path:
+        elif path.startswith('/obj') and '(' not in path:
             for line in body:
-                m = re.match(r'^\tname\s*=\s*(".*")\s*$', strip_line_comment(line))
+                m = re.match(r'^\t(name|icon|icon_state)\s*=\s*(".*"|\'[^\']*\')\s*$', strip_line_comment(line))
                 if m:
-                    names[path] = unq(m.group(1))
+                    ov = objvars.setdefault(path, {})
+                    ov[m.group(1)] = m.group(2)[1:-1] if m.group(1) != 'name' else unq(m.group(2))
+                    if m.group(1) == 'name':
+                        names[path] = ov['name']
 
 
 def num(expr, depth=0):
@@ -244,6 +248,7 @@ for path in types:
     if sec and sec != 'green': e['sec'] = sec
     ct = num(d.get('construction_time', ''))
     if ct and 'mech' in bt: e['t'] = round(ct / 10, 1)
+    e['_bp'] = bp
     if bp.startswith('/obj/'):
         nm = item_name(bp)
         if nm and nm.lower() != e['n'].lower():
@@ -364,6 +369,107 @@ for nid, n in nodes.items():
 used = {d for n in nodes.values() for d in n['des']}
 designs = {k: v for k, v in designs.items() if k in used}
 
+# ---------- спрайты дизайнов: первый кадр icon_state предмета из .dmi, всё в один атлас ----------
+def obj_var(path, key):
+    p = path
+    while p.startswith('/obj'):
+        v = objvars.get(p, {}).get(key)
+        if v is not None:
+            return v
+        if p == '/obj':
+            break
+        p = p.rsplit('/', 1)[0]
+    return None
+
+
+def dmi_states(fp):
+    """Словарь icon_state → (индекс первого кадра, ширина, высота) по описанию в PNG .dmi."""
+    import struct as st, zlib as zl
+    data = open(fp, 'rb').read()
+    pos, desc = 8, ''
+    while pos < len(data):
+        ln, typ = st.unpack('>I4s', data[pos:pos + 8])
+        chunk = data[pos + 8:pos + 8 + ln]
+        if typ in (b'zTXt', b'tEXt'):
+            key, rest = chunk.split(b'\0', 1)
+            if key == b'Description':
+                desc = (zl.decompress(rest[1:]) if typ == b'zTXt' else rest).decode('utf-8', 'replace')
+        pos += 12 + ln
+    fw = fh = 32
+    states, idx, cur = {}, 0, None
+    for line in desc.splitlines():
+        line = line.strip()
+        if line.startswith('width'):
+            fw = int(line.split('=')[1])
+        elif line.startswith('height'):
+            fh = int(line.split('=')[1])
+        elif line.startswith('state'):
+            if cur:
+                idx += cur[1] * cur[2]
+            cur = [line.split('=', 1)[1].strip().strip('"'), 1, 1]
+            states.setdefault(cur[0], idx)
+        elif cur and line.startswith('dirs'):
+            cur[1] = int(line.split('=')[1])
+        elif cur and line.startswith('frames'):
+            cur[2] = int(line.split('=')[1])
+    return states, fw, fh
+
+
+SPR = 32
+sprite_of, sprite_imgs, dmi_cache = {}, [], {}
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+if Image:
+    for did, e in designs.items():
+        bp = e.pop('_bp', '')
+        if not bp.startswith('/obj'):
+            continue
+        ic, ist = obj_var(bp, 'icon'), obj_var(bp, 'icon_state') or ''
+        if not ic or not ic.endswith('.dmi'):
+            continue
+        key = (ic, ist)
+        if key not in sprite_of:
+            sprite_of[key] = None
+            fp = os.path.join(ROOT, ic)
+            if os.path.exists(fp):
+                try:
+                    if fp not in dmi_cache:
+                        dmi_cache[fp] = (Image.open(fp).convert('RGBA'), *dmi_states(fp))
+                    img, states, fw, fh = dmi_cache[fp]
+                    if ist in states:
+                        cols = max(1, img.width // fw)
+                        i = states[ist]
+                        fr = img.crop(((i % cols) * fw, (i // cols) * fh, (i % cols + 1) * fw, (i // cols + 1) * fh))
+                        bb = fr.getbbox()
+                        if bb:
+                            if fw > SPR or fh > SPR:
+                                fr = fr.crop(bb)
+                                k = SPR / max(fr.width, fr.height)
+                                fr = fr.resize((max(1, round(fr.width * k)), max(1, round(fr.height * k))), Image.NEAREST)
+                            cell = Image.new('RGBA', (SPR, SPR))
+                            cell.paste(fr, ((SPR - fr.width) // 2, (SPR - fr.height) // 2))
+                            sprite_of[key] = len(sprite_imgs)
+                            sprite_imgs.append(cell)
+                except Exception as ex:
+                    print('спрайт не прочитан:', ic, ist, ex)
+        if sprite_of[key] is not None:
+            e['i'] = sprite_of[key]
+atlas_uri, ATL_COLS = '', 40
+if sprite_imgs:
+    import base64, io
+    rows = (len(sprite_imgs) + ATL_COLS - 1) // ATL_COLS
+    atlas = Image.new('RGBA', (ATL_COLS * SPR, rows * SPR))
+    for i, im in enumerate(sprite_imgs):
+        atlas.paste(im, ((i % ATL_COLS) * SPR, (i // ATL_COLS) * SPR))
+    buf = io.BytesIO()
+    atlas.save(buf, 'PNG', optimize=True)
+    atlas_uri = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+for e in designs.values():
+    e.pop('_bp', None)
+
+
 # ---------- очки за разборку (SSresearch.techweb_point_items) ----------
 points = []
 ss = texts.get('ssresearch', '')
@@ -393,9 +499,10 @@ for key, rx in (('node_pay', r'WORK_SCI_NODE\s*=\s*([\d.]+)'), ('grant_price', r
     mm = re.search(rx, st)
     consts[key] = float(mm.group(1)) if mm else None
 
-data = {'nodes': nodes, 'designs': designs, 'points': points, 'consts': consts}
+data = {'nodes': nodes, 'designs': designs, 'points': points, 'consts': consts,
+        'sprites': {'png': atlas_uri, 'size': SPR, 'cols': ATL_COLS}}
 js = '// Собрано rnd/build_data.py из BlueMoon-Station — руками не править\nwindow.RND_DATA=' + \
      json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n'
 open(OUT, 'w', encoding='utf-8').write(js)
-print(f'{len(nodes)} узлов, {len(designs)} дизайнов, {len(points)} предметов на очки, '
+print(f'{len(nodes)} узлов, {len(designs)} дизайнов, {len(sprite_imgs)} спрайтов, {len(points)} предметов на очки, '
       f'{len(missing_d)} пропавших дизайнов, {os.path.getsize(OUT) // 1024} КБ')
