@@ -40,6 +40,7 @@ const ICONS = {
   leaf: '<path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19c3-4 6-7 10-10"/><path d="M5 19l-2 2"/>',
   tree: '<rect x="9" y="2.5" width="6" height="4.5" rx="1"/><rect x="2.5" y="17" width="6" height="4.5" rx="1"/><rect x="15.5" y="17" width="6" height="4.5" rx="1"/><path d="M12 7v4M5.5 17v-3h13v3M12 11v3"/>',
   vr: '<rect x="2.5" y="7" width="19" height="10" rx="3"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><path d="M10 12h4M7 7l1.5-3h7L17 7"/>',
+  dna: '<path d="M7 3c0 6 10 6 10 12s-10 3-10 6M17 3c0 6-10 6-10 12s10 3 10 6"/><path d="M8.5 6.5h7M8.5 17.5h7M10 12h4"/>',
   virus: '<circle cx="12" cy="12" r="5.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M18.4 5.6l-1.9 1.9M7.5 16.5l-1.9 1.9"/><circle cx="10.2" cy="10.8" r="1"/><circle cx="14" cy="13.4" r="1"/>',
 };
 const svg = (name, extra = '') =>
@@ -108,6 +109,9 @@ const APPS = [
   // Битран — четвёртое приложение «Карго»: виртуальные домены, награды, оборудование; своей клавиши нет
   { id: 'bitrun', name: 'Битран', sub: 'Виртуальные домены', desc: 'Домены, калькулятор награды, нетподы, глитчи',
     src: 'apps/bitrun/index.html', color: '#a83fb8', icon: 'vr', hscroll: 'nav, .chips', css: false },
+  // Генетика — третье приложение науки: анализатор последовательностей как в игре, скрещивание, мутации; своей клавиши нет
+  { id: 'genetics', name: 'Генетика', sub: 'Мутации и анализатор', desc: 'Анализатор ДНК 1:1, скрещивание, справочник мутаций',
+    src: 'apps/genetics/index.html', color: '#3fae8c', icon: 'dna', hscroll: 'nav, .chips', css: false },
 ];
 // Клавиша приложения: Alt+1…9, дальше — Alt+-, Alt+=, Alt+\
 const EXTRA_KEYS = [['Minus', '-'], ['Equal', '='], ['Backslash', '\\']];
@@ -123,7 +127,7 @@ const DEPTS = [
   { id: 'law', name: 'Юридический отдел', short: 'Юр. отдел', sub: 'АВД и Представитель', color: '#b8863b', icon: 'scales', apps: ['avd'] },
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
   { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
-  { id: 'sci', name: 'Наука', sub: 'Схемы, роботы, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'xeno', 'rnd'] },
+  { id: 'sci', name: 'Наука', sub: 'Схемы, роботы, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'xeno', 'rnd', 'genetics'] },
   { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
   { id: 'srv', name: 'Сервис', sub: 'Кухня, бар, ботаника', color: '#e07a3f', icon: 'cloche', apps: ['kitchen', 'botany'] },
   { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev', 'bitrun'] },
