@@ -91,6 +91,7 @@ Copy-Item (Join-Path $root 'bitrun\index.html') $dst
 # Генетика — живёт в Пульте (genetics\): анализатор как в игре, скрещивание, справочник; data.js собирает genetics\build_data.py, tgui.css — стили окон игры
 $dst = Join-Path $apps 'genetics'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'genetics\index.html'), (Join-Path $root 'genetics\data.js'), (Join-Path $root 'genetics\tgui.css') $dst
+Copy-Item (Join-Path $root 'genetics\img') $dst -Recurse
 # Наниты — живут в Пульте (nanites\): каталог программ, сборка и коды; data.js собирает nanites\build_data.py, НРП — у Панели АВД (..\avd\nrp.js)
 $dst = Join-Path $apps 'nanites'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'nanites\index.html'), (Join-Path $root 'nanites\data.js') $dst
