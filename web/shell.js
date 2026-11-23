@@ -1,5 +1,5 @@
 'use strict';
-// Пульт — оболочка для двадцати приложений: стартовое радиальное меню, переключение приложений
+// Пульт — оболочка для двадцати одного приложения: стартовое радиальное меню, переключение приложений
 // и два режима окна (компактный и расширенный). Работает в Пульт.exe, Пульт.apk и в браузере. Приложения открываются в iframe с того же
 // адреса, поэтому оболочка может подключить к ним стили компактного режима.
 
@@ -38,6 +38,7 @@ const ICONS = {
   fish: '<path d="M2.5 12c2.6-3.6 6-5.5 9.6-5.5 3.4 0 6.1 1.9 7.9 5.5-1.8 3.6-4.5 5.5-7.9 5.5-3.6 0-7-1.9-9.6-5.5z"/><path d="M20 12l2-3v6z"/><circle cx="8" cy="11" r="1"/><path d="M13 9.5c.8.7 1.2 1.5 1.2 2.5s-.4 1.8-1.2 2.5"/>',
   slime: '<path d="M4 19c-1.5 0-2-1-1.5-2.5C4 11 7 5 12 5s8 6 9.5 11.5c.5 1.5 0 2.5-1.5 2.5z"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M10 15.5c1.2.8 2.8.8 4 0"/>',
   leaf: '<path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19c3-4 6-7 10-10"/><path d="M5 19l-2 2"/>',
+  tree: '<rect x="9" y="2.5" width="6" height="4.5" rx="1"/><rect x="2.5" y="17" width="6" height="4.5" rx="1"/><rect x="15.5" y="17" width="6" height="4.5" rx="1"/><path d="M12 7v4M5.5 17v-3h13v3M12 11v3"/>',
   virus: '<circle cx="12" cy="12" r="5.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M18.4 5.6l-1.9 1.9M7.5 16.5l-1.9 1.9"/><circle cx="10.2" cy="10.8" r="1"/><circle cx="14" cy="13.4" r="1"/>',
 };
 const svg = (name, extra = '') =>
@@ -100,6 +101,9 @@ const APPS = [
   // Ботаника — второе приложение сервиса: растения, лоток, химия, гены; своей клавиши нет
   { id: 'botany', name: 'Ботаника', sub: 'Растения и мутации', desc: 'Статы и гены растений, лоток, химия, мутации',
     src: 'apps/botany/index.html', color: '#5f9e46', icon: 'leaf', hscroll: 'nav, .subnav, .chips', css: false },
+  // R&D — третье приложение науки: дерево исследований, порядок изучения, где взять дизайн; своей клавиши нет
+  { id: 'rnd', name: 'R&D', sub: 'Дерево исследований', desc: 'Узлы и что они открывают, порядок изучения, очки',
+    src: 'apps/rnd/index.html', color: '#8a54c9', icon: 'tree', hscroll: 'nav, .chips, .map', css: false },
 ];
 // Клавиша приложения: Alt+1…9, дальше — Alt+-, Alt+=, Alt+\
 const EXTRA_KEYS = [['Minus', '-'], ['Equal', '='], ['Backslash', '\\']];
@@ -115,7 +119,7 @@ const DEPTS = [
   { id: 'law', name: 'Юридический отдел', short: 'Юр. отдел', sub: 'АВД и Представитель', color: '#b8863b', icon: 'scales', apps: ['avd'] },
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
   { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
-  { id: 'sci', name: 'Наука', sub: 'Схемы, роботы, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'xeno'] },
+  { id: 'sci', name: 'Наука', sub: 'Схемы, роботы, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'xeno', 'rnd'] },
   { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
   { id: 'srv', name: 'Сервис', sub: 'Кухня, бар, ботаника', color: '#e07a3f', icon: 'cloche', apps: ['kitchen', 'botany'] },
   { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev'] },

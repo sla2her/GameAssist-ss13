@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R&amp;D</title>
+<style>
+/* R&D: техвеб BlueMoon — карта узлов, что они открывают, порядок изучения и откуда брать очки.
+   Данные (узлы, дизайны, предметы на очки) — data.js, его собирает build_data.py. Вёрстка как у Рыбалки. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#8a54c9; --accent-fg:#ffffff; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#b88af0; --accent-fg:#1d0b33; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#b88af0; --accent-fg:#1d0b33; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1400px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.card>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.card .body{padding:10px 16px 14px;font-size:14px}
+.card .body p{margin:0 0 8px}
+.card .body p:last-child{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.bul{margin:0;padding:10px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.note{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.note.bad{--kc:var(--bad)} .note.ok{--kc:var(--ok)} .note.warn{--kc:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:5px 8px;vertical-align:middle;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+.wide{grid-column:1/-1}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chips button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:4px 11px;font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chips button i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cc);margin-right:6px;vertical-align:1px}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:6px;padding:0 7px;color:var(--tc,var(--muted));background:color-mix(in srgb,var(--tc,var(--muted)) 14%,transparent);white-space:nowrap;line-height:1.6}
+.tag.ok{--tc:var(--ok)} .tag.bad{--tc:var(--bad)} .tag.warn{--tc:var(--warn)} .tag.acc{--tc:var(--accent)}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;padding:12px 16px 0}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:7px 11px;background:var(--panel2)}
+.kpi b{display:block;font-size:19px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13.5px}
+.btn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+.btn.sm{padding:2px 9px;font-size:12.5px}
+.btn:disabled{opacity:.5;cursor:default}
+input[type=search],input[type=number],select{padding:6px 9px;border:1px solid var(--line2);border-radius:8px;background:var(--panel)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tools input[type=search]{flex:1 1 240px}
+.tools label{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+
+/* состояние узла */
+.st-done{--sc:var(--ok)} .st-avail{--sc:var(--accent)} .st-lock{--sc:var(--faint)} .st-hid{--sc:var(--warn)}
+
+/* карта */
+.mapwrap{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:14px;align-items:start}
+.map{position:relative;overflow:auto;padding:10px;max-height:calc(100vh - 150px)}
+.cols{display:flex;gap:26px;position:relative;z-index:1;width:max-content}
+.col{display:flex;flex-direction:column;gap:4px;width:188px}
+.col h4{margin:0 0 4px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);position:sticky;top:-10px;background:var(--panel);padding:4px 0;z-index:2}
+.nd{display:flex;gap:6px;align-items:center;text-align:left;border:1px solid var(--line);border-left:4px solid var(--cc);background:var(--panel);border-radius:7px;padding:3px 7px;cursor:pointer;font-size:12.5px;line-height:1.25;min-height:28px}
+.nd:hover{border-color:var(--line2);background:var(--panel2)}
+.nd span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.nd small{color:var(--faint);font-variant-numeric:tabular-nums;font-size:11px}
+.nd.st-done{background:color-mix(in srgb,var(--ok) 13%,var(--panel))}
+.nd.st-avail{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent)}
+.nd.st-lock span{color:var(--muted)}
+.nd.st-hid{border-style:dashed;border-left-style:solid}
+.nd.dim{opacity:.22}
+.nd.sel{outline:2px solid var(--fg);outline-offset:1px}
+.nd.anc{background:color-mix(in srgb,var(--warn) 16%,var(--panel))}
+.nd.kid{background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+.nd.hit{box-shadow:0 0 0 2px var(--warn)}
+svg.links{position:absolute;left:0;top:0;pointer-events:none;z-index:0;overflow:visible}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.legend b{display:inline-block;width:14px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid var(--line2)}
+
+/* карточка узла */
+.detail{position:sticky;top:76px;max-height:calc(100vh - 90px);overflow:auto}
+.detail .head{padding:12px 16px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--cc,var(--accent)) 10%,var(--panel))}
+.detail .head h2{margin:0;font-size:18px;line-height:1.25}
+.detail .head .id{font:12px var(--font-m);color:var(--faint)}
+.detail .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.sec{padding:8px 16px 10px;font-size:14px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec h4{margin:2px 0 6px;font-size:12.5px;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.sec p{margin:0 0 6px}
+.links-list{display:flex;flex-wrap:wrap;gap:5px}
+.ln{border:1px solid var(--line2);border-left:3px solid var(--sc);background:var(--panel);border-radius:6px;padding:1px 8px;font-size:12.5px;cursor:pointer}
+.ln:hover{background:var(--panel2)}
+.dl{display:grid;gap:6px}
+.dz{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px;background:var(--panel2)}
+.dz b{font-weight:600}
+.dz .meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px;align-items:center}
+.mats{font-size:12px;color:var(--muted)}
+.path{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13px}
+.path li{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:3px 8px;border-radius:6px;background:var(--panel2)}
+.path li button{border:0;background:none;padding:0;cursor:pointer;text-align:left;color:var(--fg)}
+.path li small{color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap}
+.empty{padding:22px 16px;color:var(--muted);font-size:14px}
+
+/* план */
+.plan{display:grid;grid-template-columns:340px minmax(0,1fr);gap:14px;align-items:start}
+.side{display:grid;gap:12px}
+.side .panel{padding:10px 14px;font-size:13.5px}
+.side h4{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.inc{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:13px}
+.inc input,.inc select{width:120px}
+.incres{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:13px}
+.incres b{font-size:16px}
+.goals{display:grid;gap:4px}
+.goal{display:flex;gap:6px;align-items:center;justify-content:space-between;padding:3px 8px;border-radius:6px;background:var(--panel2);font-size:13px}
+.goal button.x{border:0;background:none;cursor:pointer;color:var(--faint);font-size:15px;line-height:1}
+.ac{position:relative}
+.ac input{width:100%}
+.acl{position:absolute;left:0;right:0;top:100%;z-index:8;background:var(--panel);border:1px solid var(--line2);border-radius:8px;margin-top:3px;max-height:280px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.15)}
+.acl button{display:block;width:100%;text-align:left;border:0;background:none;padding:5px 9px;cursor:pointer;font-size:13px}
+.acl button:hover,.acl button.on{background:var(--panel2)}
+.acl small{color:var(--faint)}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--panel2)}
+td .nm{display:flex;gap:6px;align-items:center}
+td .dot{width:8px;height:8px;border-radius:50%;background:var(--cc);flex:none}
+
+@media (max-width:1000px){
+  .mapwrap,.plan{grid-template-columns:minmax(0,1fr)}
+  .detail{position:static;max-height:none}
+  .map{max-height:70vh}
+}
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%;overflow-x:auto} nav button{flex:1;padding:7px 8px}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%;overflow-x:auto;scrollbar-width:none}
+.pult-compact nav button{flex:1;padding:5px 6px}
+.pult-compact .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .grid,.pult-compact .mapwrap,.pult-compact .plan{grid-template-columns:minmax(0,1fr)}
+.pult-compact .detail{position:static;max-height:none}
+.pult-compact .map{max-height:60vh}
+.pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .tbl,.pult-compact .kpis,.pult-compact .sec{padding-left:10px;padding-right:10px}
+.pult-compact .bul{padding-left:28px;padding-right:10px}
+.pult-compact .note{margin-left:10px;margin-right:10px}
+.pult-compact .foot{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">R&amp;D</div><div><h1>R&amp;D</h1><small>Техвеб · Порядок изучения · Где взять дизайн · Очки</small></div></div>
+  <nav role="tablist">
+    <button role="tab" data-tab="map" aria-selected="true">Дерево</button>
+    <button role="tab" data-tab="plan" aria-selected="false">Порядок</button>
+    <button role="tab" data-tab="find" aria-selected="false">Где взять</button>
+    <button role="tab" data-tab="points" aria-selected="false">Очки</button>
+    <button role="tab" data-tab="basics" aria-selected="false">Основы</button>
+  </nav>
+</header>
+<main>
+
+<!-- Дерево -->
+<section id="tab-map">
+  <div class="tools">
+    <input type="search" id="mapq" placeholder="Узел или то, что он открывает: «magboots», «Gygax», «bag of holding»…" aria-label="Поиск по дереву">
+    <label><input type="checkbox" id="showHidden"> скрытые и BEPIS</label>
+    <span class="grow"></span>
+    <button class="btn sm" id="resetDone" title="Оставить изученными только стартовые узлы">Сбросить изученное</button>
+  </div>
+  <div class="chips" id="catChips"></div>
+  <div class="legend">
+    <span><b style="background:color-mix(in srgb,var(--ok) 25%,var(--panel))"></b>изучено</span>
+    <span><b style="box-shadow:inset 0 0 0 1px var(--accent)"></b>можно изучить</span>
+    <span><b></b>закрыто</span>
+    <span><b style="border-style:dashed"></b>скрыто до разборки предмета</span>
+    <span><b style="background:color-mix(in srgb,var(--warn) 25%,var(--panel))"></b>нужно для выбранного</span>
+    <span><b style="background:color-mix(in srgb,var(--accent) 22%,var(--panel))"></b>открывает выбранный</span>
+  </div>
+  <div class="mapwrap">
+    <div class="panel map" id="map"><svg class="links" id="links"></svg><div class="cols" id="cols"></div></div>
+    <aside class="panel detail" id="detail"></aside>
+  </div>
+</section>
+
+<!-- Порядок изучения -->
+<section id="tab-plan" hidden>
+  <div class="plan">
+    <div class="side">
+      <div class="panel">
+        <h4>Доход очков</h4>
+        <div class="inc">
+          <label for="srvN">Серверов в сети</label><input type="number" id="srvN" min="0" max="12" value="1">
+          <label for="srvTier">Модуль сканирования</label>
+          <select id="srvTier"><option value="1">T1 базовый</option><option value="2">T2 продвинутый</option><option value="3">T3 фазовый</option><option value="4">T4 трифазный</option></select>
+          <label for="srvT">Температура у серверов, °C</label><input type="number" id="srvT" value="20" step="1">
+          <label for="extra">Ещё очков в минуту</label><input type="number" id="extra" value="0" min="0" step="100">
+        </div>
+        <div class="incres" id="incRes"></div>
+      </div>
+      <div class="panel">
+        <h4>Готовые цели</h4>
+        <div class="chips" id="presets" style="margin:0"></div>
+      </div>
+      <div class="panel">
+        <h4>Цели плана</h4>
+        <div class="ac"><input type="search" id="goalq" placeholder="Добавить узел или дизайн…" aria-label="Добавить цель" autocomplete="off"><div class="acl" id="goalAc" hidden></div></div>
+        <div class="goals" id="goals" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns:minmax(0,1fr)">
+      <div class="panel card" id="planCard"></div>
+      <div class="panel card" id="nowCard"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Где взять -->
+<section id="tab-find" hidden>
+  <div class="tools">
+    <input type="search" id="findq" placeholder="Название предмета или дизайна: «RCD», «super capacitor», «defibrillator»…" aria-label="Поиск дизайна">
+    <select id="findMachine" aria-label="Станок"></select>
+    <select id="findDept" aria-label="Отдел"></select>
+  </div>
+  <div class="panel card"><div class="tbl" id="findRes"></div></div>
+</section>
+
+<!-- Очки -->
+<section id="tab-points" hidden>
+  <div class="grid" id="pointsGrid"></div>
+</section>
+
+<!-- Основы -->
+<section id="tab-basics" hidden>
+  <div class="grid" id="basicsGrid"></div>
+</section>
+
+<p class="foot" id="foot"></p>
+</main>
+</div>
+<script src="data.js"></script>
+<script>
+'use strict';
+const D = window.RND_DATA || { nodes: {}, designs: {}, points: [], consts: {} };
+const N = D.nodes, DS = D.designs, C = D.consts;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (n) => Math.round(n).toLocaleString('ru-RU');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('rnd.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('rnd.' + k, JSON.stringify(v)); } catch (e) { /* без хранилища */ } },
+};
+
+// ---------------- Справочники ----------------
+const CATS = {
+  misc: ['Теория и разное', '#8b92a1'], eng: ['Инженерия', '#d9a02a'], tools: ['Инструменты', '#a0785a'],
+  bs: ['Блюспейс', '#3a7be0'], comp: ['Компьютеры', '#2fb5a5'], bio: ['Биотех', '#3fa66b'], med: ['Медицина', '#4aa8d8'],
+  robo: ['Робототехника', '#8c6ad8'], mech: ['Мехи', '#b5653a'], mod: ['МОДы', '#6a7de0'], nanite: ['Наниты', '#29b6c9'],
+  weap: ['Оружие', '#d63c45'], synd: ['Синдикат', '#8f1d23'], alien: ['Инопланетное', '#52a86a'],
+  bepis: ['BEPIS', '#d9a03a'], export: ['Лицензии', '#c08a3e'],
+};
+const MACH = {
+  pro: 'Протолат', imp: 'Принтер плат', mech: 'Мехфаб', auto: 'Автолат', bio: 'Биогенератор', limb: 'Выращиватель конечностей',
+  smelt: 'Плавильня', nanite: 'Компилятор нанитов', bottle: 'Автобутлер', aegis: 'BioAegis', toy: 'Автойлат', surg: 'Операционный компьютер',
+  away: 'Протолат вне станции', awayimp: 'Принтер плат вне станции',
+};
+const DEPTS = { all: 'все отделы', sci: 'Наука', eng: 'Инженерия', med: 'Медицина', sec: 'СБ', cargo: 'Карго', srv: 'Сервис' };
+const MATS = {
+  iron: 'железо', glass: 'стекло', silver: 'серебро', gold: 'золото', diamond: 'алмаз', plasma: 'плазма', uranium: 'уран',
+  titanium: 'титан', plastic: 'пластик', bluespace: 'блюспейс', bananium: 'бананиум', brass: 'латунь', runedmetal: 'рунический металл',
+};
+const SECL = { blue: 'Синий', amber: 'Янтарный', red: 'Красный' };
+const RADIO = { science: 'Наука', engineering: 'Инженерия', medical: 'Медицина', security: 'СБ', supply: 'Снабжение', service: 'Сервис', command: 'Командование' };
+const catOf = (id) => CATS[N[id] && N[id].cat] || CATS.misc;
+
+// ---------------- Граф ----------------
+const IDS = Object.keys(N);
+const kids = {};
+IDS.forEach((id) => { kids[id] = []; });
+IDS.forEach((id) => N[id].pre.forEach((p) => kids[p] && kids[p].push(id)));
+const tier = {};
+const tierOf = (id, seen = {}) => {
+  if (tier[id] != null) return tier[id];
+  if (seen[id]) return 0;
+  seen[id] = 1;
+  const n = N[id];
+  const t = n.start || !n.pre.length ? 0 : 1 + Math.max(...n.pre.map((p) => tierOf(p, seen)));
+  return (tier[id] = t);
+};
+IDS.forEach((id) => tierOf(id));
+const ancestors = (id) => {
+  const out = new Set(), st = [...N[id].pre];
+  while (st.length) { const p = st.pop(); if (!out.has(p)) { out.add(p); st.push(...N[p].pre); } }
+  return out;
+};
+const descendants = (id) => {
+  const out = new Set(), st = [...kids[id]];
+  while (st.length) { const p = st.pop(); if (!out.has(p)) { out.add(p); st.push(...kids[p]); } }
+  return out;
+};
+// узлы, открывающие дизайн
+const designNodes = {};
+IDS.forEach((id) => N[id].des.forEach((d) => { (designNodes[d] = designNodes[d] || []).push(id); }));
+
+// ---------------- Изученное ----------------
+const START = IDS.filter((id) => N[id].start);
+let done = new Set([...START, ...store.get('done', []).filter((id) => N[id])]);
+const saveDone = () => store.set('done', [...done].filter((id) => !N[id].start));
+const state = (id) => {
+  if (done.has(id)) return 'done';
+  if (N[id].hidden) return 'hid';
+  return N[id].pre.every((p) => done.has(p)) ? 'avail' : 'lock';
+};
+const STATE_RU = { done: 'изучено', avail: 'можно изучить', lock: 'закрыто', hid: 'скрыто' };
+const STATE_TAG = { done: 'ok', avail: 'acc', lock: '', hid: 'warn' };
+
+// ---------------- Доход ----------------
+const inc = Object.assign({ n: 1, tier: 1, t: 20, extra: 0 }, store.get('inc', {}));
+// server.dm: (база × (1 + (рейтинг − 1) × 0,2) − штраф за перегрев) × 1,2; SSresearch: сеть × √(100 / серверов)
+function incomePerSec() {
+  const n = Math.max(0, Math.floor(+inc.n || 0));
+  let srv = 0, per = 0;
+  if (n) {
+    const gen = 1 + ((+inc.tier || 1) - 1) * 0.2;
+    const pen = Math.max((+inc.t || 0) + 273.15 - 293.15, 0) * 0.5;
+    per = Math.max((C.server_base * gen - pen) * C.server_mult, 0);
+    srv = per * n * Math.sqrt(100 / n);
+  }
+  return { per, srv, total: srv + (+inc.extra || 0) / 60 };
+}
+const fmtTime = (sec) => {
+  if (!isFinite(sec)) return '—';
+  sec = Math.round(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h ? `${h} ч ${String(m).padStart(2, '0')} мин` : m ? `${m} мин ${String(s).padStart(2, '0')} с` : `${s} с`;
+};
+const payout = (pts) => Math.round(pts / (C.node_pay_unit || 1000) * (C.node_pay || 0));
+
+// ---------------- Вкладки ----------------
+let tab = store.get('tab', 'map');
+function setTab(t) {
+  tab = t; store.set('tab', t);
+  document.querySelectorAll('nav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'));
+  document.querySelectorAll('main > section').forEach((s) => { s.hidden = s.id !== 'tab-' + t; });
+  if (t === 'map') requestAnimationFrame(drawLinks);
+  if (t === 'plan') renderPlan();
+}
+document.querySelector('nav').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); });
+
+// ---------------- Дерево ----------------
+let sel = store.get('sel', 'engineering');
+if (!N[sel]) sel = 'base';
+let catFilter = store.get('cat', '');
+let showHidden = store.get('hidden', false);
+$('showHidden').checked = showHidden;
+
+function renderChips() {
+  const used = {};
+  IDS.forEach((id) => { used[N[id].cat] = (used[N[id].cat] || 0) + 1; });
+  $('catChips').innerHTML = `<button aria-pressed="${!catFilter}" data-c="">Все</button>` +
+    Object.keys(CATS).filter((c) => used[c]).map((c) =>
+      `<button aria-pressed="${catFilter === c}" data-c="${c}" style="--cc:${CATS[c][1]}"><i></i>${CATS[c][0]} <span class="faint">${used[c]}</span></button>`).join('');
+}
+$('catChips').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  catFilter = b.dataset.c; store.set('cat', catFilter); renderChips(); renderMap();
+});
+$('showHidden').addEventListener('change', (e) => { showHidden = e.target.checked; store.set('hidden', showHidden); renderMap(); });
+
+function matchNode(id, q) {
+  if (!q) return false;
+  const n = N[id];
+  if ((n.name + ' ' + id + ' ' + n.desc).toLowerCase().includes(q)) return true;
+  return n.des.some((d) => { const x = DS[d]; return x && ((x.n + ' ' + (x.item || '') + ' ' + d).toLowerCase().includes(q)); });
+}
+
+function renderMap() {
+  const q = $('mapq').value.trim().toLowerCase();
+  const vis = IDS.filter((id) => showHidden || !N[id].hidden || done.has(id) || id === sel);
+  const cols = {};
+  vis.forEach((id) => { (cols[tier[id]] = cols[tier[id]] || []).push(id); });
+  const order = Object.keys(CATS);
+  const anc = sel ? ancestors(sel) : new Set(), des = sel ? new Set(kids[sel] || []) : new Set();
+  const html = Object.keys(cols).sort((a, b) => a - b).map((t) => {
+    const list = cols[t].sort((a, b) => order.indexOf(N[a].cat) - order.indexOf(N[b].cat) || N[a].name.localeCompare(N[b].name));
+    return `<div class="col"><h4>${+t === 0 ? 'Старт' : 'Уровень ' + t}</h4>` + list.map((id) => {
+      const n = N[id], st = state(id);
+      const cls = ['nd', 'st-' + st];
+      if (catFilter && n.cat !== catFilter) cls.push('dim');
+      if (id === sel) cls.push('sel'); else if (anc.has(id)) cls.push('anc'); else if (des.has(id)) cls.push('kid');
+      if (matchNode(id, q)) cls.push('hit');
+      return `<button class="${cls.join(' ')}" data-id="${id}" style="--cc:${catOf(id)[1]}" title="${esc(n.name)} — ${STATE_RU[st]}"><span>${esc(n.name)}</span><small>${n.cost ? (n.cost / 1000).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + 'к' : '0'}</small></button>`;
+    }).join('') + '</div>';
+  }).join('');
+  $('cols').innerHTML = html;
+  requestAnimationFrame(drawLinks);
+}
+
+function drawLinks() {
+  const svg = $('links'), box = $('cols');
+  if (!box.offsetParent) return;
+  const W = box.scrollWidth + 20, H = box.scrollHeight + 20;
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  if (!sel || !N[sel]) { svg.innerHTML = ''; return; }
+  const base = box.getBoundingClientRect();
+  const off = { x: box.offsetLeft, y: box.offsetTop };
+  const pos = (id) => {
+    const el = box.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { l: r.left - base.left + off.x, r: r.right - base.left + off.x, y: r.top - base.top + off.y + r.height / 2 };
+  };
+  const edge = (a, b, col, w) => {
+    const pa = pos(a), pb = pos(b);
+    if (!pa || !pb) return '';
+    const x1 = pa.r, x2 = pb.l, dx = Math.max(30, (x2 - x1) / 2);
+    return `<path d="M${x1} ${pa.y} C${x1 + dx} ${pa.y} ${x2 - dx} ${pb.y} ${x2} ${pb.y}" fill="none" stroke="${col}" stroke-width="${w}" stroke-opacity=".85"/>`;
+  };
+  let out = '';
+  const anc = ancestors(sel);
+  [...anc].forEach((a) => N[a].pre.forEach((p) => { out += edge(p, a, 'var(--warn)', 1.2); }));
+  N[sel].pre.forEach((p) => { out += edge(p, sel, 'var(--warn)', 2.4); });
+  kids[sel].forEach((k) => { out += edge(sel, k, 'var(--accent)', 2.4); });
+  svg.innerHTML = out;
+}
+window.addEventListener('resize', () => { if (tab === 'map') drawLinks(); });
+
+$('cols').addEventListener('click', (e) => { const b = e.target.closest('.nd'); if (b) select(b.dataset.id); });
+let qTimer = 0;
+$('mapq').addEventListener('input', () => {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => {
+    renderMap();
+    const hit = $('cols').querySelector('.nd.hit');
+    if (hit) hit.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, 160);
+});
+$('resetDone').addEventListener('click', () => { done = new Set(START); saveDone(); renderAll(); });
+
+function select(id, scroll) {
+  if (!N[id]) return;
+  sel = id; store.set('sel', id);
+  if (N[id].hidden && !showHidden) { showHidden = true; $('showHidden').checked = true; store.set('hidden', true); }
+  renderMap(); renderDetail();
+  if (scroll) {
+    if (tab !== 'map') setTab('map');
+    requestAnimationFrame(() => { const el = $('cols').querySelector(`[data-id="${CSS.escape(id)}"]`); if (el) el.scrollIntoView({ block: 'center', inline: 'center' }); });
+  }
+}
+
+// путь до узла: недостающие предки в порядке изучения (сначала дешёвые доступные)
+function planFor(targets) {
+  const need = new Set();
+  targets.forEach((t) => { if (!N[t]) return; [t, ...ancestors(t)].forEach((a) => { if (!done.has(a)) need.add(a); }); });
+  const have = new Set(done), order = [];
+  const blocked = [];
+  while (need.size) {
+    const ready = [...need].filter((id) => !N[id].hidden && N[id].pre.every((p) => have.has(p)));
+    if (!ready.length) { blocked.push(...need); break; }
+    // дешёвый первым; при равной цене — тот, от которого зависит больше нужных узлов
+    const dep = (id) => [...need].filter((x) => x !== id && ancestors(x).has(id)).length;
+    ready.sort((a, b) => N[a].cost - N[b].cost || dep(b) - dep(a) || N[a].name.localeCompare(N[b].name));
+    const pick = ready[0];
+    order.push(pick); have.add(pick); need.delete(pick);
+  }
+  return { order, blocked };
+}
+
+function nodeLink(id) {
+  return `<button class="ln st-${state(id)}" data-go="${id}" title="${STATE_RU[state(id)]}">${esc(N[id].name)}</button>`;
+}
+
+function designHtml(d) {
+  const x = DS[d];
+  if (!x) return '';
+  const mats = Object.entries(x.m || {}).map(([k, v]) => `${MATS[k] || k} ${+v.toFixed(2)}`).join(', ');
+  const reag = Object.entries(x.r || {}).map(([k, v]) => `${k} ${v}`).join(', ');
+  const where = (x.b || []).map((b) => `<span class="tag acc">${MACH[b] || b}</span>`).join(' ');
+  const dp = (x.dp || []).filter((k) => k !== 'all').map((k) => DEPTS[k]).join(', ');
+  const deptTxt = (x.b || []).some((b) => b === 'pro' || b === 'imp')
+    ? (x.dp && x.dp.includes('all') ? 'отделы: все' : dp ? 'отделы: ' + dp : 'только у науки')
+    : '';
+  return `<div class="dz"><b>${esc(x.n)}</b>${x.item ? ` <span class="faint">→ ${esc(x.item)}</span>` : ''}
+    <div class="meta">${where}${deptTxt ? `<span class="tag">${deptTxt}</span>` : ''}${x.sec ? `<span class="tag warn">с кода «${SECL[x.sec] || x.sec}»</span>` : ''}${x.t ? `<span class="tag">${x.t} с</span>` : ''}</div>
+    ${mats || reag ? `<div class="mats">${esc(mats)}${mats && reag ? '; ' : ''}${esc(reag)} ${mats ? '<span class="faint">(в листах)</span>' : ''}</div>` : ''}</div>`;
+}
+
+function renderDetail() {
+  const id = sel, n = N[id];
+  const el = $('detail');
+  if (!n) { el.innerHTML = '<div class="empty">Выбери узел на дереве.</div>'; return; }
+  const st = state(id), cc = catOf(id);
+  const { order, blocked } = planFor([id]);
+  const pathCost = order.reduce((s, x) => s + N[x].cost, 0);
+  const ip = incomePerSec().total;
+  let h = `<div class="head" style="--cc:${cc[1]}"><h2>${esc(n.name)}</h2><div class="id">${esc(id)}</div>
+    <div class="row"><span class="tag" style="--tc:${cc[1]}">${cc[0]}</span><span class="tag ${STATE_TAG[st]}">${STATE_RU[st]}</span>
+    <span class="tag">${n.cost ? fmt(n.cost) + ' очков' : 'бесплатно'}</span>${n.exp ? '<span class="tag warn">BEPIS</span>' : ''}${n.src ? `<span class="tag">${esc(n.src)}</span>` : ''}</div>
+    <div class="row">${n.start ? '<span class="muted" style="font-size:13px">Стартовый узел — изучен с начала раунда.</span>'
+      : `<button class="btn sm ${done.has(id) ? '' : 'pri'}" data-toggle="${id}">${done.has(id) ? 'Снять отметку' : 'Отметить изученным'}</button>`}
+      ${!done.has(id) && order.length > 1 ? `<button class="btn sm" data-markpath="${id}">Отметить весь путь</button>` : ''}
+      <button class="btn sm" data-goal="${id}">В план</button></div></div>`;
+  if (n.desc) h += `<div class="sec"><p>${esc(n.desc)}</p>${n.cost ? `<p class="faint" style="font-size:12.5px;margin:0">Бюджет науки получит ${payout(n.cost)} кр. за изучение с консоли станции.</p>` : ''}</div>`;
+  if (n.hidden) {
+    const how = n.exp ? 'Узел экспериментальный. При крупном успехе BEPIS печатает диск технологий с таким узлом — его загружают в консоль R&D. Сам по себе на консоли он не появится.'
+      : n.boost && n.boost.length ? 'Узел скрыт. Он появится на консоли, когда разберёшь в деструктивном анализаторе один из предметов ниже (режим «раскрыть узел»).'
+      : 'Узел скрыт и не показывается на консоли.';
+    h += `<div class="sec"><h4>Как открыть</h4><p>${how}</p>${n.boost && n.boost.length ? `<p class="mats">${n.boost.map((b) => esc(b[0]) + (b[1] ? ` (−${fmt(b[1])})` : '')).join(', ')}</p>` : ''}</div>`;
+  } else if (n.boost && n.boost.length) {
+    h += `<div class="sec"><h4>Скидка за разборку</h4><p class="mats">${n.boost.map((b) => esc(b[0]) + (b[1] ? ` (−${fmt(b[1])})` : '')).join(', ')}</p></div>`;
+  }
+  h += `<div class="sec"><h4>Нужно изучить <span class="faint">${n.pre.length}</span></h4>${n.pre.length ? `<div class="links-list">${n.pre.map(nodeLink).join('')}</div>` : '<p class="faint">Ничего — корень дерева.</p>'}</div>`;
+  if (kids[id].length) h += `<div class="sec"><h4>Открывает узлы <span class="faint">${kids[id].length}</span></h4><div class="links-list">${kids[id].map(nodeLink).join('')}</div></div>`;
+  if (!done.has(id) && order.length) {
+    h += `<div class="sec"><h4>Путь отсюда <span class="faint">${order.length} узл. · ${fmt(pathCost)} очков · ${fmtTime(pathCost / ip)}</span></h4>
+      <ol class="path">${order.map((x) => `<li><button data-go="${x}">${esc(N[x].name)}</button><small>${fmt(N[x].cost)}</small></li>`).join('')}</ol>
+      ${blocked.length ? `<p class="note warn" style="margin:8px 0 0">Сначала нужно раскрыть скрытые узлы: ${blocked.filter((b) => N[b].hidden).map((b) => esc(N[b].name)).join(', ')}.</p>` : ''}</div>`;
+  }
+  h += `<div class="sec"><h4>Дизайны <span class="faint">${n.des.length}</span></h4>${n.des.length ? `<div class="dl">${n.des.map(designHtml).join('')}</div>` : '<p class="faint">Своих дизайнов нет — узел нужен как ступень к другим.</p>'}</div>`;
+  el.innerHTML = h;
+  el.style.setProperty('--cc', cc[1]);
+}
+
+document.addEventListener('click', (e) => {
+  const go = e.target.closest('[data-go]');
+  if (go) { select(go.dataset.go, tab !== 'map' || !go.closest('#detail')); if (go.closest('#detail')) $('detail').scrollTop = 0; return; }
+  const tg = e.target.closest('[data-toggle]');
+  if (tg) { const id = tg.dataset.toggle; if (done.has(id)) { done.delete(id); [...descendants(id)].forEach((d) => done.delete(d)); } else done.add(id); saveDone(); renderAll(); return; }
+  const mp = e.target.closest('[data-markpath]');
+  if (mp) { planFor([mp.dataset.markpath]).order.forEach((x) => done.add(x)); saveDone(); renderAll(); return; }
+  const gl = e.target.closest('[data-goal]');
+  if (gl) { addGoal(gl.dataset.goal); setTab('plan'); return; }
+});
+
+// ---------------- Порядок изучения ----------------
+const PRESETS = [
+  { n: 'Детали T4 для машин', g: ['emp_super', 'bluespace_power', 'adv_bluespace', 'practical_bluespace'],
+    tip: 'Трифазные сканеры, блюспейс-бины, фемто-манипуляторы, квадратные конденсаторы, квад-лазеры и BSRPED: апгрейд машин всей станции.' },
+  { n: 'Медбэй', g: ['adv_biotech', 'cryotech', 'adv_surgery', 'exp_surgery', 'cyber_organs_upgraded', 'adv_defibrillator_tec', 'upgraded_surgerytools'],
+    tip: 'Криокапсулы, продвинутая и экспериментальная хирургия, кибер-органы, улучшения дефибриллятора, инструменты.' },
+  { n: 'Робототехника и ИИ', g: ['adv_robotics', 'posibrain', 'ai', 'cyborg_upg_util', 'cyborg_upg_med', 'mecha_odysseus', 'mech_gygax', 'mod_advanced'],
+    tip: 'Позитронный мозг, ядро ИИ, улучшения киборгов, Odysseus и Gygax, продвинутые МОДы.' },
+  { n: 'Инженерия', g: ['adv_engi', 'adv_power', 'high_efficiency', 'exp_tools', 'mod_engineering', 'NVGtech'],
+    tip: 'Магбутсы, RCD и RPD, СМЕСы и ячейки, инструменты экспериментальной серии, инженерный МОД, мезоны с ночным видением.' },
+  { n: 'Шахта', g: ['basic_mining', 'adv_mining', 'mech_diamond_drill'], tip: 'Плазменный резак, буры, алмазная дрель для меха.' },
+  { n: 'Блюспейс', g: ['bluespace_holding', 'bluespace_warping', 'advanced_bluetravel', 'bluespace_portal'], tip: 'Сумки хранения, телепорт и квантовые пады, порталы.' },
+  { n: 'СБ', g: ['sec_basic', 'weaponry', 'adv_weaponry', 'beam_weapons', 'electronic_weapons', 'integrated_HUDs', 'mod_security'],
+    tip: 'Оружие, лазеры, тазеры, худы и МОД безопасности. Часть дизайнов печатается только с повышенного кода.' },
+  { n: 'Наниты', g: ['nanite_base', 'nanite_smart', 'nanite_mesh', 'nanite_bio', 'nanite_harmonic'], tip: 'Основные ветки программ нанитов.' },
+];
+let goals = store.get('goals', []).filter((g) => N[g]);
+const saveGoals = () => store.set('goals', goals);
+function addGoal(id) { if (N[id] && !goals.includes(id)) { goals.push(id); saveGoals(); } renderPlan(); }
+
+$('presets').innerHTML = PRESETS.map((p, i) => `<button data-p="${i}" title="${esc(p.tip)}">${esc(p.n)}</button>`).join('') +
+  '<button data-p="all" title="Все видимые узлы дерева">Всё дерево</button><button data-p="clear">Очистить</button>';
+$('presets').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.p === 'clear') goals = [];
+  else if (b.dataset.p === 'all') goals = IDS.filter((id) => !N[id].hidden && !kids[id].some((k) => !N[k].hidden));
+  else PRESETS[+b.dataset.p].g.forEach((g) => { if (N[g] && !goals.includes(g)) goals.push(g); });
+  saveGoals(); renderPlan();
+});
+
+// автодополнение целей: узлы и дизайны
+let acItems = [], acOn = 0;
+function acSearch(q) {
+  q = q.trim().toLowerCase();
+  if (q.length < 2) return [];
+  const out = [];
+  IDS.forEach((id) => { if ((N[id].name + ' ' + id).toLowerCase().includes(q)) out.push({ id, label: N[id].name, sub: 'узел · ' + fmt(N[id].cost) }); });
+  Object.keys(DS).forEach((d) => {
+    const x = DS[d];
+    if (out.length > 60) return;
+    if ((x.n + ' ' + (x.item || '') + ' ' + d).toLowerCase().includes(q)) (designNodes[d] || []).forEach((id) => out.push({ id, label: x.n, sub: 'дизайн → ' + N[id].name }));
+  });
+  return out.slice(0, 40);
+}
+function renderAc() {
+  const box = $('goalAc');
+  box.hidden = !acItems.length;
+  box.innerHTML = acItems.map((it, i) => `<button data-i="${i}" class="${i === acOn ? 'on' : ''}">${esc(it.label)} <small>${esc(it.sub)}</small></button>`).join('');
+}
+$('goalq').addEventListener('input', (e) => { acItems = acSearch(e.target.value); acOn = 0; renderAc(); });
+$('goalq').addEventListener('keydown', (e) => {
+  if (!acItems.length) return;
+  if (e.key === 'ArrowDown') { acOn = (acOn + 1) % acItems.length; renderAc(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { acOn = (acOn - 1 + acItems.length) % acItems.length; renderAc(); e.preventDefault(); }
+  else if (e.key === 'Enter') { pickAc(acOn); e.preventDefault(); }
+  else if (e.key === 'Escape') { acItems = []; renderAc(); }
+});
+$('goalAc').addEventListener('mousedown', (e) => { const b = e.target.closest('button'); if (b) { e.preventDefault(); pickAc(+b.dataset.i); } });
+$('goalq').addEventListener('blur', () => setTimeout(() => { acItems = []; renderAc(); }, 120));
+function pickAc(i) { const it = acItems[i]; if (!it) return; $('goalq').value = ''; acItems = []; renderAc(); addGoal(it.id); }
+
+$('goals').addEventListener('click', (e) => { const b = e.target.closest('button.x'); if (b) { goals = goals.filter((g) => g !== b.dataset.id); saveGoals(); renderPlan(); } });
+
+[['srvN', 'n'], ['srvTier', 'tier'], ['srvT', 't'], ['extra', 'extra']].forEach(([el, k]) => {
+  $(el).value = inc[k];
+  $(el).addEventListener('input', (e) => { inc[k] = e.target.value; store.set('inc', inc); renderInc(); renderPlan(false); renderDetail(); });
+});
+function renderInc() {
+  const r = incomePerSec();
+  const hot = (+inc.t || 0) > 20;
+  $('incRes').innerHTML = `<b>${(Math.round(r.total * 10) / 10).toLocaleString('ru-RU')}</b> очков/с · ${fmt(r.total * 60)} в минуту<br>
+    <span class="faint">Один сервер даёт ${(Math.round(r.per * 100) / 100).toLocaleString('ru-RU')}/с, сеть умножает сумму на √(100 / серверов).</span>
+    ${hot ? `<div class="note warn" style="margin:8px 0 0">Каждый градус выше 20 °C отнимает у сервера 0,5 очка до множителя. При ${inc.t} °C ${r.per ? 'остаётся ' + (Math.round(r.per * 100) / 100) + '/с' : 'сервер не даёт ничего'}.</div>` : ''}`;
+}
+
+function renderPlan(full = true) {
+  $('goals').innerHTML = goals.length ? goals.map((g) => `<div class="goal"><button class="ln st-${state(g)}" data-go="${g}">${esc(N[g].name)}</button><button class="x" data-id="${g}" aria-label="Убрать цель">×</button></div>`).join('')
+    : '<p class="faint" style="margin:0">Выбери готовую цель или добавь узел, дизайн или предмет через поиск.</p>';
+  const { order, blocked } = planFor(goals);
+  const ip = incomePerSec().total;
+  let sum = 0;
+  const rows = order.map((id, i) => {
+    sum += N[id].cost;
+    const cc = catOf(id)[1];
+    return `<tr><td class="n">${i + 1}</td><td><div class="nm"><span class="dot" style="--cc:${cc}"></span><button class="ln st-${state(id)}" data-go="${id}">${esc(N[id].name)}</button>${goals.includes(id) ? ' <span class="tag acc">цель</span>' : ''}</div></td>
+      <td class="n">${fmt(N[id].cost)}</td><td class="n">${fmt(sum)}</td><td class="n">${fmtTime(sum / ip)}</td><td class="n">${N[id].des.length}</td>
+      <td><button class="btn sm" data-toggle="${id}">✓</button></td></tr>`;
+  }).join('');
+  const total = sum;
+  $('planCard').innerHTML = `<h3>Порядок изучения <small>${goals.length ? `${order.length} узл. до ${goals.length} цел.` : 'целей нет'}</small></h3>
+    ${goals.length ? `<div class="kpis"><div class="kpi"><b>${fmt(total)}</b><span>очков нужно</span></div><div class="kpi"><b>${fmtTime(total / ip)}</b><span>при текущем доходе</span></div>
+      <div class="kpi"><b>${order.length}</b><span>узлов</span></div><div class="kpi"><b>${fmt(payout(total))}</b><span>кр. бюджету науки</span></div></div>` : ''}
+    ${order.length ? `<div class="tbl"><table><thead><tr><th class="n">#</th><th>Узел</th><th class="n">Цена</th><th class="n">Накоплено</th><th class="n">К этому моменту</th><th class="n">Дизайнов</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="note">Порядок: из того, что уже можно изучить, сначала дешёвое — так очки быстрее превращаются в дизайны и выплаты. Галочка отмечает узел изученным, и план пересчитывается. Время — от нуля очков при текущем доходе.</p>`
+      : goals.length ? '<div class="empty">Все цели уже изучены.</div>' : ''}
+    ${blocked.length ? `<p class="note warn">Не дойти без раскрытия скрытых узлов: ${[...new Set(blocked.filter((b) => N[b].hidden))].map((b) => `<button class="ln st-hid" data-go="${b}">${esc(N[b].name)}</button>`).join(' ')}</p>` : ''}`;
+  if (full === false) return;
+  // что можно изучить прямо сейчас: по ценности (дизайны на 1000 очков)
+  const now = IDS.filter((id) => state(id) === 'avail').sort((a, b) => (N[b].des.length + kids[b].length) / Math.max(N[b].cost, 250) - (N[a].des.length + kids[a].length) / Math.max(N[a].cost, 250));
+  $('nowCard').innerHTML = `<h3>Можно изучить сейчас <small>${now.length} узл. — сверху те, что дают больше дизайнов и новых веток за очко</small></h3>
+    <div class="tbl"><table><thead><tr><th>Узел</th><th class="n">Цена</th><th class="n">Дизайнов</th><th class="n">Открывает веток</th><th></th></tr></thead><tbody>
+    ${now.map((id) => `<tr><td><div class="nm"><span class="dot" style="--cc:${catOf(id)[1]}"></span><button class="ln st-avail" data-go="${id}">${esc(N[id].name)}</button> <span class="faint" style="font-size:12px">${catOf(id)[0]}</span></div></td>
+      <td class="n">${fmt(N[id].cost)}</td><td class="n">${N[id].des.length}</td><td class="n">${kids[id].length}</td><td><button class="btn sm" data-toggle="${id}">✓</button></td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+// ---------------- Где взять ----------------
+const DLIST = Object.keys(DS).map((d) => ({ d, x: DS[d], s: (DS[d].n + ' ' + (DS[d].item || '') + ' ' + d).toLowerCase() }));
+$('findMachine').innerHTML = '<option value="">Любой станок</option>' + Object.keys(MACH).filter((m) => DLIST.some((r) => (r.x.b || []).includes(m))).map((m) => `<option value="${m}">${MACH[m]}</option>`).join('');
+$('findDept').innerHTML = '<option value="">Любой отдел</option>' + Object.keys(DEPTS).filter((k) => k !== 'all').map((k) => `<option value="${k}">Печатает отдел: ${DEPTS[k]}</option>`).join('');
+function renderFind() {
+  const q = $('findq').value.trim().toLowerCase(), m = $('findMachine').value, dp = $('findDept').value;
+  const res = DLIST.filter((r) => (!q || r.s.includes(q)) && (!m || (r.x.b || []).includes(m)) && (!dp || (r.x.dp || []).includes(dp) || (r.x.dp || []).includes('all')));
+  const shown = res.slice(0, 250);
+  $('findRes').innerHTML = `<p class="faint" style="margin:0 0 8px;font-size:13px">${res.length ? `Найдено ${res.length}${res.length > shown.length ? `, показаны первые ${shown.length}` : ''}.` : 'Ничего не найдено.'} Узел — где открывается дизайн; клик по узлу покажет его на дереве.</p>` +
+    (shown.length ? `<table><thead><tr><th>Дизайн</th><th>Узел</th><th>Где печатать</th><th>Материалы, листов</th></tr></thead><tbody>${shown.map((r) => {
+      const x = r.x;
+      const mats = Object.entries(x.m || {}).map(([k, v]) => `${MATS[k] || k} ${+v.toFixed(2)}`).join(', ');
+      const dpl = (x.dp || []).includes('all') ? 'все отделы' : (x.dp || []).map((k) => DEPTS[k]).join(', ');
+      return `<tr><td><b>${esc(x.n)}</b>${x.item ? `<br><span class="faint" style="font-size:12px">${esc(x.item)}</span>` : ''}${x.sec ? ` <span class="tag warn">с кода «${SECL[x.sec] || x.sec}»</span>` : ''}</td>
+        <td>${(designNodes[r.d] || []).map(nodeLink).join(' ')}</td>
+        <td>${(x.b || []).map((b) => MACH[b] || b).join(', ')}${dpl ? `<br><span class="faint" style="font-size:12px">${dpl}</span>` : ''}</td><td class="mats">${esc(mats)}</td></tr>`;
+    }).join('')}</tbody></table>` : '');
+}
+['findq', 'findMachine', 'findDept'].forEach((id) => $(id).addEventListener('input', renderFind));
+
+// ---------------- Очки ----------------
+function renderPoints() {
+  const p = D.points || [];
+  const r1 = incomePerSec();
+  const total = IDS.filter((id) => !N[id].hidden).reduce((s, id) => s + N[id].cost, 0);
+  const bomb = (L) => L < 5 ? 0 : L < C.bomb_size ? C.bomb_points * L ** 3 / C.bomb_size ** 3 : C.bomb_points * 2 * L / (L + C.bomb_size);
+  const srvRow = (n) => { const per = C.server_base * C.server_mult; return `<tr><td class="n">${n}</td><td class="n">${(Math.round(per * n * Math.sqrt(100 / n) * 10) / 10).toLocaleString('ru-RU')}</td><td class="n">${fmt(per * n * Math.sqrt(100 / n) * 60)}</td><td class="n">${fmtTime(total / (per * n * Math.sqrt(100 / n)))}</td></tr>`; };
+  $('pointsGrid').innerHTML = `
+  <div class="panel card"><h3>Серверы <small>главный источник</small></h3>
+    <div class="body"><p>Таблица — для модулей T1 при 20 °C, всё дерево — ${fmt(total)} очков. Каждый сервер в секунду даёт (${C.server_base} × (1 + (рейтинг модуля сканирования − 1) × 0,2) − штраф) × ${C.server_mult}. Штраф — 0,5 за каждый градус выше 20 °C у сервера. Сумма по сети умножается на √(100 / число серверов), так что второй сервер добавляет меньше первого.</p>
+    <p>Сервер ещё и греет комнату: без охлаждения доход быстро падает до нуля. Держи серверную холодной — это важнее, чем апгрейд.</p></div>
+    <div class="tbl"><table><thead><tr><th class="n">Серверов</th><th class="n">Очков/с</th><th class="n">В минуту</th><th class="n">Всё дерево</th></tr></thead><tbody>${[1, 2, 3, 4].map(srvRow).join('')}</tbody></table></div>
+    <p class="note">Твой расчёт с вкладки «Порядок»: ${(Math.round(r1.total * 10) / 10).toLocaleString('ru-RU')} очков/с.</p></div>
+
+  <div class="panel card"><h3>Деньги и очки</h3>
+    <div class="body"><p><b>Выплата за узел.</b> Узел, изученный с консоли станции, приносит бюджету науки ${C.node_pay} кр. за каждые ${fmt(C.node_pay_unit)} очков его цены.</p>
+    <p><b>Грант.</b> Отдел науки может купить очки за кредиты бюджета: ${String(C.grant_price).replace('.', ',')} кр. за очко, не больше ${fmt(C.grant_cap)} очков в час (${fmt(C.grant_cap * C.grant_price)} кр.).</p>
+    <p><b>Бомбы.</b> Доплеровский массив считает радиус лёгких разрушений. Очки и кредиты дают только за новый рекорд сети: платят разницу с прошлым лучшим взрывом. Предел — около ${fmt(C.bomb_points * 2)}.</p></div>
+    <div class="tbl"><table><thead><tr><th class="n">Радиус</th>${[25, 50, 100, 200, 300, 500].map((x) => `<th class="n">${x}</th>`).join('')}</tr></thead><tbody><tr><td class="n">Очков</td>${[25, 50, 100, 200, 300, 500].map((x) => `<td class="n">${fmt(bomb(x))}</td>`).join('')}</tr></tbody></table></div></div>
+
+  <div class="panel card"><h3>Разборка в деструктивном анализаторе</h3>
+    <div class="body"><p>Каждый тип предмета даёт очки только один раз на сеть. Семена тоже идут на очки: 50 + 2×редкость + 2×урожай − созревание − производство + срок жизни + потенция (лучшие — около 268).</p></div>
+    <div class="tbl">${(() => {
+      // особые предметы и обычные экстракты — поштучно, скрещивания — по виду с разбросом цены по цветам
+      const row = (a, b) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`;
+      const tbl = (title, rows) => rows.length ? `<h4 style="margin:4px 0 6px;font-size:13px;color:var(--muted)">${title}</h4><table style="margin-bottom:10px"><tbody>${rows.join('')}</tbody></table>` : '';
+      const special = p.filter((x) => !x[2]).sort((a, b) => b[1] - a[1]).map((x) => row(esc(x[0]), fmt(x[1])));
+      const plain = p.filter((x) => x[2] && !/\(/.test(x[0])).sort((a, b) => b[1] - a[1]).map((x) => row(esc(x[0]), fmt(x[1])));
+      const cross = {};
+      p.filter((x) => x[2] && /\(/.test(x[0])).forEach((x) => { const k = x[0].replace(/\s*\(.*$/, ''); (cross[k] = cross[k] || []).push(x[1]); });
+      const crossRows = Object.keys(cross).sort((a, b) => Math.max(...cross[b]) - Math.max(...cross[a])).map((k) => {
+        const lo = Math.min(...cross[k]), hi = Math.max(...cross[k]);
+        return row(`${esc(k)} <span class="faint">· ${cross[k].length} цв.</span>`, lo === hi ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`);
+      });
+      return tbl('Особые предметы', special) + tbl(`Экстракты слаймов · ${plain.length}`, plain) + tbl('Скрещённые экстракты (цена зависит от цвета)', crossRows);
+    })()}</div></div>
+
+  <div class="panel card"><h3>Другие источники <small>по коду</small></h3>
+    <ul class="bul">
+      <li>Экспериментальная хирургия (вскрытие) на операционном столе с компьютером.</li>
+      <li>Ксеноархеология: артефакты и исследовательский стол (<code>modular_splurt</code>).</li>
+      <li>Problem Computer — задачи сети, пять зарядов, новый раз в 90 с.</li>
+      <li>Астрометрический сенсор — наблюдение явлений за бортом.</li>
+      <li>Атмос: синтез BZ, стимулума, гипер-ноблия, очистка миазмы и первый синтез газа за раунд.</li>
+      <li>Тесла-катушки и радиационные коллекторы, подключённые к сети.</li>
+      <li>Ядро данных со спутника (событие) — ${fmt(3000)}, ядро аномалии — ${fmt(10000)}.</li>
+    </ul></div>`;
+}
+
+// ---------------- Основы ----------------
+function renderBasics() {
+  const total = IDS.filter((id) => !N[id].hidden).reduce((s, id) => s + N[id].cost, 0);
+  const hid = IDS.filter((id) => N[id].hidden);
+  $('basicsGrid').innerHTML = `
+  <div class="panel card"><h3>Как устроено R&amp;D</h3><ol class="steps">
+    <li><span><b>Серверы копят очки</b> для всей сети станции. Охлаждение важнее числа серверов (вкладка «Очки»).</span></li>
+    <li><span><b>Консоль R&amp;D</b> тратит очки на узлы. Узел можно изучить, когда изучены все узлы из «Нужно изучить».</span></li>
+    <li><span><b>Узел открывает дизайны</b>, их печатают на протолате, принтере плат или мехфабе. Протолаты и принтеры отделов печатают только дизайны своего отдела, главный протолат науки — всё.</span></li>
+    <li><span><b>Деструктивный анализатор</b> разбирает предметы на очки (каждый тип один раз) или раскрывает скрытые узлы.</span></li>
+    <li><span><b>BEPIS</b> тратит вложенные кредиты на эксперимент; при крупном успехе печатает диск с экспериментальным узлом, который загружают в консоль.</span></li>
+    <li><span><b>Код тревоги.</b> Часть оружия и снаряжения печатается только с синего, янтарного или красного кода.</span></li>
+  </ol></div>
+  <div class="panel card"><h3>Дерево в цифрах</h3>
+    <div class="kpis"><div class="kpi"><b>${IDS.length}</b><span>узлов</span></div><div class="kpi"><b>${Object.keys(DS).length}</b><span>дизайнов</span></div>
+      <div class="kpi"><b>${START.length}</b><span>стартовых</span></div><div class="kpi"><b>${hid.length}</b><span>скрытых</span></div>
+      <div class="kpi"><b>${fmt(total)}</b><span>очков на всё видимое</span></div><div class="kpi"><b>${fmtTime(total / (C.server_base * C.server_mult * 10))}</b><span>с одним сервером</span></div></div>
+    <div class="body" style="padding-top:12px"><p>Как пользоваться: на «Дереве» отмечай изученное — карта подсветит, что можно брать дальше. «Порядок» строит путь до нужных целей с ценой и временем, «Где взять» ищет дизайн по названию.</p></div></div>
+  <div class="panel card wide"><h3>Скрытые узлы <small>не видны на консоли, пока их не раскроют</small></h3><div class="tbl"><table><thead><tr><th>Узел</th><th>Как открыть</th><th class="n">Цена</th></tr></thead><tbody>
+    ${hid.map((id) => `<tr><td>${nodeLink(id)}</td><td class="mats">${N[id].exp ? 'BEPIS или диск технологий' : N[id].boost && N[id].boost.length ? 'Разобрать: ' + esc(N[id].boost.map((b) => b[0]).slice(0, 6).join(', ')) + (N[id].boost.length > 6 ? ` и ещё ${N[id].boost.length - 6}` : '') : 'диск технологий'}</td><td class="n">${fmt(N[id].cost)}</td></tr>`).join('')}
+  </tbody></table></div></div>`;
+}
+
+// ---------------- Старт ----------------
+function renderAll() { renderMap(); renderDetail(); renderPlan(); }
+$('foot').textContent = 'Данные — из кода BlueMoon-Station: code/modules/research/techweb, designs, server.dm, SSresearch и правки modular_*. Отметки изученного хранятся только на этом устройстве.';
+renderChips();
+renderInc();
+renderAll();
+renderFind();
+renderPoints();
+renderBasics();
+setTab(['map', 'plan', 'find', 'points', 'basics'].includes(tab) ? tab : 'map');
+</script>
+</body>
+</html>

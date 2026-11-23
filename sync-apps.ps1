@@ -82,5 +82,8 @@ Copy-Item (Join-Path $root 'xeno\index.html'), (Join-Path $root 'xeno\data.js') 
 # Ботаника — живёт в Пульте (botany\): data.js собирает botany\build_data.py из кода BlueMoon-Station
 $dst = Join-Path $apps 'botany'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'botany\index.html'), (Join-Path $root 'botany\data.js') $dst
+# R&D — живёт в Пульте (rnd\): дерево исследований и порядок изучения; data.js собирает rnd\build_data.py из техвеба игры
+$dst = Join-Path $apps 'rnd'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'rnd\index.html'), (Join-Path $root 'rnd\data.js') $dst
 
 "Приложения скопированы в $apps"
