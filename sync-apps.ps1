@@ -74,4 +74,8 @@ Copy-Item (Join-Path $root 'robo\index.html'), (Join-Path $root 'robo\mod.js'), 
 $dst = Join-Path $apps 'fishing'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'fishing\index.html'), (Join-Path $root 'fishing\data.js') $dst
 
+# Генетика — живёт в Пульте (genetics\): анализатор как в игре, скрещивание, справочник; data.js собирает genetics\build_data.py, tgui.css — стили окон игры
+$dst = Join-Path $apps 'genetics'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'genetics\index.html'), (Join-Path $root 'genetics\data.js'), (Join-Path $root 'genetics\tgui.css') $dst
+
 "Приложения скопированы в $apps"
