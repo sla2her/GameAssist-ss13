@@ -85,5 +85,8 @@ Copy-Item (Join-Path $root 'botany\index.html'), (Join-Path $root 'botany\data.j
 # R&D — живёт в Пульте (rnd\): дерево исследований и порядок изучения; data.js собирает rnd\build_data.py из техвеба игры
 $dst = Join-Path $apps 'rnd'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'rnd\index.html'), (Join-Path $root 'rnd\data.js') $dst
+# Битран — живёт в Пульте (bitrun\): виртуальные домены, награды, оборудование, глитчи
+$dst = Join-Path $apps 'bitrun'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'bitrun\index.html') $dst
 
 "Приложения скопированы в $apps"
