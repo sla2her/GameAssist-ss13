@@ -494,6 +494,10 @@ function prepare(app, frame) {
     s.src = new URL('compact/' + app.id + '.js', location.href).href;
     doc.body.appendChild(s);
   }
+  // Общая раскладка карточек без дыр (сетки .grid с карточками .card), см. layout.js
+  const lay = doc.createElement('script');
+  lay.src = new URL('layout.js', location.href).href;
+  doc.body.appendChild(lay);
 
   if (android) {
     patchForAndroid(frame.contentWindow);
