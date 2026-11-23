@@ -82,7 +82,6 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
 .d0{--dc:var(--ok)} .d1{--dc:var(--ok)} .d2{--dc:var(--warn)} .d3{--dc:var(--bad)}
 .foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
 
-.grid.mz{grid-auto-rows:1px;row-gap:0}
 .spr{width:32px;height:32px;image-rendering:pixelated;vertical-align:middle;flex:none}
 .spr.sm{width:24px;height:24px;margin:-4px 0}
 .spr.md{width:40px;height:40px;margin:-8px 0}
@@ -624,21 +623,6 @@ const [h0,h1]=(location.hash||'').slice(1).split(/[\/-]/);
 if(TABS.includes(h0))go(h0,SUBS[h0].some(([id])=>id===h1)?h1:null);
 else go(TABS.includes(S.tab)?S.tab:'care');
 
-/* Раскладка «кирпичами»: карточка в .grid встаёт под ближайшую по высоте соседку, а не ждёт самую высокую
-   в ряду — так короткие карточки не висят над пустотой. Ряды сетки по 1px, каждой карточке задаётся
-   span по её высоте; ResizeObserver пересчитывает при смене вкладки, ширины окна и содержимого. */
-(function(){
-  if(!window.ResizeObserver)return;
-  const gap=g=>parseFloat(getComputedStyle(g).columnGap)||14;
-  const fit=el=>{const g=el.parentElement;if(!g||!g.classList.contains('grid'))return;
-    const h=el.getBoundingClientRect().height;el.style.gridRowEnd=h?'span '+Math.ceil(h+gap(g)):''};
-  const ro=new ResizeObserver(es=>es.forEach(e=>fit(e.target)));
-  const seen=new WeakSet();
-  const scan=()=>document.querySelectorAll('.grid').forEach(g=>{g.classList.add('mz');
-    for(const c of g.children)if(!seen.has(c)){seen.add(c);ro.observe(c)}});
-  new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
-  scan();
-})();
 </script>
 </body>
 </html>
