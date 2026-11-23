@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Наниты</title>
+<style>
+/* Наниты: каталог программ (расход, триггеры, доп. настройки, сбои, исследование), сборка набора с балансом
+   нанитов и шпаргалкой кодов, основы работы с оборудованием, дерево исследований, НРП. Вёрстка как у Вирусологии. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#6a7fe0; --accent-fg:#0b1233; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#8b9cf0; --accent-fg:#0b1233; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#8b9cf0; --accent-fg:#0b1233; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+nav .cnt{display:inline-block;min-width:18px;margin-left:5px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-fg);font-size:11.5px;font-weight:700;line-height:18px;text-align:center}
+main{padding-top:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)}
+
+.seg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.subnav{margin-bottom:14px;display:inline-flex}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:6px 10px;align-items:baseline;flex-wrap:wrap}
+.card>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.card .body{padding:10px 16px 14px;font-size:14px}
+.card .body p{margin:0 0 8px}
+.card .body p:last-child{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.bul{margin:0;padding:10px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.note{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.note.bad{--kc:var(--bad)} .note.ok{--kc:var(--ok)} .note.warn{--kc:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+kbd{font:12px var(--font-m);background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;white-space:nowrap}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+.wide{grid-column:1/-1}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;padding:12px 16px 0}
+.kpis:last-child{padding-bottom:12px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--panel2)}
+.kpi b{display:block;font-size:20px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)} .kpi.warn b{color:var(--warn)} .kpi.ok b{color:var(--ok)}
+.pos{color:var(--ok);font-variant-numeric:tabular-nums} .neg{color:var(--bad);font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chips button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chips button .n{opacity:.65;margin-left:4px;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;color:var(--dc,var(--muted));background:color-mix(in srgb,var(--dc,var(--muted)) 14%,transparent);white-space:nowrap}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch;overflow-wrap:anywhere}
+
+/* Каталог */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tools input[type=search]{flex:1 1 260px;min-width:0;padding:7px 12px;border:1px solid var(--line2);border-radius:9px;background:var(--panel)}
+.tools .cntline{color:var(--muted);font-size:13px}
+.stats{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+.st{font-size:12.5px;border:1px solid var(--line);background:var(--panel2);border-radius:7px;padding:2px 8px;white-space:nowrap}
+.st b{font-variant-numeric:tabular-nums}
+.st.neg b{color:var(--ok)} .st.t{border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.fx{margin:0 16px 10px;font-size:13.5px;padding:8px 11px;border-radius:8px;background:var(--panel2)}
+.fx b{font-weight:600}
+.sets{margin:0 16px 10px}
+.sets table{font-size:12.5px}
+.sets td:first-child{white-space:nowrap}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;padding:0 16px 12px;font-size:12.5px;color:var(--muted);align-items:center}
+.lnk{border:0;background:none;padding:0;color:var(--navy);cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-size:inherit}
+.add{margin-left:auto;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel));border-radius:8px;padding:4px 11px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap}
+.add.on{background:var(--accent);color:var(--accent-fg)}
+.card.flash{animation:flash 1.2s}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.opts{display:flex;flex-wrap:wrap;gap:3px}
+.opts code{font-size:11.5px}
+
+/* Сборка */
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn.bad{color:var(--bad)}
+.inst{border-top:1px solid var(--line)}
+.inst:first-child{border-top:0}
+.inst>.hd{display:flex;align-items:center;gap:8px;padding:8px 16px;flex-wrap:wrap}
+.inst>.hd .nm{font-weight:600}
+.inst>.hd .nm small{font-weight:400;color:var(--muted);margin-left:6px}
+.inst>.hd .sp{flex:1}
+.inst>.hd button{border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:2px 9px;cursor:pointer;font-size:12.5px}
+.inst .ed{padding:4px 16px 12px;display:grid;gap:10px}
+.fl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 10px}
+.fl label{display:grid;gap:2px;font-size:12px;color:var(--muted)}
+.fl input,.fl select{padding:4px 7px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);color:var(--fg);min-width:0;font-size:13.5px}
+.fl label.w2{grid-column:span 2}
+.sub{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.rule{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.rule select,.rule input{padding:3px 6px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);font-size:13px}
+.rule input{width:70px}
+.warns{margin:0;padding:10px 16px 12px 34px;display:grid;gap:5px;font-size:13.5px}
+.warns li.bad{color:var(--bad)} .warns li.warn{color:var(--warn)} .warns li.ok{color:var(--ok)}
+textarea.sheet{width:100%;min-height:220px;padding:10px 12px;border:1px solid var(--line2);border-radius:9px;background:var(--panel2);font:12.5px/1.45 var(--font-m);resize:vertical}
+.presets{display:grid;gap:8px;padding:10px 16px 14px}
+.preset{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--panel2);display:grid;gap:4px}
+.preset .hd{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.preset .hd b{font-size:14px}
+.preset .hd .sp{flex:1}
+.preset p{margin:0;font-size:13px;color:var(--muted)}
+.pick{position:relative}
+.pick input{width:100%;padding:7px 12px;border:1px solid var(--line2);border-radius:9px;background:var(--panel)}
+.pick ul{position:absolute;left:0;right:0;top:100%;z-index:4;margin:4px 0 0;padding:4px;list-style:none;background:var(--panel);border:1px solid var(--line2);border-radius:9px;max-height:300px;overflow:auto;box-shadow:0 6px 20px rgba(0,0,0,.15)}
+.pick li button{width:100%;text-align:left;border:0;background:none;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:13.5px}
+.pick li button:hover,.pick li button:focus{background:var(--panel2)}
+.pick li small{color:var(--muted);margin-left:6px}
+.empty{padding:14px 16px;color:var(--muted);font-size:14px}
+
+/* Исследования */
+.tree{display:grid;gap:10px}
+.node .pre{font-size:12.5px;color:var(--muted)}
+.prog-chips{display:flex;flex-wrap:wrap;gap:5px;padding:0 16px 12px}
+.prog-chips button{border:1px solid var(--line2);background:var(--panel);border-radius:14px;padding:2px 9px;font-size:12.5px;cursor:pointer}
+
+.nrp .it{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;padding:6px 16px;border-top:1px solid var(--line);font-size:13.5px}
+.nrp .it .n{font:12px var(--font-m);color:var(--muted)}
+.nrphd{padding:8px 16px 4px;font-weight:600;font-size:13px}
+
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%;overflow-x:auto;scrollbar-width:none} nav button{flex:1;padding:7px 6px}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%;overflow-x:auto;scrollbar-width:none}
+.pult-compact nav button{flex:1;padding:5px 6px}
+.pult-compact .subnav{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .grid{grid-template-columns:minmax(0,1fr)}
+.pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .tbl,.pult-compact .kpis,.pult-compact .stats,.pult-compact .meta,.pult-compact .inst>.hd,.pult-compact .inst .ed,.pult-compact .presets,.pult-compact .prog-chips{padding-left:10px;padding-right:10px}
+.pult-compact .bul,.pult-compact .warns{padding-left:28px;padding-right:10px}
+.pult-compact .note,.pult-compact .fx,.pult-compact .sets{margin-left:10px;margin-right:10px}
+.pult-compact .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pult-compact .foot{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">НАН</div><div><h1>Наниты</h1><small>Программы · Сборка и коды · Основы · Исследования · НРП</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-progs" data-tab="progs" aria-selected="true">Программы</button>
+    <button role="tab" id="tab-build" data-tab="build" aria-selected="false">Сборка<span class="cnt" id="bcnt" hidden></span></button>
+    <button role="tab" id="tab-basics" data-tab="basics" aria-selected="false">Основы</button>
+    <button role="tab" id="tab-research" data-tab="research" aria-selected="false">Исследования</button>
+    <button role="tab" id="tab-nrp" data-tab="nrp" aria-selected="false">НРП</button>
+  </nav>
+</header>
+
+<main>
+<section id="v-progs">
+  <div class="tools"><input type="search" id="q" placeholder="Поиск: название, описание, настройка…" autocomplete="off"><span class="cntline" id="qcnt"></span></div>
+  <div class="chips" id="cats"></div>
+  <div class="chips" id="flags"></div>
+  <div class="grid" id="plist"></div>
+</section>
+
+<section id="v-build" hidden>
+  <div class="grid" id="build"></div>
+</section>
+
+<section id="v-basics" hidden>
+  <div class="seg subnav" data-subs="basics"></div>
+  <div id="basics-gear"></div>
+  <div id="basics-how" hidden></div>
+  <div id="basics-codes" hidden></div>
+  <div id="basics-errors" hidden></div>
+</section>
+
+<section id="v-research" hidden><div id="research"></div></section>
+<section id="v-nrp" hidden><div id="nrp"></div></section>
+
+<p class="foot" id="foot"></p>
+</main>
+</div>
+
+<script src="data.js"></script>
+<script src="../avd/nrp.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const KEY='nanites.state';
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const card=(title,body,c,cls='',attrs='')=>`<div class="panel card ${cls}" style="--kc:${c||'var(--accent)'}" ${attrs}><h3>${title}</h3>${body}</div>`;
+const steps=a=>`<ol class="steps">${a.map(x=>`<li><span>${x}</span></li>`).join('')}</ol>`;
+const bul=a=>`<ul class="bul">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+const body=a=>`<div class="body">${(Array.isArray(a)?a:[a]).map(x=>`<p>${x}</p>`).join('')}</div>`;
+const note=(t,cls='')=>`<div class="note ${cls}">${t}</div>`;
+const tbl=(head,rows)=>`<div class="tbl"><table><thead><tr>${head.map(h=>`<th${h[0]==='#'?' class="n"':''}>${h.replace(/^#/,'')}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td${head[i][0]==='#'?' class="n"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const fmt=n=>{if(n==null||n==='')return '—';const r=Math.round(n*100)/100;return String(r).replace('.',',').replace('-','−')};
+const fsec=s=>{s=Math.round(s);if(!isFinite(s))return '∞';if(s<60)return s+' с';const m=Math.floor(s/60),r=s%60;if(m<60)return m+' мин'+(r?' '+r+' с':'');return Math.floor(m/60)+' ч '+(m%60)+' мин'};
+
+const D=window.NANITE_DATA||{programs:[],nodes:[],node_names:{},rev:{},limits:{}};
+const P=D.programs;
+const byId=Object.fromEntries(P.map(p=>[p.id,p]));
+const nodeById=Object.fromEntries(D.nodes.map(n=>[n.id,n]));
+const MAXP=D.limits.max_programs||20;
+const REGEN=D.limits.regen||0.5, BASEMAX=D.limits.max||500, SAFETY=D.limits.safety||25;
+
+/* ===================== СЛОВАРИ ===================== */
+const CAT={
+  'Utility Nanites':['Утилиты','#5b7be0'],
+  'Medical Nanites':['Медицина','#2e9a5e'],
+  'Augmentation Nanites':['Усиление','#2fb5a5'],
+  'Sensor Nanites':['Датчики','#c08a3e'],
+  'Protocols_Nanites':['Протоколы','#8c6ad8'],
+  'Suppression Nanites':['Подавление','#d0802a'],
+  'Weaponized Nanites':['Боевые','#c0393f'],
+  'Defective Nanites':['Сбойные','#7d8595'],
+};
+const catOf=p=>CAT[p.cat]||['Прочее','#7d8595'];
+
+// Русские названия (в игре программы подписаны по-английски, описания — по-русски)
+const RU={
+  dermal_button:'Кожная кнопка',research:'Распределённые вычисления',emp:'Электромагнитный резонанс','lockout/antiviral':'Улучшенная коррекция ошибок',
+  self_scan:'Самосканирование','lockout/hostile_lockdown':'Враждебная блокировка',spreading:'Инфекционная экзолокомоция',metabolic_synthesis:'Метаболический синтез',
+  mitosis:'Митоз',monitoring:'Мониторинг',nanite_sting:'Нанитное жало',researchplus:'Нейросеть',reduced_diagnostics:'Урезанная диагностика',relay:'Ретранслятор',
+  'sensor/relay_repeat':'Повторитель на канал ретрансляции','sensor/repeat':'Повторитель сигнала',stealth:'Скрытность',signaler:'Сигнальщик',access:'Подкожная ID-карта',viral:'Вирусная реплика',
+  regenerative:'Ускоренная регенерация',regenerative_advanced:'Биореконструкция',purging:'Очистка крови',blood_restoring:'Восстановление крови',defib:'Дефибрилляция',
+  hard_reboot:'Протокол жёсткой перезагрузки',repairing:'Механический ремонт',brain_heal:'Нейрорегенерация',brain_heal_advanced:'Нейровосстановление',
+  purging_synth:'Очистка от коррозии',heal_wounds:'Заживление ран',purging_advanced:'Избирательная очистка крови',temperature:'Регуляция температуры',
+  adrenaline:'Выброс адреналина',hardening:'Укрепление кожи',refractive:'Преломляющая поверхность',conductive:'Электропроводность',mindshield:'Ментальный барьер',
+  nervous:'Поддержка нервов',coagulating:'Быстрая коагуляция',
+  'sensor/crit':'Датчик критического состояния','sensor/damage':'Датчик урона','sensor/death':'Датчик смерти','sensor/health':'Датчик здоровья',
+  'sensor/nanite_volume':'Датчик объёма нанитов','sensor/voice':'Голосовой датчик',
+  'protocol/offline':'Протокол «Затмение»','protocol/factory':'Протокол «Фабрика»','protocol/free_range':'Протокол «Свободный выгул»','protocol/hive':'Протокол «Улей»',
+  'protocol/kickstart':'Протокол «Быстрый старт»','protocol/pyramid':'Протокол «Пирамида»','protocol/unsafe_storage':'Протокол S.L.O.','protocol/synergy':'Протокол «Синергия»',
+  'protocol/zip':'Протокол «Сжатие»',
+  blinding:'Слепота',fake_death:'Имитация смерти',shocking:'Удар током','comm/speech':'Принудительная речь','comm/hallucination':'Галлюцинации',
+  good_mood:'Усилитель счастья',bad_mood:'Подавитель счастья',mute:'Немота',stun:'Нейрошок',pacifying:'Пацификация',paralyzing:'Паралич','comm/voice':'Эхо в черепе',
+  sleepy:'Индукция сна',aggressive_replication:'Агрессивная репликация',flesh_eating:'Клеточный распад',explosive:'Цепная детонация',cryo:'Криогенная обработка',
+  heart_stop:'Остановка сердца',meltdown:'Расплав',memory_leak:'Утечка памяти','comm/mind_control':'Контроль разума',poison:'Отравление',pyro:'Подкожное возгорание',
+  brain_misfire:'Сбой мозга',skin_decay:'Дермализ',glitch:'Глюк',suffocating:'Гипоксемия',necrotic:'Некроз',nerve_decay:'Распад нервов',brain_decay:'Нейронекроз',toxic:'Накопление токсинов',
+};
+const ru=p=>RU[p.id]||p.name;
+
+// Доп. настройки: что значат (названия в программаторе — по-английски)
+const SET_RU={
+  'Sent Code':'Код, который программа отправляет (1–9999)',
+  'Delay':'Задержка перед отправкой, секунды',
+  'Relay Channel':'Канал ретрансляции (общий с пультом в режиме Relay)',
+  'Comm Code':'Код для пульта связи: сообщение с этим кодом срабатывает программу со своим текстом (0 — не слушать)',
+  'Health Percent':'Порог здоровья в процентах',
+  'Nanite Percent':'Порог запаса нанитов, % от промежутка «порог безопасности → максимум»',
+  'Direction':'Above — сигнал при значении выше или равном порогу, Below — ниже порога',
+  'Damage Type':'Вид урона: brute, fire (ожоги), tox, oxy, clone, stamina',
+  'Damage':'Порог урона, единицы',
+  'Sentence':'Фраза',
+  'Inclusive Mode':'Inclusive — фраза где-то внутри услышанного (с учётом регистра), Exclusive — услышанное целиком равно фразе (без учёта регистра)',
+  'Message':'Текст сообщения',
+  'Directive':'Директива для носителя',
+  'Hallucination Type':'Вид галлюцинации',
+  'Hallucination Detail':'Уточнение вида: текст или вариант из списка',
+  'Mood Message':'Подпись события настроения',
+  'Program Overwrite':'Overwrite — заменить все программы цели своими, Add To — добавить свои, Ignore — не трогать программы',
+  'Cloud Overwrite':'ID облака, который получат цели (0 — отключить им облако)',
+  'Scan Type':'Medical — медскан, Chemical — химия в крови, Wound — раны, Nanite — свои наниты',
+  'Button Name':'Подпись кнопки',
+  'Icon':'Значок кнопки',
+  'Frequency':'Радиочастота, записана ×10: 1457 = 145,7',
+  'Radio Code':'Код радиосигнала 1–100, как у сигнальщика',
+  'Nanite Code':'Код, который уходит в наниты при приёме радиосигнала',
+};
+
+/* Механика по коду (code/modules/research/nanites/nanite_programs): числа в секунду, наниты тикают раз в секунду.
+   cond — программа тратит наниты только при выполнении условия. bonus — прирост нанитов в секунду для расчёта сборки. */
+const FX={
+  dermal_button:{t:'Даёт носителю кнопку на панели действий; нажатие отправляет <b>Sent Code</b> в его наниты. Не нажимается в наручниках, оглушении и без сознания. Можно поставить несколько кнопок с разными кодами.'},
+  research:{t:'+1 очко исследований в секунду (без игрока в теле — ×0,25). Только у гуманоидов и прочих карбонов.'},
+  emp:{t:'ЭМИ радиусом 3 клетки вокруг носителя. Сама программа к ЭМИ невосприимчива, остальные программы и наниты рядом — страдают.'},
+  'lockout/antiviral':{t:'Пока работает — Viral Replica и «Жало» не могут переписать программы носителя. Отключается на 3 мин после ЭМИ, на 45 с после удара током, на 10 с после лёгкого разряда.'},
+  self_scan:{t:'Срабатывание выводит носителю результат сканера выбранного вида. Пока программа включена и стоит Medical/Chemical/Wound, она же обновляет «живой» скан у самого носителя.'},
+  'lockout/hostile_lockdown':{t:'Консоли (камера, облако) не могут менять наниты носителя, а сам носитель — управлять ими. Отключается на 3 мин после ЭМИ, на 1 мин после удара током, на 15 с после лёгкого разряда.'},
+  spreading:{t:'Раз в 5 с каждому живому в радиусе 5 — шанс 25% стать целью; из них выбирается одна. Заражение проходит по проницаемости одежды (биокостюм спасает). Цель получает 10 нанитов, копию программ и облака — <b>чужие наниты тоже перезаписываются</b>, «Коррекция ошибок» не спасает.',cond:1},
+  signaler:{t:'Срабатывание: радиосигнал на своей частоте и коде (как сигнальное устройство). Принятый радиосигнал с тем же кодом отправляет <b>Nanite Code</b> в наниты носителя — так наниты управляются обычным сигнальщиком из автолата.'},
+  metabolic_synthesis:{t:'Пока носитель сыт сильнее уровня «Fed»: −0,5 питания и +0,5 нанитов в секунду.',bonus:0.5,cond:1},
+  mitosis:{t:'+0,5 нанита в секунду за каждые 50 единиц объёма (250 → +2,5/с, 500 → +5/с). Шанс в секунду, равный этому приросту в процентах, вызвать сбой случайной программы — держите облако.',bonusFn:v=>Math.round(v/50)*0.5},
+  monitoring:{t:'Носитель появляется на мониторе экипажа и в датчиках костюма, на диагностическом HUD — значок нанитов.'},
+  nanite_sting:{t:'Срабатывание: укол соседа без нанитов (вплотную). Цель получает 5 нанитов и копию программ и облака. Нет цели — стоимость возвращается.'},
+  researchplus:{t:'Каждый носитель даёт (число носителей сети ÷ 12) очков в секунду: 6 носителей → по 0,5, 12 → по 1. Без игрока в теле носитель считается за 0,25 и даёт ×0,25.'},
+  reduced_diagnostics:{t:'Отрицательный расход: +0,1 к росту нанитов. Ручной сканер нанитов перестаёт видеть список программ.'},
+  relay:{t:'Принимает сигналы пульта в режиме <b>Relay</b> и «Повторителя на канал» с тем же каналом — с любого расстояния — и передаёт их нанитам носителя.'},
+  'sensor/relay_repeat':{t:'Срабатывание: через Delay отправляет Sent Code во все наниты с программой Relay на указанном канале.'},
+  'sensor/repeat':{t:'Срабатывание: через Delay отправляет Sent Code в свои же наниты. Так строят цепочки и таймеры («через 30 с выключить»).'},
+  stealth:{t:'Наниты не видны на HUD и в обычных медсканах.'},
+  access:{t:'Срабатывание: копирует доступы с ID в руках, в слоте ID и на шее и <b>заменяет</b> ими прежние. Носитель открывает двери без карты.'},
+  viral:{t:'Каждые 7,5 с — всем в радиусе 5 (кроме защищённых «Коррекцией ошибок»): программы по Program Overwrite и ID облака по Cloud Overwrite.'},
+  regenerative:{t:'Лечит 0,5 механических ран и 0,5 ожогов в секунду, поровну между повреждёнными органическими конечностями.',cond:1},
+  regenerative_advanced:{t:'Лечит 3 раны и 3 ожога в секунду органическим конечностям. <b>Тратит 5,5/с всегда</b>, даже без урона — ставьте правило «здоровье ниже».'},
+  purging:{t:'−1 токсина в секунду и −1 единица <b>каждого</b> реагента в крови, лекарств тоже. Наниты-би-гон в крови вместо этого наносят +4 токсина.',cond:1},
+  blood_restoring:{t:'+2 крови в секунду, пока крови меньше безопасного уровня. Не работает у видов без костного мозга.',cond:1},
+  defib:{t:'Срабатывание: через 5 с заряд, ещё через 3 с разряд. Оживляет, если тело пригодно (как обычный дефибриллятор) и игрок вернулся в тело; кислородный урон снимает до порога крита. Классика — с «Датчиком смерти».'},
+  hard_reboot:{t:'Только синтетикам: срабатывание через 5 с снимает 50 кислородного урона и пробует перезапустить позитронный мозг.'},
+  repairing:{t:'Лечит 1,5 раны и 1,5 ожога в секунду механическим и гибридным конечностям (у простых роботов-мобов — телу).',cond:1},
+  brain_heal:{t:'−1 урона мозга в секунду, шанс 10% в секунду снять лёгкую травму мозга.',cond:1},
+  brain_heal_advanced:{t:'−2 урона мозга в секунду, шанс 10% снять травму, которую иначе лечит только хирургия.',cond:1},
+  purging_synth:{t:'−1 системной коррозии (токсины синтетиков) в секунду.',cond:1},
+  heal_wounds:{t:'10 нанитов в секунду: каждую секунду подлечивает одну случайную рану (перелом, порез, ожог) как ксадон.',cond:1},
+  purging_advanced:{t:'−1 токсина в секунду и −1 единица каждого <b>токсина</b>; лекарства не трогает.',cond:1},
+  temperature:{t:'Возвращает температуру тела к норме, если она ушла больше чем на 30° от нормы.',cond:1},
+  adrenaline:{t:'Срабатывание: снимает оглушение и сбивание с ног, даёт короткое ускорение. Перезарядка 2 мин.'},
+  hardening:{t:'+35 брони от ближнего боя и пуль (только гуманоиды).'},
+  refractive:{t:'+35 брони от лазеров и энергии (только гуманоиды).'},
+  conductive:{t:'Иммунитет носителя к удару током. Сама программа от тока не стирается, но <b>наниты</b> разряд всё равно сжигает.'},
+  mindshield:{t:'Работает как имплант защиты разума (видно на HUD СБ). На революционера не встаёт.'},
+  nervous:{t:'Время оглушения ×0,5 (только гуманоиды).'},
+  coagulating:{t:'Кровотечение ×0,1 (только гуманоиды).'},
+  'sensor/crit':{t:'Код — один раз при входе в критическое состояние.',rule:'Крит'},
+  'sensor/damage':{t:'Код — один раз, когда урон выбранного вида пересёк порог.',rule:'Урон'},
+  'sensor/death':{t:'Код — в момент смерти носителя.',rule:'Смерть'},
+  'sensor/health':{t:'Код — один раз, когда здоровье пересекло порог (100% — полностью здоров, 0% — граница крита).',rule:'Здоровье'},
+  'sensor/nanite_volume':{t:'Код — один раз, когда запас пересёк порог. Процент считается от порога безопасности до максимума.',rule:'Объём нанитов'},
+  'sensor/voice':{t:'Код — каждый раз, когда носитель слышит фразу.'},
+  'protocol/kickstart':{t:'+3,5 нанита в секунду первые 2 мин после внедрения (итого +420).',bonus:3.5,note:'только первые 2 мин'},
+  'protocol/factory':{t:'Эффективность растёт на 1 в секунду до 1000, прирост = 0,002 × эффективность: +1 через 8 мин 20 с, +2 через 16 мин 40 с. Выключен — теряет 5 в секунду; ЭМИ −300, ток −200, лёгкий разряд −100.',bonus:2,note:'до +2 через ~17 мин'},
+  'protocol/pyramid':{t:'+1,2 в секунду, пока запас не ниже 80% от максимума.',bonus:1.2,note:'при запасе ≥ 80%'},
+  'protocol/offline':{t:'+3 в секунду, пока носитель спит, без сознания, в крите или мёртв.',bonus:3,note:'только во сне / без сознания'},
+  'protocol/synergy':{t:'+2 × заполненность в секунду: при полном запасе +2, при половине +1.',bonusFn:(v,m)=>Math.round(2*v/m*10)/10},
+  'protocol/hive':{t:'Максимум +250: 500 → 750. Без расхода.',max:250},
+  'protocol/zip':{t:'Максимум +500: 500 → 1000, расход 0,2/с.',max:500},
+  'protocol/free_range':{t:'Максимум −250: 500 → 250, рост +0,5/с. Если запас был больше 250, лишнее сразу выйдет наружу серой жижей.',bonus:0.5,max:-250},
+  'protocol/unsafe_storage':{t:'Максимум +1500: 500 → 2000. Выше 500 нанитов бьёт по органам по нарастающей: печень → желудок и лёгкие (>750) → сердце и мозг (>1000) → глаза и уши (>1250) → токсины (>1500) → раны (>1750).',max:1500},
+  blinding:{t:'Носитель слепнет, пока программа активна.'},
+  fake_death:{t:'Носитель падает «мёртвым» (вздох смерти, обманывает медсканеры), пока программа активна.'},
+  shocking:{t:'Срабатывание: удар током 5–10 в обход перчаток. Ток сжигает и сами наниты (до четверти запаса +25–45) и может стереть программы.'},
+  'comm/speech':{t:'Срабатывание: носитель произносит фразу (или текст с пульта связи). Эмоции *surrender, *collapse, *faint запрещены.'},
+  'comm/hallucination':{t:'Срабатывание: галлюцинация выбранного вида. С пульта связи работает только вид Message — текст пульта становится сообщением.'},
+  good_mood:{t:'Положительное событие настроения со своей подписью.'},
+  bad_mood:{t:'Отрицательное событие настроения со своей подписью.'},
+  mute:{t:'Носитель не может говорить, пока программа активна.'},
+  stun:{t:'Срабатывание: сбивает с ног на 8 с.'},
+  pacifying:{t:'Носитель не может напрямую вредить другим, пока программа активна.'},
+  paralyzing:{t:'Каждую секунду оглушает на 4 с — полный паралич, пока активна.'},
+  'comm/voice':{t:'Срабатывание: носитель слышит в голове «механический голос» с текстом.'},
+  sleepy:{t:'Срабатывание: сонливость, через 6–20 с — сон на 20 с. Перезарядка 2 мин.'},
+  aggressive_replication:{t:'+объём÷50 нанитов в секунду (при 200 — +4, при 500 — +10) и раны носителю — треть этого прироста.',bonusFn:v=>Math.round(v/50*10)/10},
+  flesh_eating:{t:'1 механической раны в секунду.'},
+  explosive:{t:'Срабатывание: через 2,5–15 с (0,035 с за нанит) взрыв: тяжёлый радиус = объём÷100 − 1, лёгкий = объём÷50 − 1 (при 500 — 4 и 9 клеток). Все наниты уходят.'},
+  cryo:{t:'−15…25° в секунду, пока тело теплее 70 K.',cond:1},
+  heart_stop:{t:'Срабатывание останавливает сердце, повторное — запускает.'},
+  meltdown:{t:'3,5 ожога в секунду и сгорает 10 нанитов в секунду; при включении ставит порог безопасности 0 — наниты выгорают до конца.'},
+  memory_leak:{t:'Шанс 6% в секунду вызвать сбой случайной другой программы.'},
+  'comm/mind_control':{t:'Срабатывание: директива на 1 мин (как промывка мозгов). Защита разума спасает. Перезарядка 3 мин. Текст с пульта связи заменяет директиву.'},
+  poison:{t:'1 токсина в секунду, иногда рвота.'},
+  pyro:{t:'+1 слой горючего в секунду и поджог, до 10 слоёв.',cond:1},
+  glitch:{t:'Ничего не делает, только сжигает 1,5 нанита в секунду. Конец цепочки сбоев.'},
+  necrotic:{t:'0,75 механических ран в секунду.'},
+  toxic:{t:'0,5 токсина в секунду.'},
+  suffocating:{t:'3 кислородного урона в секунду.'},
+  brain_decay:{t:'1 урона мозга в секунду, иногда галлюцинации.'},
+  brain_misfire:{t:'Время от времени галлюцинации, спутанность, сонливость или невнятная речь.'},
+  skin_decay:{t:'0,25 механических ран в секунду и зуд.'},
+  nerve_decay:{t:'Время от времени шатает, роняет вещи из рук, сбивает с ног на 3 с.'},
+};
+const NOLAB={spreading:'Убрана из исследований («Опасные программы» в modular_splurt) — только админы и ивенты.',heart_stop:'В дереве исследований нет, на карте дисков с ней нет.',nanite_sting:'В дереве исследований нет.','protocol/pyramid':'В дереве исследований нет.'};
+
+const NODE_RU={nanite_base:'Базовое программирование нанитов',nanite_smart:'Умные программы',nanite_mesh:'Сетчатые программы',nanite_bio:'Биологические программы',
+  nanite_neural:'Нейронные программы',nanite_synaptic:'Синаптические программы',nanite_harmonic:'Гармонические программы',nanite_military:'Военные программы',
+  nanite_hazard:'Опасные программы',nanite_replication_protocols:'Протоколы репликации',nanite_storage_protocols:'Протоколы хранения'};
+const DESIGN_RU={nanite_disk:'Диск программы нанитов',nanite_protector:'Нанитный протектор (инжектор)',nanite_remote:'Пульт нанитов',nanite_comm_remote:'Пульт связи нанитов',
+  nanite_scanner:'Сканер нанитов',nanite_chamber:'Камера нанитов',public_nanite_chamber:'Публичная камера нанитов',nanite_chamber_control:'Консоль камеры нанитов',
+  nanite_programmer:'Программатор нанитов',nanite_program_hub:'Хаб программ нанитов',nanite_cloud_control:'Облачный контроллер нанитов',implant_nanite_pump:'Нанитная помпа (имплант)'};
+
+/* ===================== СОСТОЯНИЕ ===================== */
+const S0={tab:'progs',sub:{basics:'gear'},cat:'',fl:[],q:'',build:[],uid:1};
+const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  s=Object.assign({},S0,s&&typeof s==='object'?s:{});
+  s.sub=Object.assign({},S0.sub,s.sub||{});
+  if(!Array.isArray(s.build))s.build=[];
+  s.build=s.build.filter(b=>b&&byId[b.id]);
+  if(!Array.isArray(s.fl))s.fl=[];
+  return s})();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+/* ===================== КАТАЛОГ ===================== */
+const FLAGS=[['trig','С срабатыванием'],['free','Без расхода'],['rule','Годится в правило'],['multi','Можно несколько копий'],['lab','Есть в исследованиях']];
+const flagTest={trig:p=>p.trig,free:p=>!(p.use>0),rule:p=>p.rule,multi:p=>!p.unique,lab:p=>!!p.node};
+const haystack=p=>[p.name,ru(p),p.desc,p.hub||'',(FX[p.id]||{}).t||'',p.set.map(s=>s.name+' '+(SET_RU[s.name]||'')).join(' '),catOf(p)[0]].join(' ').toLowerCase();
+const HAY=Object.fromEntries(P.map(p=>[p.id,haystack(p)]));
+const inBuild=id=>S.build.filter(b=>b.id===id).length;
+
+function setVal(s){
+  if(s.type==='number')return `${fmt(s.value)}${s.unit?' '+esc(s.unit):''} <span class="muted">(${fmt(s.min)}…${fmt(s.max)})</span>`;
+  if(s.type==='boolean')return `${esc(s.value?s.on:s.off)} <span class="muted">(${esc(s.on)} / ${esc(s.off)})</span>`;
+  if(s.type==='type')return `<code>${esc(s.value)}</code><div class="opts" style="margin-top:3px">${s.options.map(o=>`<code>${esc(o)}</code>`).join('')}</div>`;
+  return s.value?`<code>${esc(s.value)}</code>`:'<span class="muted">пусто</span>';
+}
+function progCard(p){
+  const [cn,cc]=catOf(p),fx=FX[p.id]||{},n=p.node&&nodeById[p.node],cnt=inBuild(p.id);
+  const st=[];
+  st.push(p.use>0?`<span class="st">Расход <b>${fmt(p.use)}</b>/с${fx.cond?' <span class="muted">по условию</span>':''}</span>`:(p.use<0?`<span class="st neg">Рост <b>+${fmt(-p.use)}</b>/с</span>`:`<span class="st">Без расхода</span>`));
+  if(p.trig)st.push(`<span class="st t">Срабатывание <b>${fmt(p.tcost)}</b> нан. · перезарядка <b>${fmt(p.tcd)}</b> с</span>`);
+  if(fx.bonus||fx.bonusFn)st.push(`<span class="st neg">Рост <b>${fx.bonusFn?'перем.':'+'+fmt(fx.bonus)}</b>/с${fx.note?' <span class="muted">'+fx.note+'</span>':''}</span>`);
+  if(fx.max)st.push(`<span class="st">Максимум <b>${fx.max>0?'+':''}${fmt(fx.max)}</b></span>`);
+  st.push(`<span class="st">${p.unique?'Одна копия':'Несколько копий'}</span>`);
+  if(p.proto)st.push(`<span class="st">Протокол ${p.proto==='rep'?'репликации':'хранения'}: один активный</span>`);
+  if(p.emp)st.push('<span class="st">Не ломается от ЭМИ</span>');
+  if(p.shock)st.push('<span class="st">Не ломается от тока</span>');
+  if(p.rule)st.push(`<span class="st">Правило «${fx.rule||'да'}»</span>`);
+  if(p.comm)st.push('<span class="st">Пульт связи</span>');
+  const sets=p.set.length?`<div class="sets"><table><thead><tr><th>Доп. настройка</th><th>По умолчанию</th></tr></thead><tbody>${p.set.map(s=>`<tr><td><b>${esc(s.name)}</b><div class="muted" style="white-space:normal">${esc(SET_RU[s.name]||'')}</div></td><td>${setVal(s)}${p.sub&&s.name==='Hallucination Detail'?`<div class="muted" style="margin-top:4px">Варианты зависят от вида: ${Object.entries(p.sub).filter(([,v])=>v.length).map(([k,v])=>`<b>${esc(k)}</b>: ${v.map(esc).join(', ')}`).join('; ')}. Message — свой текст.</div>`:''}</td></tr>`).join('')}</tbody></table></div>`:'';
+  const rog=p.rogue.length?`При сбое → ${p.rogue.map(r=>byId[r]?`<button class="lnk" data-goto="${r}">${esc(ru(byId[r]))}</button>`:esc(r)).join(', ')}`:'';
+  const lab=n?`Исследование: <button class="lnk" data-node="${n.id}">${esc(NODE_RU[n.id]||n.name)}</button> · ${n.cost.toLocaleString('ru-RU')} оч.${n.hidden?' · скрытый узел (B.E.P.I.S.)':''}`:(p.group==='rogue'?'Появляется только из сбоя другой программы':(NOLAB[p.id]||'В исследованиях нет'));
+  const canAdd=p.group!=='rogue';
+  return card(`${esc(ru(p))} <small>${esc(p.name)}</small><span class="pill" style="--dc:${cc};margin-left:auto">${cn}</span>`,
+    `<div class="body"><p>${esc(p.desc)}</p>${p.hub?`<p class="muted" style="font-size:13px">В хабе: ${esc(p.hub)}</p>`:''}</div>`+
+    `<div class="stats">${st.join('')}</div>`+
+    (fx.t?`<div class="fx">${fx.t}</div>`:'')+sets+
+    `<div class="meta"><span>${lab}</span>${rog?`<span>${rog}</span>`:''}${canAdd?`<button class="add${cnt?' on':''}" data-add="${p.id}">${cnt?'В сборке'+(cnt>1?' ×'+cnt:'')+' · ещё':'+ В сборку'}</button>`:''}</div>`,
+    cc,'',`id="p-${p.id.replace(/\//g,'-')}"`);
+}
+function renderProgs(){
+  const q=(S.q||'').trim().toLowerCase();
+  const base=P.filter(p=>(!q||q.split(/\s+/).every(w=>HAY[p.id].includes(w)))&&S.fl.every(f=>flagTest[f](p)));
+  const list=base.filter(p=>!S.cat||p.cat===S.cat);
+  $('#cats').innerHTML=[['','Все',base.length]].concat(Object.entries(CAT).map(([k,v])=>[k,v[0],base.filter(p=>p.cat===k).length])).map(([k,n,c])=>`<button data-cat="${k}" aria-pressed="${S.cat===k}">${n}<span class="n">${c}</span></button>`).join('');
+  $('#flags').innerHTML=FLAGS.map(([k,n])=>`<button data-fl="${k}" aria-pressed="${S.fl.includes(k)}">${n}</button>`).join('');
+  $('#qcnt').textContent=`${list.length} из ${P.length}`;
+  $('#plist').innerHTML=list.length?list.map(progCard).join(''):card('Ничего не нашлось',body('Сбросьте фильтры или поищите иначе — по английскому названию из программатора, по-русски или по названию настройки.'));
+}
+function gotoProg(id){
+  S.q='';S.cat='';S.fl=[];$('#q').value='';go('progs');
+  const el=document.getElementById('p-'+id.replace(/\//g,'-'));
+  if(el){el.scrollIntoView({block:'center'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')}
+}
+
+/* ===================== СБОРКА ===================== */
+const RULES={health:['Здоровье',{pct:50,above:true}],crit:['Крит',{}],death:['Смерть',{}],volume:['Объём нанитов',{pct:50,above:true}],damage:['Урон',{dtype:'brute',amt:50,above:true}]};
+const DTYPES=['brute','fire','tox','oxy','clone','stamina'];
+function newInst(id,extra){
+  const p=byId[id],o={uid:S.uid++,id,on:true,act:0,deact:0,kill:0,trig:0,tr:0,ts:0,tt:0,td:0,set:{},rules:[],all:true,open:false};
+  p.set.forEach(s=>{o.set[s.name]=s.value});
+  return Object.assign(o,extra||{});
+}
+function addProg(id){S.build.push(newInst(id));save();updCnt()}
+function updCnt(){const n=S.build.length,el=$('#bcnt');el.hidden=!n;el.textContent=n}
+const instById=uid=>S.build.find(b=>b.uid===uid);
+
+// Готовые сборки: коды подобраны так, чтобы связки работали сразу после загрузки в облако
+const PRESETS=[
+  {n:'Медицинская страховка',d:'Для всего экипажа через публичную камеру: мониторинг, лечение и дефибрилляция по датчику смерти. Укладывается в рост нанитов, пока носитель не ранен.',
+    p:[['monitoring'],['regenerative',{rules:[{t:'health',pct:95,above:false}]}],['blood_restoring'],['coagulating'],['brain_heal'],['reduced_diagnostics'],
+       ['sensor/death',{set:{'Sent Code':1}}],['defib',{trig:1}]]},
+  {n:'Боевой медик / СБ',d:'Броня и поддержка нервов съедают 2,5/с — поэтому они выключены и включаются кожными кнопками «Броня» / «Снять» перед боем. Быстрое лечение по правилу, адреналин по кнопке, дефибрилляция по смерти.',
+    p:[['monitoring'],['coagulating'],['hardening',{on:false,act:3,deact:4}],['refractive',{on:false,act:3,deact:4}],['nervous',{on:false,act:3,deact:4}],
+       ['regenerative_advanced',{rules:[{t:'health',pct:60,above:false}]}],
+       ['dermal_button',{set:{'Sent Code':3,'Button Name':'Броня','Icon':'shield'}}],['dermal_button',{set:{'Sent Code':4,'Button Name':'Снять','Icon':'minus'}}],
+       ['dermal_button',{set:{'Sent Code':2,'Button Name':'Адреналин','Icon':'reaction'}}],['adrenaline',{trig:2}],['sensor/death',{set:{'Sent Code':1}}],['defib',{trig:1}]]},
+  {n:'Шахтёр',d:'Лаваленд: температура и лечение по правилам, мониторинг для поиска тела, «Затмение» докачивает наниты, пока вы без сознания.',
+    p:[['monitoring'],['regenerative'],['temperature'],['blood_restoring'],['purging_advanced'],['protocol/offline'],['sensor/death',{set:{'Sent Code':1}}],['defib',{trig:1}]]},
+  {n:'Синтетик (IPC)',d:'Ремонт корпуса, чистка коррозии и жёсткая перезагрузка по датчику смерти. Нужна черта «Совместимость с нанитами».',
+    p:[['monitoring'],['repairing'],['purging_synth'],['conductive'],['sensor/death',{set:{'Sent Code':1}}],['hard_reboot',{trig:1}]]},
+  {n:'Научная ферма',d:'Добровольцам из отдела (по НРП — с письменного согласия): очки исследований, рост за счёт еды, «Фабрика» и «Улей» для запаса.',
+    p:[['research'],['researchplus'],['metabolic_synthesis'],['reduced_diagnostics'],['protocol/factory'],['protocol/hive']]},
+  {n:'Таймер через повторитель',d:'Пример цепочки: пульт шлёт 10 — включается Паралич и стартует повторитель, через 15 с он шлёт 11 и выключает Паралич. Для арестов — только по Космическому закону.',
+    p:[['paralyzing',{on:false,act:10,deact:11}],['sensor/repeat',{trig:10,set:{'Sent Code':11,'Delay':15}}]]},
+];
+function loadPreset(i){
+  const pr=PRESETS[i];
+  if(S.build.length&&!confirmReplace())return;
+  S.build=pr.p.map(([id,x])=>{const {set,rules,...rest}=x||{},o=newInst(id,rest);
+    if(set)Object.assign(o.set,set);if(rules)o.rules=rules.map(r=>Object.assign({},RULES[r.t][1],r));return o});
+  save();updCnt();renderBuild();
+}
+let replaceArmed=0;
+function confirmReplace(){ // без модальных окон: второе нажатие в течение 4 с подтверждает замену
+  const now=Date.now();if(now-replaceArmed<4000){replaceArmed=0;return true}
+  replaceArmed=now;flashMsg('Сборка не пустая — нажмите ещё раз, чтобы заменить.');return false}
+function flashMsg(t){const el=$('#bmsg');if(el){el.textContent=t;el.hidden=false;clearTimeout(flashMsg.t);flashMsg.t=setTimeout(()=>{el.hidden=true},4000)}}
+
+function calc(){
+  const B=S.build.map(b=>({b,p:byId[b.id]}));
+  let max=BASEMAX;const storage=B.filter(x=>x.p.proto==='sto'&&x.b.on),rep=B.filter(x=>x.p.proto==='rep'&&x.b.on);
+  // Работает один протокол класса: первый активный по порядку
+  if(storage[0])max=Math.max(1,max+(FX[storage[0].p.id].max||0));
+  let use=0,useAlways=0,bonusAlways=0,bonusCond=[];
+  B.forEach(({b,p},i)=>{
+    if(!b.on)return;
+    if(p.proto&&(p.proto==='sto'?storage[0]:rep[0]).b!==b)return;
+    const fx=FX[p.id]||{};
+    if(p.use<0){bonusAlways+=-p.use;return}
+    use+=p.use;
+    if(!fx.cond&&!b.rules.length)useAlways+=p.use;
+    if(fx.bonus){if(fx.note||fx.cond)bonusCond.push([ru(p),fx.bonus,fx.note||'по условию']);else bonusAlways+=fx.bonus}
+    if(fx.bonusFn)bonusCond.push([ru(p),fx.bonusFn(max,max),'при полном запасе']);
+  });
+  const grow=REGEN+bonusAlways,net=grow-useAlways;
+  return {B,max,use,useAlways,grow,net,bonusCond,storage,rep};
+}
+function warnings(c){
+  const w=[],B=c.B;
+  if(B.length>MAXP)w.push(['bad',`Программ ${B.length} — больше лимита ${MAXP}: лишние не загрузятся.`]);
+  const seen={};B.forEach(({p})=>{seen[p.id]=(seen[p.id]||0)+1});
+  Object.entries(seen).forEach(([id,n])=>{if(n>1&&byId[id].unique)w.push(['bad',`«${ru(byId[id])}» — уникальная программа, вторая копия заменит первую.`])});
+  if(c.storage.length>1)w.push(['warn',`Протоколов хранения включено ${c.storage.length}: работает только один — «${ru(c.storage[0].p)}».`]);
+  if(c.rep.length>1)w.push(['warn',`Протоколов репликации включено ${c.rep.length}: работает только один — «${ru(c.rep[0].p)}».`]);
+  if(c.net<0)w.push(['warn',`Постоянный расход ${fmt(c.useAlways)}/с больше роста ${fmt(c.grow)}/с: запас тает даже у здорового носителя${c.bonusCond.length?' (без учёта переменного роста протоколов)':''}.`]);
+  // Связи кодов
+  const senders={},receivers={};
+  const addS=(code,who)=>{if(code>0)(senders[code]=senders[code]||[]).push(who)};
+  const addR=(code,who,what)=>{if(code>0)(receivers[code]=receivers[code]||[]).push([who,what])};
+  B.forEach(({b,p})=>{
+    const nm=ru(p);
+    if('Sent Code' in b.set&&!p.id.startsWith('sensor/relay'))addS(+b.set['Sent Code'],nm);
+    if('Nanite Code' in b.set)addS(+b.set['Nanite Code'],nm+' (по радио)');
+    addR(+b.act,nm,'вкл');addR(+b.deact,nm,'выкл');addR(+b.kill,nm,'удалить');if(p.trig)addR(+b.trig,nm,'сработать');
+    if(p.trig&&!b.trig&&!b.tt&&!p.comm)w.push(['warn',`«${nm}»: нет кода срабатывания и таймера — сработать её будет нечем.`]);
+    if(p.comm&&!b.trig&&!+b.set['Comm Code']&&!b.tt)w.push(['warn',`«${nm}»: нет ни кода срабатывания, ни Comm Code.`]);
+    if(p.id.startsWith('sensor/')&&'Sent Code' in b.set&&!(+b.set['Sent Code']>0))w.push(['warn',`«${nm}»: Sent Code = 0, датчик ничего не отправит.`]);
+  });
+  Object.entries(senders).forEach(([code,who])=>{if(!receivers[code])w.push(['warn',`Код ${code} отправляет ${who.join(', ')}, но его никто не слушает.`])});
+  Object.entries(receivers).forEach(([code,rs])=>{const kill=rs.filter(r=>r[1]==='удалить');if(kill.length&&rs.length>kill.length)w.push(['bad',`Код ${code} одновременно удаляет ${kill.map(r=>r[0]).join(', ')} и управляет другими программами.`])});
+  if(!w.length&&B.length)w.push(['ok','Конфликтов не видно.']);
+  return {w,senders,receivers};
+}
+function ruleText(r){
+  const dir=r.above?'выше или равно':'ниже';
+  if(r.t==='health')return `здоровье ${dir} ${r.pct}%`;
+  if(r.t==='volume')return `наниты ${dir} ${r.pct}%`;
+  if(r.t==='damage')return `урон ${r.dtype} ${dir} ${r.amt}`;
+  return RULES[r.t][0].toLowerCase();
+}
+function sheet(c){
+  const L=[`Сборка нанитов — ${c.B.length}/${MAXP} программ`,`Рост ${fmt(c.grow)}/с, постоянный расход ${fmt(c.useAlways)}/с, всё сразу ${fmt(c.use)}/с, максимум ${c.max}`,''];
+  c.B.forEach(({b,p},i)=>{
+    L.push(`${i+1}. ${p.name} (${ru(p)})${b.on?'':' — выключена на старте'}`);
+    const codes=[];if(b.act)codes.push('вкл '+b.act);if(b.deact)codes.push('выкл '+b.deact);if(b.kill)codes.push('удалить '+b.kill);if(p.trig&&b.trig)codes.push('сработать '+b.trig);
+    if(codes.length)L.push('   Коды: '+codes.join(', '));
+    const tm=[];if(b.tr)tm.push('перезапуск '+b.tr+' с');if(b.ts)tm.push('отключение '+b.ts+' с');if(p.trig&&b.tt)tm.push('повтор срабатывания '+b.tt+' с');if(p.trig&&b.td)tm.push('задержка срабатывания '+b.td+' с');
+    if(tm.length)L.push('   Таймеры: '+tm.join(', '));
+    const st=p.set.filter(s=>String(b.set[s.name])!==String(s.value)||s.name==='Sent Code').map(s=>`${s.name} = ${s.type==='boolean'?(b.set[s.name]?s.on:s.off):b.set[s.name]}`);
+    if(st.length)L.push('   Настройки: '+st.join('; '));
+    if(b.rules.length)L.push(`   Правила (${b.all?'все':'любое'}): `+b.rules.map(ruleText).join(', '));
+  });
+  return L.join('\n');
+}
+function instEditor(b,i){
+  const p=byId[b.id],num=(k,lab,min=0,max=9999)=>`<label>${lab}<input type="number" min="${min}" max="${max}" step="1" data-f="${k}" value="${esc(b[k])}"></label>`;
+  let h=`<div class="sub">Коды (0 — нет)</div><div class="fl">${num('act','Активация')}${num('deact','Деактивация')}${num('kill','Уничтожение')}${p.trig?num('trig','Срабатывание'):''}</div>`;
+  h+=`<div class="sub">Задержки, секунды</div><div class="fl">${num('tr','Таймер перезапуска',0,3600)}${num('ts','Таймер отключения',0,3600)}${p.trig?num('tt','Повтор срабатывания',0,3600)+num('td','Задержка срабатывания',0,3600):''}</div>`;
+  if(p.set.length){
+    h+=`<div class="sub">Доп. настройки</div><div class="fl">${p.set.map(s=>{
+      const v=b.set[s.name],a=`data-set="${esc(s.name)}" title="${esc(SET_RU[s.name]||'')}"`;
+      if(s.type==='number')return `<label>${esc(s.name)}${s.unit?' ('+esc(s.unit)+')':''}<input type="number" min="${s.min}" max="${s.max}" ${a} value="${esc(v)}"></label>`;
+      if(s.type==='boolean')return `<label>${esc(s.name)}<select ${a}><option value="1"${v?' selected':''}>${esc(s.on)}</option><option value="0"${v?'':' selected'}>${esc(s.off)}</option></select></label>`;
+      if(s.type==='type')return `<label>${esc(s.name)}<select ${a}>${s.options.map(o=>`<option${String(o)===String(v)?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
+      return `<label class="w2">${esc(s.name)}<input type="text" ${a} value="${esc(v)}"></label>`;
+    }).join('')}</div>`;
+  }
+  h+=`<div class="sub">Правила <span style="text-transform:none;font-weight:400">— из датчиков в облачном контроллере</span></div>`;
+  h+=b.rules.map((r,k)=>`<div class="rule">${esc(RULES[r.t][0])}${'pct' in r?` <select data-r="${k}" data-rk="above"><option value="1"${r.above?' selected':''}>≥</option><option value="0"${r.above?'':' selected'}>&lt;</option></select><input type="number" data-r="${k}" data-rk="pct" value="${r.pct}">%`:''}${r.t==='damage'?` <select data-r="${k}" data-rk="dtype">${DTYPES.map(t=>`<option${t===r.dtype?' selected':''}>${t}</option>`).join('')}</select><select data-r="${k}" data-rk="above"><option value="1"${r.above?' selected':''}>≥</option><option value="0"${r.above?'':' selected'}>&lt;</option></select><input type="number" data-r="${k}" data-rk="amt" value="${r.amt}">`:''} <button class="btn" data-rdel="${k}" style="padding:1px 8px">×</button></div>`).join('');
+  h+=`<div class="rule"><select data-radd>${'<option value="">+ правило…</option>'+Object.entries(RULES).map(([k,[n]])=>`<option value="${k}">${n}</option>`).join('')}</select>${b.rules.length>1?`<select data-all><option value="1"${b.all?' selected':''}>нужны все</option><option value="0"${b.all?'':' selected'}>хватит любого</option></select>`:''}</div>`;
+  return `<div class="ed" data-uid="${b.uid}">${h}</div>`;
+}
+function renderBuild(){
+  const c=calc(),{w,senders,receivers}=warnings(c);
+  const fillT=c.net<0?(c.max-SAFETY)/-c.net:Infinity, upT=c.net>0?(c.max-100)/c.net:Infinity;
+  const kp=`<div class="kpis">
+    <div class="kpi ${c.B.length>MAXP?'bad':''}"><b>${c.B.length}/${MAXP}</b><span>программ</span></div>
+    <div class="kpi ok"><b>+${fmt(c.grow)}</b><span>рост в секунду</span></div>
+    <div class="kpi ${c.net<0?'warn':''}"><b>${fmt(c.useAlways)}</b><span>расход всегда</span></div>
+    <div class="kpi ${c.use>c.grow?'warn':''}"><b>${fmt(c.use)}</b><span>всё работает разом</span></div>
+    <div class="kpi"><b>${c.max}</b><span>максимум нанитов</span></div>
+    <div class="kpi ${c.net<0?'bad':'ok'}"><b>${c.net<0?fsec(fillT):(c.net>0?fsec(upT):'—')}</b><span>${c.net<0?'до порога 25 с полного':'с 100 (камера) до максимума'}</span></div>
+  </div>`;
+  const pick=`<div class="pick" style="padding:12px 16px 4px"><input id="bq" type="search" placeholder="Добавить программу: начните вводить название…" autocomplete="off"><ul id="bopts" hidden></ul></div>`;
+  const list=c.B.length?c.B.map(({b,p},i)=>`<div class="inst"><div class="hd"><span class="pill" style="--dc:${catOf(p)[1]}">${i+1}</span><span class="nm">${esc(ru(p))}<small>${esc(p.name)}</small></span><span class="sp"></span>
+      <span class="muted" style="font-size:12.5px">${p.use?fmt(p.use)+'/с':''}${p.trig?(p.use?' · ':'')+'⚡'+fmt(p.tcost):''}${b.rules.length?' · правил: '+b.rules.length:''}</span>
+      <button data-on="${b.uid}" title="Статус активации при загрузке">${b.on?'Вкл':'Выкл'}</button>
+      <button data-open="${b.uid}">${b.open?'Свернуть':'Коды и настройки'}</button>
+      <button data-info="${p.id}" title="Открыть в каталоге">?</button>
+      <button data-up="${b.uid}" title="Выше"${i?'':' disabled'}>↑</button>
+      <button data-del="${b.uid}" title="Убрать">×</button></div>${b.open?instEditor(b,i):''}</div>`).join(''):`<div class="empty">Пусто. Добавьте программы из каталога кнопкой «+ В сборку», через поиск выше или возьмите одну из «Готовых сборок».</div>`;
+  const chain=Object.keys(Object.assign({},senders,receivers)).map(Number).sort((a,b)=>a-b).map(code=>[`<b>${code}</b>`,(senders[code]||[]).map(esc).join(', ')||'<span class="muted">пульт</span>',(receivers[code]||[]).map(([n,wh])=>`${esc(n)} — ${wh}`).join('<br>')||'<span class="muted">никто</span>']);
+  const bonus=c.bonusCond.length?note('Переменный рост, в расчёт не входит: '+c.bonusCond.map(([n,v,t])=>`${esc(n)} +${fmt(v)}/с (${t})`).join(', ')+'.','ok'):'';
+  $('#build').innerHTML=
+    card('Сборка <small>что загрузить в облако</small>'+(c.B.length?'<span style="margin-left:auto;display:flex;gap:6px"><button class="btn" id="bcopy">Копировать шпаргалку</button><button class="btn bad" id="bclear">Очистить</button></span>':''),
+      kp+bonus+`<div class="note warn" id="bmsg" hidden></div>`+pick+`<div style="padding-top:6px">${list}</div>`,'var(--accent)','wide')+
+    card('Проверка',`<ul class="warns">${w.map(([k,t])=>`<li class="${k}">${t}</li>`).join('')||'<li class="muted">Добавьте программы.</li>'}</ul>`+
+      note('«Расход всегда» — программы без условия и без правил: они тратят наниты постоянно. Лечебные и прочие программы с условием тратят наниты, только когда есть что лечить. Пока запас ниже порога безопасности (25), программы стоят.'),'var(--warn)')+
+    card('Связи кодов',chain.length?tbl(['#Код','Отправляет','Получает'],chain):body('Здесь появится, какой код кто отправляет и кто на него отвечает.'),'#c08a3e')+
+    card('Готовые сборки',`<div class="presets">${PRESETS.map((pr,i)=>`<div class="preset"><div class="hd"><b>${esc(pr.n)}</b><span class="muted" style="font-size:12.5px">${pr.p.length} пр.</span><span class="sp"></span><button class="btn pri" data-preset="${i}">Загрузить</button></div><p>${esc(pr.d)}</p></div>`).join('')}</div>`,'var(--ok)')+
+    (c.B.length?card('Шпаргалка',`<div class="body"><textarea class="sheet" id="sheet" readonly>${esc(sheet(c))}</textarea></div>`,'var(--navy)','wide'):'');
+}
+function bindBuild(){
+  const root=$('#build');
+  root.addEventListener('click',e=>{
+    const t=e.target.closest('button');if(!t)return;
+    const d=t.dataset,uid=+(d.on||d.open||d.up||d.del||0);
+    if(d.on){const b=instById(uid);b.on=!b.on}
+    else if(d.open){const b=instById(uid);b.open=!b.open}
+    else if(d.up){const i=S.build.findIndex(b=>b.uid===uid);if(i>0)[S.build[i-1],S.build[i]]=[S.build[i],S.build[i-1]]}
+    else if(d.del){S.build=S.build.filter(b=>b.uid!==uid)}
+    else if(d.info){gotoProg(d.info);return}
+    else if(d.preset){loadPreset(+d.preset);return}
+    else if(d.rdel){const b=instById(+t.closest('[data-uid]').dataset.uid);b.rules.splice(+d.rdel,1)}
+    else if(d.addid){addProg(d.addid)}
+    else if(t.id==='bclear'){if(!confirmReplace())return;S.build=[]}
+    else if(t.id==='bcopy'){const ta=$('#sheet');copy(ta.value,t);return}
+    else return;
+    save();updCnt();renderBuild();
+  });
+  root.addEventListener('change',e=>{
+    const t=e.target,ed=t.closest('[data-uid]');if(!ed)return;
+    const b=instById(+ed.dataset.uid),p=byId[b.id];
+    if(t.dataset.f){b[t.dataset.f]=Math.max(0,Math.round(+t.value||0))}
+    else if(t.dataset.set!=null){const s=p.set.find(x=>x.name===t.dataset.set);
+      b.set[s.name]=s.type==='number'?Math.min(s.max,Math.max(s.min,+t.value||0)):(s.type==='boolean'?t.value==='1':t.value)}
+    else if(t.dataset.r!=null){const r=b.rules[+t.dataset.r],k=t.dataset.rk;r[k]=k==='above'?t.value==='1':(k==='dtype'?t.value:+t.value||0)}
+    else if(t.hasAttribute('data-radd')){if(t.value)b.rules.push(Object.assign({t:t.value},RULES[t.value][1]))}
+    else if(t.hasAttribute('data-all')){b.all=t.value==='1'}
+    else return;
+    save();renderBuild();
+  });
+  root.addEventListener('input',e=>{
+    if(e.target.id!=='bq')return;
+    const q=e.target.value.trim().toLowerCase(),ul=$('#bopts');
+    if(!q){ul.hidden=true;return}
+    const m=P.filter(p=>p.group!=='rogue'&&(p.name.toLowerCase().includes(q)||ru(p).toLowerCase().includes(q))).slice(0,12);
+    ul.innerHTML=m.map(p=>`<li><button data-addid="${p.id}">${esc(ru(p))}<small>${esc(p.name)} · ${catOf(p)[0]}</small></button></li>`).join('')||'<li class="empty">Нет такой</li>';
+    ul.hidden=false;
+  });
+}
+function copy(text,btn){
+  const done=()=>{const o=btn.textContent;btn.textContent='Скопировано';setTimeout(()=>{btn.textContent=o},1500)};
+  try{navigator.clipboard.writeText(text).then(done,()=>{fallback()})}catch(e){fallback()}
+  function fallback(){const ta=$('#sheet');ta.select();try{document.execCommand('copy');done()}catch(e){}}
+}
+
+/* ===================== ОСНОВЫ ===================== */
+function renderGear(){
+  $('#basics-gear').innerHTML='<div class="grid">'+
+  card('С чего начать',steps([
+    'Исследуйте <b>Basic Nanite Programming</b> (2 500 очков, после Data Theory и Basic Robotics) и постройте оборудование из протолата науки.',
+    'В <b>хабе программ</b> скачайте нужные программы на пустые диски — хаб показывает только исследованные.',
+    'В <b>облачном контроллере</b> создайте облако (ID 1–100), вставьте диск и загрузите программу. Там же настраиваются правила с дисков датчиков.',
+    'В <b>программаторе</b> настройте на диске коды, задержки и доп. настройки <i>до</i> загрузки в облако — в облаке меняются только правила.',
+    'Носителя — в <b>камеру нанитов</b>: с консоли «Внедрить наниты» (100 ед., ~13 с), затем укажите ID облака. Через 30 с наниты синхронизируются с облаком.',
+    'Пультом проверьте коды. Изменили облако — наниты всех носителей с этим ID подтянут изменения при следующей синхронизации.',
+  ]))+
+  card('Оборудование',tbl(['Машина / предмет','Что делает'],[
+    ['Камера нанитов + консоль','Внедряет 100 нанитов, ставит ID облака и порог безопасности, показывает и удаляет программы носителя. Уровень сканирования растёт от деталей камеры.'],
+    ['Публичная камера','Без оператора: залез — получил 75 нанитов с облаком платы (по умолчанию 1); если наниты уже есть — меняет облако.'],
+    ['Облачный контроллер','Хранит облака (ID 1–100) и их программы. Загрузка и удаление программ, правила из дисков датчиков, логика «все / любое».'],
+    ['Хаб программ','Каталог исследованных программ по категориям — скачать на диск.'],
+    ['Программатор','Меняет коды, таймеры и доп. настройки программы на диске.'],
+    ['Пульт нанитов','Шлёт код 1–9999: себе (Local), цели до 7 клеток (Targeted), всем в поле зрения (Area) или на канал ретрансляторов (Relay). Пресеты, блокировка ID-картой.'],
+    ['Пульт связи','То же, плюс текст для программ с Comm Code (речь, эхо, галлюцинации, контроль разума).'],
+    ['Сканер нанитов','Показывает объём и программы носителя (если не стоит «Урезанная диагностика»; «Скрытность» прячет наниты совсем).'],
+    ['Нанитная помпа','Имплант: свои наниты с ростом 2/с без порога безопасности, один раз качает программы из облака и сверяется каждые 15 с. ЭМИ портит эталон.'],
+    ['Нанитный протектор','Инжектор (протолат, медицина): навсегда делает носителя несовместимым с нанитами.'],
+  ]))+
+  card('Кому можно',bul([
+    'Наниты встают только на органиков и нежить. Синтетикам (IPC и др.) нужна черта <b>«Совместимость с нанитами»</b> (2 очка).',
+    'Черта <b>«Непереносимость нанитов»</b> и нанитный протектор делают носителя несовместимым: камера, заражение и помпа его не берут.',
+    'Дионам наниты вредят: 0,17 токсина в секунду, пока они в теле.',
+    'Вирус с симптомом <b>Nano-symbiosis</b> подпитывает наниты, <b>Silicolysis</b> — пожирает (см. Вирусологию).',
+  ]),'var(--ok)')+
+  '</div>';
+}
+function renderHow(){
+  $('#basics-how').innerHTML='<div class="grid">'+
+  card('Запас нанитов',tbl(['Параметр','#Значение'],[
+    ['Внедрение камерой / публичной','100 / 75'],['Максимум по умолчанию',BASEMAX+' (в BlueMoon поднят модульной правкой с 250)'],['Рост','+'+fmt(REGEN)+' в секунду'],
+    ['Порог безопасности','25 (меняется в консоли камеры)'],['Лимит программ',MAXP],['Синхронизация с облаком','раз в 30 с'],
+  ])+body([
+    'Каждую секунду: +0,5 нанита, затем каждая включённая программа проверяет условие и тратит свой расход. Если после траты запас упал бы ниже порога безопасности — программа не работает и не срабатывает.',
+    'Запас дошёл до нуля — наниты исчезают целиком, вместе с программами.',
+    'Выше максимума лишнее выходит само: до 25 — незаметно, до 100 — серая жижа из кожи, до 350 — рвота, больше — поток из глаз, ушей и рта, ослепление и паралич на 12 с.',
+  ]))+
+  card('Расход и срабатывание',bul([
+    '<b>Расход</b> — сколько программа тратит в секунду, пока активна. Многие лечебные программы тратят наниты, только когда есть что лечить (в каталоге — «по условию»).',
+    '<b>Срабатывание</b> — разовое действие за свою стоимость. Перезарядка не даёт сработать чаще.',
+    '<b>Пассивный эффект</b> (броня, слепота, иммунитет к току) включается, пока программа реально работает, и снимается, если ей не хватило нанитов.',
+    'Протоколы делятся на два класса — <b>репликации</b> и <b>хранения</b>; в каждом классе работает только один активный.',
+  ]))+
+  card('Что вредит нанитам',tbl(['Событие','Что происходит'],[
+    ['ЭМИ','Теряется 20–35 нанитов и часть запаса; шанс сбросить ID облака; у каждой программы шанс сбоя (кроме невосприимчивых).'],
+    ['Удар током','−25–45 и до четверти запаса; у каждой программы 10% сбой, иначе 33% удаление. Чужая защита от тока (перчатки, черта) спасает и наниты, «Электропроводность» — нет.'],
+    ['Лёгкий разряд (дефибриллятор, шокер)','−5–15; у программ 10% сбой.'],
+    ['Без облака','Раз в 30 с — 8% сбоя случайной программы. Облако с ID держит программы в порядке и перезаписывает сбойные.'],
+  ]),'var(--bad)')+
+  '</div>';
+}
+function renderCodes(){
+  $('#basics-codes').innerHTML='<div class="grid">'+
+  card('Коды',tbl(['Код','Что делает'],[
+    ['Активация','Включает выключенную программу.'],['Деактивация','Выключает включённую.'],
+    ['Уничтожение','Удаляет программу из нанитов носителя (облако снова зальёт её при синхронизации, если она там есть).'],
+    ['Срабатывание','Только у программ с триггером: разовое действие за свою стоимость.'],
+  ])+body('Код — число 1–9999, 0 — не слушать. Один код может включать одни программы и срабатывать другие одновременно: так строятся связки. Коды приходят с пульта, кожной кнопки, датчиков, повторителей и ретрансляторов.'))+
+  card('Задержки',tbl(['Таймер','Что делает'],[
+    ['Таймер перезапуска','Выключенная программа сама включится через N секунд.'],
+    ['Таймер отключения','Включённая программа сама выключится через N секунд.'],
+    ['Повтор срабатывания','Пока включена, срабатывает каждые N секунд.'],
+    ['Задержка срабатывания','Срабатывание по коду наступает через N секунд.'],
+  ])+body('Перезапуск + отключение вместе дают мигающую программу: например, включена 10 с, выключена 50 с.'))+
+  card('Правила',bul([
+    'Правило — условие прямо на программе: она работает, только пока условие выполнено. Не нужен отдельный датчик и код.',
+    'Ставятся в облачном контроллере: вставьте диск <b>датчика</b> с нужными настройками и нажмите «Добавить правило с диска» у программы.',
+    'Подходят: Health, Critical Health, Death, Nanite Volume, Damage. Голосовой датчик и повторители — нет.',
+    'Несколько правил: «все» (по умолчанию) или «любое».',
+    'Пример: Bio-Reconstruction тратит 5,5/с всегда — с правилом «здоровье ниже 80%» только когда вы ранены.',
+  ]),'var(--ok)')+
+  card('Частые связки',tbl(['Задача','Как'],[
+    ['Оживление','Датчик смерти, Sent Code 1 → Дефибрилляция, срабатывание 1.'],
+    ['Кнопка «паника»','Кожная кнопка, Sent Code 2 → Выброс адреналина, срабатывание 2.'],
+    ['Тревога медикам','У пациента: Датчик крита, Sent Code 3 → Повторитель на канал, срабатывание 3, канал 5, Sent Code 30. У медиков: Ретранслятор на канале 5 и Эхо в черепе со срабатыванием 30 и текстом «Пациент в крите».'],
+    ['Временный эффект','Код 10 включает программу и срабатывает Повторитель сигнала с задержкой 15 с; он шлёт 11 = деактивация.'],
+    ['Экономия','Датчик объёма нанитов «ниже 20%» шлёт деактивацию дорогих программ, «выше 60%» — активацию.'],
+  ]),'#c08a3e','wide')+
+  '</div>';
+}
+function renderErrors(){
+  const rogue=P.filter(p=>p.group==='rogue');
+  $('#basics-errors').innerHTML='<div class="grid">'+
+  card('Программный сбой',tbl(['#','Что происходит'],[
+    ['1','Программа удаляется.'],['2','Сбрасываются все её коды.'],['3','Программа включается или выключается.'],['4','Программа срабатывает (если умеет).'],
+    ['5','Программа превращается в одну из своих «сбойных» форм — в каталоге это «При сбое →».'],
+  ])+body('Сбой вызывают ЭМИ, ток, отсутствие облака, Утечка памяти, Митоз. Сбойные программы тоже ломаются дальше — цепочка заканчивается на «Глюке».'),'var(--bad)')+
+  card('Сбойные программы',tbl(['Программа','#Расход','Эффект'],rogue.map(p=>[`<button class="lnk" data-goto="${p.id}">${esc(ru(p))}</button><div class="muted">${esc(p.name)}</div>`,fmt(p.use),(FX[p.id]||{}).t||esc(p.desc)])),'#7d8595')+
+  card('Как защититься',bul([
+    'Держите носителей на облаке: при синхронизации облако перезаписывает испорченные и восстанавливает удалённые программы.',
+    '«Улучшенная коррекция ошибок» не даст чужой Viral Replica переписать наниты, «Враждебная блокировка» — консолям и самому носителю.',
+    'Диагностику с HUD можно спрятать «Скрытностью», а список программ от сканера — «Урезанной диагностикой».',
+    'Чтобы удалить наниты полностью: консоль камеры → «Уничтожить наниты», или довести запас до нуля (Расплав, ЭМИ, ток).',
+  ]),'var(--ok)')+
+  '</div>';
+}
+
+/* ===================== ИССЛЕДОВАНИЯ ===================== */
+function renderResearch(){
+  const prog=Object.fromEntries(P.filter(p=>p.design).map(p=>[p.design,p]));
+  const nn=id=>nodeById[id]?(NODE_RU[id]||nodeById[id].name):(D.node_names[id]||id);
+  const total=D.nodes.reduce((a,n)=>a+n.cost,0);
+  const cards=D.nodes.map(n=>{
+    const ps=n.designs.filter(d=>prog[d]).map(d=>prog[d]),other=n.designs.filter(d=>!prog[d]);
+    return card(`${esc(NODE_RU[n.id]||n.name)} <small>${esc(n.name)}</small><span class="pill" style="margin-left:auto">${n.cost.toLocaleString('ru-RU')} оч.</span>`,
+      `<div class="body"><p>${esc(n.desc)}</p><p class="pre">Нужно: ${n.pre.map(id=>nodeById[id]?`<button class="lnk" data-node="${id}">${esc(nn(id))}</button>`:esc(nn(id))).join(', ')||'—'}${n.hidden?' · <b>скрытый экспериментальный узел</b>: открывается B.E.P.I.S. или наградой битраннеров':''}</p></div>`+
+      (ps.length?`<div class="prog-chips">${ps.map(p=>`<button data-goto="${p.id}" style="border-color:${catOf(p)[1]}">${esc(ru(p))}</button>`).join('')}</div>`:'')+
+      (other.length?`<div class="meta">Оборудование: ${other.map(d=>esc(DESIGN_RU[d]||d)).join(', ')}</div>`:''),
+      n.hidden?'#8c6ad8':'var(--accent)','',`id="n-${n.id}"`);
+  });
+  $('#research').innerHTML=`<div class="kpis" style="padding:0 0 14px"><div class="kpi"><b>${D.nodes.length}</b><span>узлов</span></div><div class="kpi"><b>${total.toLocaleString('ru-RU')}</b><span>очков на всю ветку</span></div><div class="kpi"><b>${P.filter(p=>p.node).length}</b><span>программ в исследованиях</span></div></div><div class="grid">${cards.join('')}</div>`;
+}
+function gotoNode(id){go('research');const el=document.getElementById('n-'+id);if(el){el.scrollIntoView({block:'center'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')}}
+
+/* ===================== НРП ===================== */
+function renderNrp(){
+  const N=window.NRP,el=$('#nrp');
+  if(!N){el.innerHTML='<div class="grid">'+card('НРП не найдено',body('Нет базы <code>avd/nrp.js</code> — она приходит вместе с Панелью АВД.'))+'</div>';return}
+  const KW=/нанит/i,out=[];
+  N.depts.forEach(d=>d.roles.forEach(r=>{
+    const groups=(r.groups||[]).map(g=>({g,list:KW.test(g.t||'')?g.items:g.items.filter(it=>KW.test(it.t))})).filter(x=>x.list.length);
+    if(groups.length)out.push(card(`${esc(d.t)}: ${esc(r.t)}`,groups.map(x=>`<div class="nrphd">${esc(x.g.t||'')}</div><div class="nrp">${x.list.map(it=>`<div class="it"><span class="n">${esc(it.n||'')}</span><span>${esc(it.t)}</span></div>`).join('')}</div>`).join(''),'var(--navy)','wide'));
+  }));
+  el.innerHTML='<div class="grid">'+(out.join('')||card('Пунктов о нанитах нет',body('В текущей редакции НРП наниты не упоминаются.')))+
+    card('Коротко',bul([
+      'Эксперименты на экипаже — только в ОИР и с письменного согласия и отказа от претензий (оформите в Папирусе).',
+      'Публичная камера и раздача нанитов вне отдела — только с письменного одобрения Директора ОИР или Капитана.',
+      'Боевые и подавляющие программы на чужом носителе без согласия — это уже Космический закон (Терминал Брига).',
+    ]),'var(--warn)')+'</div>';
+}
+
+/* ===================== НАВИГАЦИЯ ===================== */
+const TABS=['progs','build','basics','research','nrp'];
+const SUBS={basics:[['gear','Оборудование'],['how','Как работают'],['codes','Коды и правила'],['errors','Сбои и защита']]};
+const RENDER={progs:renderProgs,build:renderBuild,basics:{gear:renderGear,how:renderHow,codes:renderCodes,errors:renderErrors},research:renderResearch,nrp:renderNrp};
+const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
+function go(t,sub){
+  if(SUBS[t]){if(sub)S.sub[t]=sub;if(!SUBS[t].some(([id])=>id===S.sub[t]))S.sub[t]=SUBS[t][0][0]}
+  S.tab=t;
+  TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  if(SUBS[t]){subSeg(t);SUBS[t].forEach(([id])=>{$('#'+t+'-'+id).hidden=id!==S.sub[t]});RENDER[t][S.sub[t]]();setHash(t+'/'+S.sub[t])}
+  else{RENDER[t]();setHash(t)}
+  save();window.scrollTo(0,0)}
+function setHash(h){try{history.replaceState(null,'','#'+h)}catch(e){}}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
+document.querySelectorAll('[data-subs]').forEach(el=>el.addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(b)go(el.dataset.subs,b.dataset.sub)}));
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-goto]');if(g){gotoProg(g.dataset.goto);return}
+  const n=e.target.closest('[data-node]');if(n){gotoNode(n.dataset.node);return}
+});
+$('#cats').addEventListener('click',e=>{const b=e.target.closest('[data-cat]');if(b){S.cat=b.dataset.cat;save();renderProgs()}});
+$('#flags').addEventListener('click',e=>{const b=e.target.closest('[data-fl]');if(b){const k=b.dataset.fl;S.fl=S.fl.includes(k)?S.fl.filter(x=>x!==k):S.fl.concat(k);save();renderProgs()}});
+$('#q').addEventListener('input',e=>{S.q=e.target.value;save();renderProgs()});
+$('#plist').addEventListener('click',e=>{const b=e.target.closest('[data-add]');if(!b)return;addProg(b.dataset.add);
+  const cnt=inBuild(b.dataset.add);b.classList.add('on');b.textContent='В сборке'+(cnt>1?' ×'+cnt:'')+' · ещё'});
+bindBuild();
+$('#q').value=S.q||'';
+$('#foot').innerHTML=`Неофициальный помощник по коду BlueMoon-Station${D.rev.commit?` (<code>${esc(D.rev.commit)}</code> от ${esc(D.rev.date)})`:''}: <code>code/modules/research/nanites</code> (программы, машины, правила), <code>code/datums/components/nanites.dm</code> (запас и сбои), <code>code/modules/research/techweb/nodes/nanites_nodes.dm</code>, модульные правки <code>modular_sand</code> и <code>modular_splurt</code>. Названия программ и настроек — как в игре, по-английски. Код на сервере может отличаться от репозитория.`;
+updCnt();
+const [h0,h1]=(location.hash||'').slice(1).split(/[\/-]/);
+if(TABS.includes(h0))go(h0,SUBS[h0]&&SUBS[h0].some(([id])=>id===h1)?h1:null);
+else go(TABS.includes(S.tab)?S.tab:'progs');
+</script>
+</body>
+</html>

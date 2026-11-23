@@ -82,5 +82,17 @@ Copy-Item (Join-Path $root 'xeno\index.html'), (Join-Path $root 'xeno\data.js') 
 # Ботаника — живёт в Пульте (botany\): data.js собирает botany\build_data.py из кода BlueMoon-Station
 $dst = Join-Path $apps 'botany'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'botany\index.html'), (Join-Path $root 'botany\data.js') $dst
+# R&D — живёт в Пульте (rnd\): дерево исследований и порядок изучения; data.js собирает rnd\build_data.py из техвеба игры
+$dst = Join-Path $apps 'rnd'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'rnd\index.html'), (Join-Path $root 'rnd\data.js') $dst
+# Битран — живёт в Пульте (bitrun\): виртуальные домены, награды, оборудование, глитчи
+$dst = Join-Path $apps 'bitrun'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'bitrun\index.html') $dst
+# Генетика — живёт в Пульте (genetics\): анализатор как в игре, скрещивание, справочник; data.js собирает genetics\build_data.py, tgui.css — стили окон игры
+$dst = Join-Path $apps 'genetics'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'genetics\index.html'), (Join-Path $root 'genetics\data.js'), (Join-Path $root 'genetics\tgui.css') $dst
+# Наниты — живут в Пульте (nanites\): каталог программ, сборка и коды; data.js собирает nanites\build_data.py, НРП — у Панели АВД (..\avd\nrp.js)
+$dst = Join-Path $apps 'nanites'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'nanites\index.html'), (Join-Path $root 'nanites\data.js') $dst
 
 "Приложения скопированы в $apps"
