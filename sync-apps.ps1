@@ -94,6 +94,6 @@ Copy-Item (Join-Path $root 'genetics\index.html'), (Join-Path $root 'genetics\da
 Copy-Item (Join-Path $root 'genetics\img') $dst -Recurse
 # Наниты — живут в Пульте (nanites\): каталог программ, сборка и коды; data.js собирает nanites\build_data.py, НРП — у Панели АВД (..\avd\nrp.js)
 $dst = Join-Path $apps 'nanites'; Reset-Dir $dst
-Copy-Item (Join-Path $root 'nanites\index.html'), (Join-Path $root 'nanites\data.js') $dst
+Copy-Item (Join-Path $root 'nanites\index.html'), (Join-Path $root 'nanites\stand.js'), (Join-Path $root 'nanites\data.js') $dst
 
 "Приложения скопированы в $apps"
