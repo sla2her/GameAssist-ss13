@@ -98,7 +98,7 @@ const APPS = [
   // Рыбалка — третье приложение «Общего»: справочник по рыбе и симулятор мини-игры; своей клавиши нет
   { id: 'fishing', name: 'Рыбалка', sub: 'Рыба и симулятор', desc: 'Места, шансы улова, снасти, мини-игра',
     src: 'apps/fishing/index.html', color: '#2f8fb8', icon: 'fish', hscroll: 'nav, .chips', css: false },
-  // Ксенобиология — третье приложение науки: слаймы, мутации цветов, экстракты, кроссбриды; своей клавиши нет
+  // Ксенобиология — шестое приложение науки: слаймы, мутации цветов, экстракты, кроссбриды; своей клавиши нет
   { id: 'xeno', name: 'Ксенобиология', short: 'Ксено', sub: 'Слаймы и экстракты', desc: 'Уход, мутации цветов, реакции, зелья, кроссбриды',
     src: 'apps/xeno/index.html', color: '#2f9e84', icon: 'slime', hscroll: 'nav, .subnav, .chips', css: false },
   // Ботаника — второе приложение сервиса: растения, лоток, химия, гены; своей клавиши нет
@@ -110,10 +110,10 @@ const APPS = [
   // Битран — четвёртое приложение «Карго»: виртуальные домены, награды, оборудование; своей клавиши нет
   { id: 'bitrun', name: 'Битран', sub: 'Виртуальные домены', desc: 'Домены, калькулятор награды, нетподы, глитчи',
     src: 'apps/bitrun/index.html', color: '#a83fb8', icon: 'vr', hscroll: 'nav, .chips', css: false },
-  // Генетика — третье приложение науки: анализатор последовательностей как в игре, скрещивание, мутации; своей клавиши нет
+  // Генетика — четвёртое приложение науки: анализатор последовательностей как в игре, скрещивание, мутации; своей клавиши нет
   { id: 'genetics', name: 'Генетика', sub: 'Мутации и анализатор', desc: 'Анализатор ДНК 1:1, скрещивание, справочник мутаций',
     src: 'apps/genetics/index.html', color: '#3fae8c', icon: 'dna', hscroll: 'nav, .chips', css: false },
-  // Наниты — третье приложение науки: каталог программ, сборка с балансом и кодами; своей клавиши нет
+  // Наниты — пятое приложение науки: каталог программ, сборка с балансом и кодами; своей клавиши нет
   { id: 'nanites', name: 'Наниты', sub: 'Программы и коды', desc: 'Каталог программ, сборка, коды и правила',
     src: 'apps/nanites/index.html', color: '#6a7fe0', icon: 'nanite', hscroll: 'nav, .subnav, .chips', css: false },
 ];
@@ -131,10 +131,10 @@ const DEPTS = [
   { id: 'law', name: 'Юридический отдел', short: 'Юр. отдел', sub: 'АВД и Представитель', color: '#b8863b', icon: 'scales', apps: ['avd'] },
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
   { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
-  { id: 'sci', name: 'Наука', sub: 'Схемы, роботы, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'xeno', 'rnd', 'genetics', 'nanites'] },
+  { id: 'sci', name: 'Наука', sub: 'R&D, генетика, наниты, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'rnd', 'genetics', 'nanites', 'xeno'] },
   { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
   { id: 'srv', name: 'Сервис', sub: 'Кухня, бар, ботаника', color: '#e07a3f', icon: 'cloche', apps: ['kitchen', 'botany'] },
-  { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev', 'bitrun'] },
+  { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл, битран', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev', 'bitrun'] },
 ];
 const byDept = Object.fromEntries(DEPTS.map((d) => [d.id, d]));
 const deptOf = {};
