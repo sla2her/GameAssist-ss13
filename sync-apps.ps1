@@ -74,4 +74,8 @@ Copy-Item (Join-Path $root 'robo\index.html'), (Join-Path $root 'robo\mod.js'), 
 $dst = Join-Path $apps 'fishing'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'fishing\index.html'), (Join-Path $root 'fishing\data.js') $dst
 
+# R&D — живёт в Пульте (rnd\): дерево исследований и порядок изучения; data.js собирает rnd\build_data.py из техвеба игры
+$dst = Join-Path $apps 'rnd'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'rnd\index.html'), (Join-Path $root 'rnd\data.js') $dst
+
 "Приложения скопированы в $apps"
