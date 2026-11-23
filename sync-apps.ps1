@@ -74,4 +74,8 @@ Copy-Item (Join-Path $root 'robo\index.html'), (Join-Path $root 'robo\mod.js'), 
 $dst = Join-Path $apps 'fishing'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'fishing\index.html'), (Join-Path $root 'fishing\data.js') $dst
 
+# Наниты — живут в Пульте (nanites\): каталог программ, сборка и коды; data.js собирает nanites\build_data.py, НРП — у Панели АВД (..\avd\nrp.js)
+$dst = Join-Path $apps 'nanites'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'nanites\index.html'), (Join-Path $root 'nanites\data.js') $dst
+
 "Приложения скопированы в $apps"
