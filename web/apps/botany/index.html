@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ботаника</title>
+<style>
+/* Ботаника: справочник растений (статы, гены, реагенты, мутации), уход за лотком, нестабильность и мутации,
+   химия лотка, гены. Вёрстка как у Вирусологии и Ксенобиологии; данные — botany/data.js (botany/build_data.py). */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#5f9e46; --accent-fg:#0d2305; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#7cc95e; --accent-fg:#0d2305; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#7cc95e; --accent-fg:#0d2305; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)}
+
+.seg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.subnav{margin-bottom:14px;display:inline-flex}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.card>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.card .body{padding:10px 16px 14px;font-size:14px}
+.card .body p{margin:0 0 8px}
+.card .body p:last-child{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.bul{margin:0;padding:10px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.note{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.note.bad{--kc:var(--bad)} .note.ok{--kc:var(--ok)} .note.warn{--kc:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+kbd{font:12px var(--font-m);background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;white-space:nowrap}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+.wide{grid-column:1/-1}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;padding:12px 16px 0}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--panel2)}
+.kpi b{display:block;font-size:20px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)} .kpi.warn b{color:var(--warn)} .kpi.ok b{color:var(--ok)}
+.pos{color:var(--ok);font-variant-numeric:tabular-nums} .neg{color:var(--bad);font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chips button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+.chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.danger{display:inline-block;font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;color:var(--dc);background:color-mix(in srgb,var(--dc) 14%,transparent);white-space:nowrap}
+.d0{--dc:var(--ok)} .d1{--dc:var(--ok)} .d2{--dc:var(--warn)} .d3{--dc:var(--bad)}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+
+.grid.mz{grid-auto-rows:1px;row-gap:0}
+.spr{width:32px;height:32px;image-rendering:pixelated;vertical-align:middle;flex:none}
+.spr.sm{width:24px;height:24px;margin:-4px 0}
+.spr.md{width:40px;height:40px;margin:-8px 0}
+.card>h3 .spr.md{margin:-10px 0}
+.card>h3:has(.spr){align-items:center}
+.chips2{display:flex;flex-wrap:wrap;gap:6px}
+.slider{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:14px}
+.slider input{flex:1;min-width:160px;accent-color:var(--accent)}
+.seg.mini{display:inline-flex}
+.seg.mini button{font-size:12px;padding:3px 8px}
+.tools{margin-bottom:14px}
+.tools input{width:100%;max-width:560px;padding:8px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--panel)}
+.pult-compact .seg.mini{display:flex;flex-wrap:wrap}
+.spr.lg{width:48px;height:48px;margin:-10px 0}
+.card>h3 .sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted)}
+.tag{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:1px 8px;margin:0 4px 4px 0;white-space:nowrap;background:var(--panel2);border:1px solid var(--line2);color:var(--muted)}
+.t-ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.t-warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.t-mut{color:#c58a1f;border-color:color-mix(in srgb,#c58a1f 45%,var(--line))}
+.t-lava{color:#d0573a;border-color:color-mix(in srgb,#d0573a 45%,var(--line))}
+.t-xeno{color:#2fa596;border-color:color-mix(in srgb,#2fa596 45%,var(--line))}
+.pchip{display:inline-flex;align-items:center;gap:5px;padding:2px 10px 2px 4px;border-radius:20px;font-size:13px;white-space:nowrap;cursor:pointer;color:var(--fg);
+  background:color-mix(in srgb,var(--kc,var(--accent)) 10%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 38%,var(--panel))}
+.pchip:hover{border-color:var(--kc,var(--accent))}
+.plants{display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr);gap:14px;align-items:start}
+.plist{position:sticky;top:10px;max-height:calc(100vh - 140px);overflow:auto;padding:4px}
+.pli{display:flex;align-items:center;gap:8px;width:100%;padding:4px 8px 4px 4px;border:0;border-radius:8px;background:none;cursor:pointer;text-align:left;color:var(--fg);line-height:1.15}
+.pli small{display:block;font-size:11.5px;color:var(--faint)}
+.pli:hover{background:var(--panel2)}
+.pli[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 16%,var(--panel));box-shadow:inset 3px 0 0 var(--accent)}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr))}
+.grid.one{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:0 16px 14px}
+.st{position:relative;border:1px solid var(--line);border-radius:10px;padding:6px 10px 9px;background:var(--panel2);overflow:hidden}
+.st span{font-size:12px;color:var(--muted);display:block}
+.st b{font-size:18px;font-variant-numeric:tabular-nums}
+.st i{position:absolute;left:0;bottom:0;height:3px;width:var(--w);background:var(--kc,var(--accent))}
+.tools .chips{margin:10px 0 0}
+@media (max-width:760px){.plants{grid-template-columns:minmax(0,1fr)}.plist{position:static;max-height:260px}}
+.pult-compact .plants{grid-template-columns:minmax(0,1fr)}
+.pult-compact .plist{position:static;max-height:220px}
+.pult-compact .stats{padding-left:10px;padding-right:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%} nav button{flex:1;padding:7px 6px}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%}
+.pult-compact nav button{flex:1;padding:5px 6px}
+.pult-compact .subnav{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .grid{grid-template-columns:minmax(0,1fr)}
+.pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .tbl,.pult-compact .kpis{padding-left:10px;padding-right:10px}
+.pult-compact .bul{padding-left:28px;padding-right:10px}
+.pult-compact .note{margin-left:10px;margin-right:10px}
+.pult-compact .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pult-compact .foot{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">БОТ</div><div><h1>Ботаника</h1><small>Растения · Лоток · Химия · Гены</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-plants" data-tab="plants" aria-selected="true">Растения</button>
+    <button role="tab" id="tab-tray" data-tab="tray" aria-selected="false">Лоток</button>
+    <button role="tab" id="tab-chem" data-tab="chem" aria-selected="false">Химия</button>
+    <button role="tab" id="tab-genes" data-tab="genes" aria-selected="false">Гены</button>
+  </nav>
+</header>
+
+<main>
+<section id="v-plants"><div id="plants-root"></div></section>
+<section id="v-tray" hidden>
+  <div class="seg subnav" data-subs="tray"></div>
+  <div id="tray-grow"></div>
+  <div id="tray-mut" hidden></div>
+  <div id="tray-tools" hidden></div>
+</section>
+<section id="v-chem" hidden><div id="chem-root"></div></section>
+<section id="v-genes" hidden><div id="genes-root"></div></section>
+
+<p class="foot">Неофициальный помощник по коду BlueMoon-Station: <code>code/modules/hydroponics</code> (лоток, семена, гены, ДНК-манипулятор), <code>code/modules/hydroponics/grown</code> и модульные папки (растения), <code>on_hydroponics_apply</code> в реагентах (химия лотка). Растения, статы, реагенты, мутации и спрайты собираются из кода скриптом <code>botany/build_data.py</code>. Код на сервере может отличаться от репозитория.</p>
+</main>
+</div>
+
+<script src="data.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const D=window.BOTANY_DATA;
+const KEY='botany.state';
+const card=(title,body,c,cls='')=>`<div class="panel card ${cls}" style="--kc:${c||'var(--accent)'}"><h3>${title}</h3>${body}</div>`;
+const steps=a=>`<ol class="steps">${a.map(x=>`<li><span>${x}</span></li>`).join('')}</ol>`;
+const bul=a=>`<ul class="bul">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+const body=a=>`<div class="body">${(Array.isArray(a)?a:[a]).map(x=>`<p>${x}</p>`).join('')}</div>`;
+const note=(t,cls='')=>`<div class="note ${cls}">${t}</div>`;
+const tbl=(head,rows)=>`<div class="tbl"><table><thead><tr>${head.map(h=>`<th${h[0]==='#'?' class="n"':''}>${h.replace(/^#/,'')}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td${head[i][0]==='#'?' class="n"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const C={plant:'#5f9e46',water:'#3f8fd0',chem:'#9a6ad6',mut:'#d9a03a',bad:'#c0393f',gene:'#2fb5a5',tool:'#5b7be0'};
+
+/* ===================== НАЗВАНИЯ ===================== */
+const RU={aloe:'Алоэ',amanita:'Мухомор',amauri:'Амаури',ambrosia:'Амброзия обыкновенная','ambrosia/deus':'Амброзия деус','ambrosia/gaia':'Амброзия гайя',
+ angel:'Бледная поганка',apple:'Яблоня','apple/gold':'Золотая яблоня',bamboo:'Бамбук','bamboo/nitroboo':'Нитробамбук','bamboo/oxyboo':'Оксибамбук','bamboo/plasboo':'Плазмобамбук',
+ banana:'Банан','banana/bluespace':'Блюспейс-банан','banana/exotic_banana':'Банановый паук','banana/mime':'Мимана',bee_balm:'Монарда','bee_balm/honey_balm':'Медовая монарда',
+ berry:'Ягоды','berry/death':'Смертоягоды','berry/glow':'Светоягоды','berry/poison':'Ядовитые ягоды',cabbage:'Капуста',cannabis:'Конопля','cannabis/death':'Смертельная конопля',
+ 'cannabis/rainbow':'Радужная конопля','cannabis/ultimate':'Омега-конопля','cannabis/white':'Белая конопля',carbon_rose:'Углеродная роза',carrot:'Морковь','carrot/parsnip':'Пастернак',
+ chanter:'Лисички','chanterelle/jupitercup':'Юпитерова чаша',cherry:'Вишня','cherry/blue':'Голубая вишня','cherry/bomb':'Вишнёвые бомбы','cherry/bulb':'Вишнёвые лампочки',
+ chili:'Чили','chili/ghost':'Призрачный чили','chili/ice':'Ледяной перец',cocaleaf:'Кока',cocoapod:'Какао','cocoapod/bungotree':'Бунго','cocoapod/vanillapod':'Ваниль',coconut:'Кокос',
+ coffee:'Кофе арабика','coffee/robusta':'Кофе робуста',corn:'Кукуруза','corn/snapcorn':'Хлоп-кукуруза',cotton:'Хлопок','cotton/durathread':'Дюранить',eggplant:'Баклажан','eggplant/eggy':'Яйцеплод',
+ firelemon:'Горючий лимон',galaxythistle:'Галактический чертополох',garlic:'Чеснок',gatfruit:'Ганфрукт',gelthi:'Гелти',glowshroom:'Светогрибы','glowshroom/glowcap':'Светошапки','glowshroom/shadowshroom':'Теневые грибы',
+ grape:'Виноград','grape/green':'Зелёный виноград',grass:'Трава','grass/carpet':'Ковровая трава','grass/fairy':'Волшебная трава',harebell:'Колокольчик',herbs:'Травы',jurlmah:'Джурлма',kudzu:'Кудзу',
+ 'lavaland/cactus':'Кактус (Лаваленд)','lavaland/ember':'Грибной стебель (Лаваленд)','lavaland/inocybe':'Иноцибе (Лаваленд)','lavaland/polypore':'Трутовик (Лаваленд)','lavaland/porcini':'Порчини (Лаваленд)',
+ lemon:'Лимон',liberty:'Псилоцибе',lime:'Лайм',matrigrass:'Матритрава',melon:'Дыня','melon/space':'Космодыня',nettle:'Крапива','nettle/death':'Смертокрапива',nofruit:'Неплод',nymph:'Нимфа дионы',
+ onion:'Лук','onion/red':'Красный лук',orange:'Апельсин',orange_3d:'Трёхмерный апельсин',peach:'Персик',peanutseed:'Арахис',peas:'Горох','peas/laugh':'Смехогорох','peas/laugh/peace':'Горох мира',
+ pineapple:'Ананас',plump:'Пузырчатый шлем',poppy:'Мак','poppy/geranium':'Герань','poppy/lily':'Лилия','poppy/lily/trumpet':'Космотруба',potato:'Картофель','potato/sweet':'Батат',
+ pumpkin:'Тыква','pumpkin/blumpkin':'Блюмпкин',redbeet:'Красная свёкла',reishi:'Рейши',replicapod:'Репликапод',rose:'Роза',sanguintare:'Сангвинтаре',schizoshroom:'Подраковиник',shand:'Шанд',
+ soya:'Соя','soya/koi':'Кои-бобы',starthistle:'Звёздный чертополох','starthistle/corpse_flower':'Трупный цветок',strawberry:'Клубника',sugarcane:'Сахарный тростник',sunflower:'Подсолнух',
+ 'sunflower/moonflower':'Лунный цветок','sunflower/novaflower':'Новацвет',surik:'Сурик',tea:'Чай аспера','tea/astra':'Чай астра','tea/catnip':'Кошачья мята',telriis:'Телриис',thaadra:'Таадра',
+ tobacco:'Табак','tobacco/space':'Космотабак',tomato:'Томат','tomato/blood':'Кровавый томат','tomato/blue':'Синий томат','tomato/blue/bluespace':'Блюспейс-томат','tomato/killer':'Томат-убийца',
+ tower:'Башнешляпка','tower/steel':'Сталешляпка',vale:'Вейл',vaporsac:'Паромешок',watermelon:'Арбуз','watermelon/holy':'Святой арбуз',wheat:'Пшеница','wheat/meat':'Мясопшеница','wheat/oat':'Овёс',
+ 'wheat/rice':'Рис',whitebeet:'Белая свёкла'};
+const ru=id=>RU[id]||D.plants[id].en;
+const SRC={shop:['MegaSeed','ok'],contra:['MegaSeed, контрабанда','warn'],mut:['только мутацией','mut'],lava:['Лаваленд','lava'],xeno:['ксеноархеология','xeno'],diona:['диона','xeno']};
+const TRAIT={
+ squash:['Liquid Contents','Сочный','Плод лопается при броске или если на нём поскользнуться: обливает клетку своим соком (и реагентами), запускает эффекты других генов на цель.'],
+ slip:['Slippery Skin','Скользкая кожура','На плоде (или его кожуре) поскальзываются. Время падения = потенция × 1,6 (втрое меньше, если в плоде нет Space Lube), не больше 14 с.'],
+ cell_charge:['Electrical Activity','Электроактивность','Съеденный плод заряжает батареи в инвентаре до потенция % ёмкости. При броске или подскальзывании с шансом потенция × 0,2 % бьёт током.'],
+ glow:['Bioluminescence','Биолюминесценция','Плод и растение в лотке светятся. Радиус 1,4 + потенция × 0,03.'],
+ 'glow/shadow':['Shadow Emission','Тень','Плод «светит темнотой» — затемняет вокруг.'],
+ teleport:['Bluespace Activity','Блюспейс-активность','Лопнувший плод или подскользнувшийся телепортирует цель на потенция / 10 клеток (минимум 1).'],
+ maxchem:['Densified Chemicals','Уплотнённая химия','Вдвое больший объём реагентов в плоде (без него большие потенции упираются в потолок объёма).'],
+ repeated_harvest:['Perennial Growth','Многолетник','После сбора урожая растение не погибает и плодоносит снова.'],
+ battery:['Capacitive Cell Production','Батарейный','Плод + кабель = батарея. Ёмкость = потенция × 20 (с Электроактивностью ещё × 20). Плазма в плоде — батарея взорвётся.'],
+ eyes:['Oculary Mimicry','Глаза','На плодах пластиковые глаза. Чисто косметика.'],
+ stinging:['Hypodermic Prickles','Колючки','Брошенный плод вкалывает цели потенция × 0,2 ед. своих реагентов (минимум 1, максимум 20).'],
+ smoke:['gaseous decomposition','Газовый распад','Лопнувший плод выпускает дым со всеми своими реагентами.'],
+ fire_resistance:['Fire Resistance','Огнеупорность','Семена и плоды не горят (растения Лаваленда).'],
+ invasive:['Invasive Spreading','Захватчик','Каждый рост с шансом 15 % перекидывается на соседний лоток и вытесняет растущее там растение.'],
+ foam:['Expansive Decomposition','Пенный распад','Лопнувший плод выпускает пену со своими реагентами.'],
+ spore_emission:['Spore Emission','Споры','Растение в лотке время от времени выпускает облако спор со своими реагентами.'],
+ fragile:['Fragile','Хрупкий','35 % плодов лопаются прямо при сборе.'],
+ territorial:['Territorial','Территориальный','Только для диких растений ксеноархеологии: при тревоге действует агрессивнее.'],
+ anomaly:['Anomalous','Аномальный','Метка аномальных растений ксеноархеологии.'],
+ 'plant_type/weed_hardy':['Weed Adaptation','Сорняк','Растение не страдает без удобрений и от сорняков.'],
+ 'plant_type/fungal_metabolism':['Fungal Vitality','Гриб','Растёт в темноте (света нужно меньше 0,2, а не 0,4), не сохнет без воды, урожай минимум 1.'],
+ 'plant_type/carnivory':['Obligate Carnivory','Хищник','Питается вредителями: лечится, когда их много, и чахнет, когда их меньше 4.'],
+ 'plant_type/alien_properties':['?????','Чужое','Особый тип ксенорастений.'],
+};
+const traitName=g=>TRAIT[g]?TRAIT[g][1]:(g.startsWith('glow/')?'Биолюминесценция ('+(D.traits[g]||g).replace(' Bioluminescence','')+')':(D.traits[g]||g));
+const traitDesc=g=>TRAIT[g]?TRAIT[g][2]:(g.startsWith('glow/')?'Как Биолюминесценция, но другого цвета.':'');
+const rname=r=>D.reag[r]||r.split('/').pop();
+
+/* ===================== СПРАЙТЫ ===================== */
+const IMG={},SPR={};
+function sheet(n){if(!IMG[n]){IMG[n]=new Image();IMG[n].src=D.sheets[n].png;IMG[n].onload=()=>document.querySelectorAll('img[data-sh]').forEach(drawImg)}return IMG[n]}
+function drawImg(el){const k=el.dataset.sh+'|'+el.dataset.st;if(SPR[k]){el.src=SPR[k];return}
+  const sh=D.sheets[el.dataset.sh],im=sheet(el.dataset.sh);if(!sh||!im.complete||!im.naturalWidth)return;const i=sh.states[el.dataset.st];if(i==null)return;
+  const c=document.createElement('canvas');c.width=sh.fw;c.height=sh.fh;c.getContext('2d').drawImage(im,(i%sh.cols)*sh.fw,Math.floor(i/sh.cols)*sh.fh,sh.fw,sh.fh,0,0,sh.fw,sh.fh);
+  SPR[k]=el.src=c.toDataURL()}
+const BLANK='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const pimg=(id,cls='spr')=>{const p=D.plants[id];return p.icon?`<img class="${cls}" alt="" data-sh="${p.icon}" data-st="${esc(p.istate)}" src="${BLANK}">`:`<img class="${cls}" alt="" data-sh="${p.sicon}" data-st="${esc(p.sstate)}" src="${BLANK}">`};
+const simg=(id,cls='spr')=>{const p=D.plants[id];return `<img class="${cls}" alt="" data-sh="${p.sicon}" data-st="${esc(p.sstate)}" src="${BLANK}">`};
+new MutationObserver(()=>document.querySelectorAll('img[data-sh]').forEach(drawImg)).observe(document.body,{childList:true,subtree:true});
+const pchip=id=>`<button type="button" class="pchip" data-plant="${esc(id)}">${pimg(id,'spr sm')}${esc(ru(id))}</button>`;
+
+/* ===================== РАСТЕНИЯ ===================== */
+const IDS=Object.keys(D.plants).sort((a,b)=>ru(a).localeCompare(ru(b),'ru'));
+const STAT=[['lif','Срок жизни','циклов до старения',10,100],['end','Стойкость','здоровье растения',10,100],['mat','Созревание','циклов до первого урожая',1,10],
+ ['pro','Плодоношение','циклов между урожаями',1,10],['yie','Урожай','плодов за сбор',0,10],['pot','Потенция','сила плода и реагентов',0,100],['ins','Нестабильность','шанс мутаций',0,100],
+ ['wr','Сорняки: сколько','за один всход',0,10],['wc','Сорняки: шанс','% за цикл',0,67]];
+function renderPlants(){
+  const q=(S.q||'').trim().toLowerCase(),f=S.f||'all';
+  const list=IDS.filter(id=>{const p=D.plants[id];
+    if(f!=='all'&&!p.src.includes(f)&&!(f==='other'&&!p.src.length))return false;
+    if(!q)return true;
+    return (ru(id)+' '+p.en+' '+p.prod+' '+p.reag.map(r=>rname(r[0])).join(' ')+' '+p.genes.map(traitName).join(' ')).toLowerCase().includes(q)});
+  const sel=D.plants[S.sel]?S.sel:'tomato';
+  const F=[['all','Все'],['shop','MegaSeed'],['contra','Контрабанда'],['mut','Мутации'],['lava','Лаваленд'],['xeno','Ксеноархеология'],['other','Прочие']];
+  let h=`<div class="tools"><input type="search" placeholder="Растение, плод, реагент или ген (напр. томат, Omnizine, колючки)" value="${esc(S.q||'')}" data-q>
+    <div class="chips">${F.map(([k,n])=>`<button type="button" data-f="${k}" aria-pressed="${k===f}">${n}</button>`).join('')}</div></div>`;
+  h+=`<div class="plants"><div class="plist panel">${list.map(id=>`<button type="button" class="pli" data-plant="${esc(id)}" aria-pressed="${id===sel}">${pimg(id)}<span><b>${esc(ru(id))}</b><small>${esc(D.plants[id].en)}</small></span></button>`).join('')||'<p class="muted" style="padding:10px">Ничего не нашлось.</p>'}</div>`;
+  h+=`<div class="pdet">${plantCard(sel)}</div></div>`;
+  $('#plants-root').innerHTML=h;
+}
+function plantCard(id){
+  const p=D.plants[id];const pot=S.pot==null||S.potFor!==id?p.pot:S.pot;
+  const src=p.src.length?p.src.map(s=>`<span class="tag t-${SRC[s][1]}">${SRC[s][0]}</span>`).join(' '):'<span class="tag">особый способ</span>';
+  let h='<div class="grid one">';
+  h+=card(`${pimg(id,'spr lg')} <span>${esc(ru(id))}<small class="sub">${esc(p.en)}${p.prod?' · плод: '+esc(p.prod):''}</small></span>`,
+    `<div class="body">${src}${p.pdesc?`<p class="muted" style="margin-top:8px"><i>${esc(p.pdesc)}</i></p>`:''}</div>`+
+    `<div class="stats">${STAT.map(([k,n,d,mn,mx])=>{const v=p[k];const w=Math.max(0,Math.min(100,(v-mn)/(mx-mn)*100));return `<div class="st" title="${d}; диапазон ${mn}–${mx}"><span>${n}</span><b>${v}</b><i style="--w:${w}%"></i></div>`}).join('')}</div>`+
+    (p.yie===-1?note('Урожая не даёт (yield −1): растение ради самого растения или семян.'):''),C.plant);
+  if(p.reag.length){
+    const rows=p.reag.map(([r,k])=>[`<b>${esc(rname(r))}</b>`,`${Math.round(k*100)} %`,`${1+Math.round(pot*k)} ед.`]);
+    h+=card('Реагенты в плоде',`<div class="body"><label class="slider">Потенция: <b>${pot}</b><input type="range" min="0" max="100" value="${pot}" data-pot></label></div>`+
+      tbl(['Реагент','#Доля','#В одном плоде'],rows)+note('Количество = 1 + округление (потенция × доля). Плод вмещает ограниченный объём, поэтому при большой потенции лишнее может не влезть — для этого ген «Уплотнённая химия».'),C.chem);
+  }
+  if(p.genes.length)h+=card('Гены (черты)',bul(p.genes.map(g=>`<b>${esc(traitName(g))}</b> <span class="muted">${esc(D.traits[g]||g)}</span> — ${traitDesc(g)}`)),C.gene);
+  if(p.mut.length||p.from)h+=card('Мутации',`<div class="body">${p.mut.length?`<p>Мутирует в:</p><div class="chips2">${p.mut.filter(m=>D.plants[m]).map(pchip).join('')}</div>`:''}${p.from?`<p style="margin-top:8px">Получается из:</p><div class="chips2">${p.from.filter(m=>D.plants[m]).map(pchip).join('')}</div>`:''}</div>`+
+    (p.mut.length?note(`Нестабильность сейчас ${p.ins}. Для смены вида нужно 60+ (шанс нестабильность/2 % каждый цикл) — или 30+ и удача при сборе: каждый плод с шансом нестабильность/3 % окажется мутантом.`):''),C.mut);
+  const out=[];if(p.grind)out.push(['Блендер (измельчить)',p.grind.map(rname).join(', ')||'—']);if(p.juice)out.push(['Соковыжималка',p.juice.map(rname).join(', ')]);if(p.distill)out.push(['Брожение в бочке',rname(p.distill)]);
+  if(out.length)h+=card('Переработка',tbl(['Способ','Даёт'],out.map(([a,b])=>[a,esc(b)])),'#e07a3f');
+  h+=card('Семена',`<div class="body"><p>${simg(id,'spr')} <b>${esc(p.seed)}</b></p><p class="muted">Ищите в MegaSeed по этому названию. Своих семян больше всего даёт экстрактор семян из урожая.</p></div>`,C.tool);
+  return h+'</div>';
+}
+
+/* ===================== ЛОТОК ===================== */
+function renderGrow(){
+  let h='<div class="grid">';
+  h+=card('Как вырастить',steps([
+    'Посадите семена в лоток (клик пакетом по лотку). На старте в лотке 10 ед. EZ Nutrient.',
+    'Держите <b>воду</b> (ведро, кувшин, раковина) и <b>удобрение</b>. Лоток пересчитывает растение раз в ~20 секунд — это один «цикл».',
+    'Каждый цикл растение стареет на 1. На возрасте «Созревание» оно взрослое, а урожай поспевает, когда возраст больше «Плодоношения» и с прошлого сбора прошло больше «Плодоношения» циклов.',
+    'Готовый урожай собирается кликом рукой. Без гена «Многолетник» растение после сбора погибает.',
+    'После «Срока жизни» растение стареет и теряет 1–5 здоровья за цикл. Мёртвое убирается лопатой (или кликом).']),C.plant);
+  h+=card('Что ест здоровье за цикл',tbl(['Условие','Эффект'],[
+    ['Удобрений 0','−1…3 (сорняку — ничего)'],
+    ['Света меньше 0,4 (гриб — 0,2)','−2 (гриб −1)'],
+    ['Вода ≤ 10','−0…1; на нуле ещё −0…2 (гриб не сохнет)'],
+    ['Вода > 10 и есть удобрения','<span class="pos">+1…2</span>, но растут сорняки'],
+    ['Токсичность 40–79','−1, токсичность спадает'],
+    ['Токсичность 80+','−3'],
+    ['Вредители 4–7 / 8+','−1 / −2 (хищнику наоборот плюс)'],
+    ['Сорняки 5+','−1 (сорняку — ничего)'],
+    ['Возраст больше срока жизни','−1…5'],
+  ])+note('Все минусы делятся на тир манипулятора в лотке: лоток с хорошими деталями прощает больше.'),C.bad);
+  h+=card('Вода и удобрения',bul([
+    'Растение пьёт 1–6 воды за цикл (делится на тир лотка). Вода не реагент: ведром льётся в отдельную шкалу.',
+    'Удобрения — это реагенты в лотке (максимум 10 у простого, до 50 у собранного с деталями). Тратится 1 ед. за цикл (меньше с хорошим манипулятором).',
+    'Каждый цикл <b>каждый</b> реагент в лотке действует на растение (см. вкладку «Химия»), а потом расходуется общий объём.',
+    'Собранный лоток: контейнеры увеличивают запас воды (×50 за тир) и удобрений; <kbd>Ctrl</kbd>+клик — автовыращивание, <kbd>Alt</kbd>+клик — слить удобрения.']),C.water);
+  h+=card('Автовыращивание',bul([
+    'Включается <kbd>Ctrl</kbd>+кликом по собранному лотку, нужно питание.',
+    'Само добавляет 1–2 воды, убирает по 1 сорняку и вредителю за срабатывание, тратит максимум 0,5 удобрения за цикл.',
+    'На автовыращивании <b>не меняется вид</b> растения от нестабильности и нестабильность не растёт от мутагенов: удобно хранить готовый сорт.']),C.tool);
+  h+='</div>';$('#tray-grow').innerHTML=h;
+}
+function renderMut(){
+  let h='<div class="grid">';
+  h+=card('Нестабильность <small>что происходит каждый цикл</small>',tbl(['#Нестабильность','Что может случиться'],[
+    ['20+','с шансом = нестабильность % — мелкая мутация статов (±2 жизни, ±5 стойкости, ±1 плодоношения, ±2 урожая, ±25 потенции, ±3 нестабильности)'],
+    ['40+','с шансом = нестабильность % — сильная мутация (вдвое больше разброс, 3 % шанс нового гена или реагента)'],
+    ['60+','с шансом нестабильность / 2 % — <b>смена вида</b> на один из «Мутирует в», нестабильность делится на 2 (не на автовыращивании)'],
+    ['80+','ещё и шанс (нестабильность − 75) % на случайный ген или реагент'],
+    ['30+ при сборе','каждый плод с шансом нестабильность / 3 % — плод мутанта со своими семенами'],
+  ])+note('Нестабильность не выше 100. Мутация статов «рандом в обе стороны» — без отбора она не улучшает растение, а просто шатает его.'),C.mut);
+  h+=card('Как поднять и сбить',tbl(['Средство','Нестабильность'],[
+    ['Mutagen (Unstable Mutagen)','бросок мутации каждый цикл (см. ниже) — чаще всего +5'],
+    ['Uranium','то же, что мутаген, но токсичнее'],
+    ['Left 4 Zed','+0,2 × объём за цикл'],
+    ['EZ Nutrient','+0,2 за цикл'],
+    ['Holy Water','+0,15 × объём'],
+    ['Ammonia','с шансом 10 % +1 (и +1 урожая)'],
+    ['Robust Harvest','<span class="pos">−0,25</span> за цикл'],
+    ['Diethylamine','<span class="pos">−1 × объём</span>'],
+    ['Stabilizing Agent','<span class="pos">−1</span> за цикл'],
+    ['Earthsblood','<span class="pos">−1,3 × объём</span>'],
+  ]),C.chem);
+  h+=card('Бросок мутагена <small>Mutagen, Uranium</small>',tbl(['#Бросок 1–100','Результат'],[
+    ['91–100','растение получает −10 здоровья («вянет и горит»)'],
+    ['41–90','<b>+5 нестабильности</b> (не на автовыращивании)'],
+    ['21–40','ничего, «необычно реактивно»'],
+    ['11–20','если сорняков больше 5 — растение заменяет случайный сорняк-мутант (Псилоцибе, Бледная поганка, Смертокрапива, Кудзу)'],
+    ['1–10','если вредителей больше 5 — из лотка лезут 3 паучонка-охотника (пишется админам)'],
+  ])+note('Перед мутагеном уберите сорняки и вредителей — тогда «плохие» броски просто пустые.','warn'),C.bad);
+  h+=card('Мутации без химии',bul([
+    '<b>Floral Somatoray</b> (флоральный излучатель): режим мутации — мелкая мутация статов; режим урожая — +1 к урожаю с падающим шансом (100 % при урожае 1, 25 % при 2, 11 % при 3…); режим революции — сразу смена вида, нестабильность пополам.',
+    '<b>Strange Reagent</b> в лоток — оживляет мёртвое растение.',
+    '<b>Adminordrazine</b> (3+ ед.) — случайная смена вида, сорняка или вредителей. Найти его сложно.']),C.tool);
+  h+='</div>';$('#tray-mut').innerHTML=h;
+}
+function renderTools(){
+  let h='<div class="grid">';
+  h+=card('Экстрактор семян',bul([
+    'Плод или урожай в экстрактор → 1–4 пакета семян × множитель тира. Семена копируют все статы, гены и реагенты плода.',
+    'Так закрепляют удачную мутацию: соберите лучший плод, вытяните семена, сажайте только их.',
+    'Хранит семена внутри, выдаёт по названию и статам.']),C.tool);
+  h+=card('ДНК-манипулятор растений <small>Plant DNA Manipulator</small>',bul([
+    'Работает с семенами и диском генов (plant data disk).',
+    '<b>Extract</b> — скопировать ген или стат на диск. Семена уничтожаются.',
+    '<b>Remove</b> — удалить ген (только удаляемые; реагенты Essential удалить нельзя).',
+    '<b>Replace</b> — заменить стат значением с диска. <b>Insert</b> — добавить ген или реагент с диска.',
+    'Один ген одного типа на растение; «Многолетник» не ставится на репликапод.']),C.gene);
+  h+=card('Предел копирования статов',tbl(['Стат','#Тир 1','#Тир 2','#Тир 3','#Тир 4'],[
+    ['Потенция (манипулятор)','53','59','77','95'],
+    ['Урожай (манипулятор)','4','6','8','10'],
+    ['Срок жизни и стойкость (лазер)','35','60','85','100'],
+  ])+note('Стат на диске выше предела урезается при извлечении. Плодоношение и сорняки — наоборот, есть минимум.'),C.gene);
+  h+=card('Пчёлы',bul(['Пчелиный ящик (beebox) + рамки + королева. Пчёлы опыляют растения в лотках рядом.',
+    'Королева с реагентом (впрыснуть 5 ед.) даёт мёд с этим реагентом.','Без костюма пчеловода пчёлы жалят.']),'#e3b23c');
+  h+='</div>';$('#tray-tools').innerHTML=h;
+}
+
+/* ===================== ХИМИЯ ===================== */
+const CHEM=[
+ ['Water','Вода','вода +1 × объём',''],
+ ['Holy Water','Святая вода','вода +2 × объём, здоровье +0,1 × объём, нестабильность +0,15 × объём',''],
+ ['Soda Water','Газировка','вода +1 × объём, здоровье +0,1 × объём',''],
+ ['Milk','Молоко','вода +0,3 × объём, <span class="neg">потенция −0,5 × объём</span>',''],
+ ['EZ Nutrient','EZ-удобрение','потенция +0,3 × объём, урожай +0,1 × объём, нестабильность +0,2','Стандартное удобрение: потенция и немного урожая.'],
+ ['Left 4 Zed','Left 4 Zed','здоровье +0,1 × объём, нестабильность +0,2 × объём','Для разгона мутаций.'],
+ ['Robust Harvest','Robust Harvest','урожай +0,2 × объём, потенция +0,1 × объём, нестабильность −0,25','Для урожая и стабильности.'],
+ ['Enduro Grow','Enduro Grow','стойкость +0,35 × объём, <span class="neg">потенция −0,1, урожай −0,075 × объём</span>',''],
+ ['Liquid Earthquake','Liquid Earthquake','сорняки: скорость +0,1, шанс +0,3 × объём, плодоношение быстрее на 0,075 × объём',''],
+ ['Ammonia','Аммиак','здоровье +0,12 × объём; с шансом 10 % +1 урожая и +1 нестабильности',''],
+ ['Saltpetre','Селитра','здоровье +0,18 × объём, <b>потенция +1 × объём</b>, плодоношение быстрее на объём/10','Лучший разгон потенции.'],
+ ['Diethylamine','Диэтиламин','здоровье +1 × объём, урожай +1 × объём, нестабильность −1 × объём, вредители −1…2','Мощное удобрение; варится из этанола и аммиака.'],
+ ['Earthsblood','Кровь земли','здоровье, потенция, урожай +1 × объём; стойкость +0,5; плодоношение быстрее; нестабильность −1,3; вредители и сорняки −1…3','Растёт на амброзии гайе.'],
+ ['Ash','Пепел','здоровье +1 × объём, сорняки −1',''],
+ ['Nutriment','Нутриент','здоровье +0,2 × объём',''],
+ ['Cryoxadone','Криоксадон','здоровье +3 × объём, токсичность −3 × объём','Лечит растение.'],
+ ['Anti-Toxin (Dylovene)','Антитоксин','токсичность −2 × объём',''],
+ ['Strange Reagent','Странный реагент','оживляет мёртвое растение',''],
+ ['Mutagen','Мутаген','бросок мутации (обычно +5 нестабильности), токсичность +1,5','См. «Лоток → Мутации».'],
+ ['Uranium','Уран','бросок мутации, здоровье −1 × объём, токсичность +2 × объём',''],
+ ['Radium','Радий','<span class="neg">здоровье −1 × объём, токсичность +1 × объём</span>','Мутаций больше не даёт.'],
+ ['Plant-B-Gone','Plant-B-Gone','<span class="neg">здоровье −10 × объём</span>, токсичность +6 × объём, сорняки −4…8','Убивает растение.'],
+ ['Weed Killer','Гербицид','токсичность +0,5 × объём, сорняки −1…2','Безопасно против сорняков.'],
+ ['Pest Killer','Пестицид','токсичность +1 × объём, вредители −1…2',''],
+ ['Nicotine','Никотин','токсичность +1 × объём, вредители −1…2',''],
+ ['Sugar','Сахар','<span class="neg">сорняки +2…3, вредители +1…2</span>',''],
+ ['Blood','Кровь','<span class="neg">вредители +2…3</span>','Корм для хищных растений.'],
+ ['Virus Food','Вирусная еда','<span class="neg">здоровье −0,5 × объём</span>',''],
+ ['Chlorine','Хлор','здоровье −1, токсичность +1,5, вода −0,5 × объём; сорняки −1…3',''],
+ ['Fluorine','Фтор','здоровье −2, токсичность +2,5, вода −0,5 × объём; сорняки −1…4',''],
+ ['Sulphuric acid','Серная кислота','здоровье −1, токсичность +1,5 × объём; сорняки −1…2',''],
+ ['Fluorosulfuric acid','Фторсерная кислота','здоровье −2, токсичность +3 × объём; сорняки −1…4',''],
+ ['Napalm','Напалм','здоровье −6, токсичность +7 × объём (огнеупорным ничего); сорняки −5…9',''],
+ ['любой токсин','Прочие токсины','токсичность +2 × объём',''],
+ ['Beer, Kvass, Buzz Fuzz','Пиво, квас, Buzz Fuzz','<b>ничего</b>','В коде задуманы как вода (+0,7) / против вредителей, но проверка написана с ошибкой и не срабатывает.'],
+];
+function renderChem(){
+  const q=(S.cq||'').trim().toLowerCase();
+  const rows=CHEM.filter(r=>!q||r.join(' ').toLowerCase().includes(q));
+  let h=`<div class="tools"><input type="search" placeholder="Реагент или эффект (напр. потенция, сорняки, Saltpetre)" value="${esc(S.cq||'')}" data-cq></div><div class="grid two">`;
+  h+=card('Реагенты в лотке <small>действуют каждый цикл, «объём» — сколько единиц в лотке</small>',tbl(['Реагент','Действие','Заметка'],rows.map(r=>[`<b>${r[0]}</b><br><span class="muted">${r[1]}</span>`,r[2],r[3]?`<span class="muted">${r[3]}</span>`:''])),C.chem,'wide');
+  h+=card('Рецепт хорошего урожая',steps([
+    'Посадите, залейте воду и <b>Diethylamine</b> или Robust Harvest — урожай вверх, нестабильность вниз.',
+    'Для потенции (больше реагентов в плоде) — <b>Saltpetre</b> или EZ Nutrient.',
+    'Сорняки и вредители чистите гербицидом и пестицидом малыми дозами: они тоже токсичны.',
+    'Удачный плод — в экстрактор семян, дальше сажайте только эти семена.']),C.plant);
+  h+=card('Рецепт мутации',steps([
+    'Уберите сорняки и вредителей (до 5 и ниже).',
+    'Капайте <b>Mutagen</b> или Left 4 Zed до нестабильности 60+; токсичность лечите Криоксадоном или Антитоксином.',
+    'Ждите: с шансом нестабильность/2 % каждый цикл растение сменит вид. Либо на 30+ собирайте урожай — часть плодов будет мутантами.',
+    'Получили нужный вид — выключите мутации (Stabilizing Agent, Robust Harvest) и заберите семена.']),C.mut);
+  h+='</div>';$('#chem-root').innerHTML=h;
+}
+
+/* ===================== ГЕНЫ ===================== */
+function renderGenes(){
+  const col=g=>g.startsWith('glow/')&&g!=='glow/shadow';
+  const all=Object.keys(D.traits).filter(g=>g!=='plant_type'&&!col(g));
+  const cols=Object.keys(D.traits).filter(col);
+  const who=g=>IDS.filter(id=>D.plants[id].genes.some(x=>g==='glow'?x==='glow'||col(x):x===g));
+  const desc=g=>g==='glow'?traitDesc(g)+' Есть цветные варианты: '+cols.map(c=>esc((D.traits[c]||c).replace(' Bioluminescence',''))).join(', ')+'.':traitDesc(g);
+  let h='<div class="grid">';
+  h+=card('Черты растений',tbl(['Ген','Что делает','Есть у'],all.map(g=>[`<b>${esc(traitName(g))}</b><br><span class="muted">${esc(D.traits[g])}</span>`,desc(g)||'—',`<div class="chips2">${who(g).slice(0,8).map(pchip).join('')}${who(g).length>8?`<span class="muted">и ещё ${who(g).length-8}</span>`:''}</div>`])),C.gene,'wide');
+  h+='</div>';$('#genes-root').innerHTML=h;
+}
+
+/* ===================== ОБЩЕЕ ===================== */
+const S0={tab:'plants',sub:{tray:'grow'},sel:'tomato',q:'',f:'all',cq:''};
+const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  s=Object.assign({},S0,s&&typeof s==='object'?s:{});s.sub=Object.assign({},S0.sub,s.sub||{});return s})();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const TABS=['plants','tray','chem','genes'];
+const SUBS={plants:[],tray:[['grow','Выращивание'],['mut','Мутации'],['tools','Машины']],chem:[],genes:[]};
+const RENDER={plants:{'':renderPlants},tray:{grow:renderGrow,mut:renderMut,tools:renderTools},chem:{'':renderChem},genes:{'':renderGenes}};
+const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);if(el)el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
+function go(t,sub){
+  if(sub)S.sub[t]=sub;
+  if(SUBS[t].length&&!SUBS[t].some(([id])=>id===S.sub[t]))S.sub[t]=SUBS[t][0][0];
+  S.tab=t;TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  subSeg(t);SUBS[t].forEach(([id])=>{$('#'+t+'-'+id).hidden=id!==S.sub[t]});
+  const s=SUBS[t].length?S.sub[t]:'';RENDER[t][s]();save();setHash(t+(s?'/'+s:''));window.scrollTo(0,0)}
+const rerender=()=>{const s=SUBS[S.tab].length?S.sub[S.tab]:'';RENDER[S.tab][s]();save()};
+function setHash(h){try{history.replaceState(null,'','#'+h)}catch(e){}}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
+document.querySelectorAll('[data-subs]').forEach(el=>el.addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(b)go(el.dataset.subs,b.dataset.sub)}));
+document.addEventListener('click',e=>{let b;
+  if(b=e.target.closest('[data-plant]')){S.sel=b.dataset.plant;S.pot=null;if(S.tab!=='plants')go('plants');else{rerender();const d=$('.pdet');if(d&&d.getBoundingClientRect().top<0)d.scrollIntoView({block:'start'})}
+    const a=document.querySelector('.pli[aria-pressed="true"]');a&&a.scrollIntoView({block:'nearest'})}
+  else if(b=e.target.closest('[data-f]')){S.f=b.dataset.f;rerender()}});
+const keepFocus=(sel,fn)=>e=>{if(!e.target.matches(sel))return;const pos=e.target.selectionStart;fn(e.target.value);rerender();const i=document.querySelector(sel);if(i){i.focus();try{pos!=null&&i.setSelectionRange(pos,pos)}catch(_){}}};
+document.addEventListener('input',e=>{
+  keepFocus('[data-q]',v=>S.q=v)(e);keepFocus('[data-cq]',v=>S.cq=v)(e);
+  if(e.target.matches('[data-pot]')){S.pot=+e.target.value;S.potFor=S.sel;const sc=$('.plist')?.scrollTop;rerender();const l=$('.plist');if(l)l.scrollTop=sc;$('[data-pot]')?.focus()}});
+
+const [h0,h1]=(location.hash||'').slice(1).split(/[\/-]/);
+if(TABS.includes(h0))go(h0,SUBS[h0].some(([id])=>id===h1)?h1:null);
+else go(TABS.includes(S.tab)?S.tab:'plants');
+
+/* Раскладка «кирпичами»: карточка в .grid встаёт под ближайшую по высоте соседку, а не ждёт самую высокую
+   в ряду — так короткие карточки не висят над пустотой. Ряды сетки по 1px, каждой карточке задаётся
+   span по её высоте; ResizeObserver пересчитывает при смене вкладки, ширины окна и содержимого. */
+(function(){
+  if(!window.ResizeObserver)return;
+  const gap=g=>parseFloat(getComputedStyle(g).columnGap)||14;
+  const fit=el=>{const g=el.parentElement;if(!g||!g.classList.contains('grid'))return;
+    const h=el.getBoundingClientRect().height;el.style.gridRowEnd=h?'span '+Math.ceil(h+gap(g)):''};
+  const ro=new ResizeObserver(es=>es.forEach(e=>fit(e.target)));
+  const seen=new WeakSet();
+  const scan=()=>document.querySelectorAll('.grid').forEach(g=>{g.classList.add('mz');
+    for(const c of g.children)if(!seen.has(c)){seen.add(c);ro.observe(c)}});
+  new MutationObserver(scan).observe(document.body,{childList:true,subtree:true});
+  scan();
+})();
+</script>
+</body>
+</html>
