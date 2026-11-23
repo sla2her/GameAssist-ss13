@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Битран</title>
+<style>
+/* Битран (битраннинг): виртуальные домены, квантовый сервер, нетподы, награды, вендор NexaCache, глитчи.
+   Вёрстка как у Карго. Данные — из code/modules/bitrunning BlueMoon-Station. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#a83fb8; --accent-fg:#ffffff; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d; --peace:#2f8fb8; --pink:#c0398f; --gold:#a8790e;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#d27ee0; --accent-fg:#26082b; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; --peace:#5cb8e0; --pink:#ef6fbd; --gold:#e6c05a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#d27ee0; --accent-fg:#26082b; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; --peace:#5cb8e0; --pink:#ef6fbd; --gold:#e6c05a; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;overflow-x:auto;scrollbar-width:none}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:6px 10px;align-items:baseline;flex-wrap:wrap}
+.card>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.card .body{padding:10px 16px 14px;font-size:14px}
+.card .body p{margin:0 0 8px}
+.card .body p:last-child{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.bul{margin:0;padding:10px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.note{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.note.bad{--kc:var(--bad)} .note.ok{--kc:var(--ok)} .note.warn{--kc:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+kbd{font:12px var(--font-m);background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;white-space:nowrap}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+.wide{grid-column:1/-1}
+
+/* калькулятор */
+.calc{padding:14px 16px;display:grid;gap:12px}
+.ctl{display:flex;gap:8px 16px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+.ctl label{display:inline-flex;gap:8px;align-items:center}
+.ctl select,.ctl input[type=number]{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:4px 8px;font-size:13.5px}
+.ctl select{max-width:100%}
+.ctl input[type=number]{width:64px}
+.chk{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.chk input{accent-color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--panel2)}
+.kpi b{display:block;font-size:20px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)} .kpi.warn b{color:var(--warn)} .kpi.ok b{color:var(--ok)}
+.mul{display:flex;flex-wrap:wrap;gap:6px;font-size:12.5px}
+.mul span{border:1px solid var(--line);border-radius:6px;padding:1px 8px;background:var(--panel2);font-variant-numeric:tabular-nums}
+
+/* фильтры и домены */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.search{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:5px 12px;font-size:13px;min-width:0;flex:1 1 180px;max-width:280px}
+.dif{display:inline-block;font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;color:var(--dc);background:color-mix(in srgb,var(--dc) 14%,transparent);white-space:nowrap}
+.dif0{--dc:var(--peace)} .dif1{--dc:var(--warn)} .dif2{--dc:#d9682a} .dif3{--dc:var(--bad)}
+.tag{display:inline-block;font-size:11.5px;border-radius:6px;padding:1px 7px;border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
+.tags{display:flex;flex-wrap:wrap;gap:5px;padding:8px 16px 0}
+.stat{margin-left:auto;display:inline-flex;gap:10px;font:12.5px var(--font-m);color:var(--muted);white-space:nowrap}
+.stat .c{color:var(--pink)} .stat .r{color:var(--gold)}
+.dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;padding:10px 16px 14px;font-size:13.5px;margin:0}
+.dl dt{color:var(--muted)}
+.dl dd{margin:0}
+.quote{margin:10px 16px 0;padding:8px 12px;border-radius:8px;background:var(--panel2);font-size:13.5px;color:var(--muted);font-style:italic}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%} nav button{flex:1;padding:7px 6px}
+  .dl{grid-template-columns:minmax(0,1fr)} .dl dt{margin-top:4px}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%}
+.pult-compact nav button{flex:1;padding:5px 8px}
+.pult-compact .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .grid{grid-template-columns:minmax(0,1fr)}
+.pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .calc,.pult-compact .tbl,.pult-compact .dl,.pult-compact .tags{padding-left:10px;padding-right:10px}
+.pult-compact .bul{padding-left:28px;padding-right:10px}
+.pult-compact .note,.pult-compact .quote{margin-left:10px;margin-right:10px}
+.pult-compact .dl{grid-template-columns:minmax(0,1fr)}
+.pult-compact .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pult-compact .foot{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">БИТ</div><div><h1>Битран</h1><small>Виртуальные домены, награды, оборудование</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-basics" data-tab="basics" aria-selected="true">Основы</button>
+    <button role="tab" id="tab-domains" data-tab="domains" aria-selected="false">Домены</button>
+    <button role="tab" id="tab-rewards" data-tab="rewards" aria-selected="false">Награды</button>
+    <button role="tab" id="tab-gear" data-tab="gear" aria-selected="false">Оборудование</button>
+    <button role="tab" id="tab-threats" data-tab="threats" aria-selected="false">Угрозы</button>
+  </nav>
+</header>
+
+<main>
+<section id="v-basics"></section>
+<section id="v-domains" hidden>
+  <div class="tools"><div class="chips" id="difchips"></div><input class="search" id="q" type="search" placeholder="Поиск домена…" autocomplete="off"></div>
+  <div id="domlist"></div>
+</section>
+<section id="v-rewards" hidden></section>
+<section id="v-gear" hidden></section>
+<section id="v-threats" hidden></section>
+
+<p class="foot">Неофициальный помощник по коду BlueMoon-Station (модуль <code>code/modules/bitrunning</code>, карты <code>_maps/virtual_domains</code>). Цифры — из кода; на сервере что-то могли поменять. В спорном случае спроси администрацию (F1).</p>
+</main>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const KEY='bitrun.state';
+const fmt=(n,d=2)=>{const r=Math.round(n*10**d)/10**d;return r.toLocaleString('ru-RU',{maximumFractionDigits:d})};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const card=(title,body,c,cls='')=>`<div class="panel card ${cls}" style="--kc:${c||'var(--accent)'}"><h3>${title}</h3>${body}</div>`;
+const steps=a=>`<ol class="steps">${a.map(x=>`<li><span>${x}</span></li>`).join('')}</ol>`;
+const bul=a=>`<ul class="bul">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+const body=a=>`<div class="body">${(Array.isArray(a)?a:[a]).map(x=>`<p>${x}</p>`).join('')}</div>`;
+const note=(t,cls='')=>`<div class="note ${cls}">${t}</div>`;
+const tbl=(head,rows)=>`<div class="tbl"><table><thead><tr>${head.map(h=>`<th${h[0]==='#'?' class="n"':''}>${h.replace(/^#/,'')}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td${head[i][0]==='#'?' class="n"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+
+const C={srv:'#a83fb8',pod:'#4f8fe0',safe:'#3fa66b',exit:'#2f8fb8',bad:'#c0393f',gold:'#c9a227',ven:'#d9a03a',glitch:'#d63c45',disk:'#5b7be0'};
+
+/* ===================== ДАННЫЕ ===================== */
+// Сложность: 0 — мирный (синий), 1 — лёгкий (жёлтый), 2 — средний (оранжевый), 3 — сложный (красный).
+const DIF=[['Мирный','угроза только от игроков-призраков'],['Лёгкий','слабые мобы, их легко обойти'],['Средний','мобы стреляют или агрессивны'],['Сложный','домен создан, чтобы убить битраннера']];
+const OUT={
+  miner:'Шахтёр (форма шахтёра)',clown:'Клоун',sec:'Офицер СБ',bitductor:'«Битдуктор»: комбинезон абдуктора, митенки, берцы',
+  heretic:'Еретик: чёрная форма, берцы, стетоскоп; ты во фракции еретиков и не можешь телепортироваться',
+  echo:'Эхолокатор: повязка на глаза (ты слепой), трейт «Эхолокация», плащ, гарнитура',
+  beach:'Пляжный боец: джинсы, сандалии, случайная пушка с двумя магазинами в карманах (пистолет, болтовка, мини-Узи, Дезерт Игл, ракетница или винтовка)',
+  ice:'Альпинист: серая форма, зимняя куртка и ботинки, вещмешок, факел',
+  solfed:'Морпех SolFed: форма, берцы, боевые перчатки, балаклава, рюкзак СБ, ID'
+};
+// rew — очки награды домена (BITRUNNER_REWARD_*), cost — очки сервера на загрузку
+const DOMS=[
+ {id:'beach_bar',en:'Beach Bar',ru:'Пляжный бар',cost:0,rew:1,dif:0,nonohit:1,
+  desc:'Весёлый прибрежный рай, где дружелюбные бармены подают напитки.',
+  how:['Пей напитки, которые лежат на полу и столах бара с самого начала: каждые 20 u выпитого — 1 очко цели, нужно 10. Это 200 u, то есть четыре полных стакана по 50 u.','Когда наберёшь 10 очков, зашифрованный ящик появится на месте «таинственной ауры» — неси его на площадку в сейфхаусе.','Считаются только напитки, которые стояли на карте при загрузке. Налитое заново не засчитывается.','Роли барменов и спасателя в коде есть, но домен не зовёт призраков, поэтому их спавнеры удаляются при загрузке.'],
+  mobs:'Крабы, курица',loot:'Пляжный мяч'},
+ {id:'breeze_bay',en:'Breeze Bay',ru:'Бухта Бриз',cost:0,rew:3,dif:0,nonohit:1,
+  desc:'Прибрежный городок, к северу от которого раскинулся большой лес.',
+  how:['Возьми удочку с карты и поймай любую рыбу: каждый улов — 10 очков цели, то есть хватает одной поклёвки.','Ящик появляется на месте «таинственной ауры». Не дай крабам себя покусать.','Лучший домен для старта: бесплатный, а награда 3, как у лёгких.'],
+  mobs:'Краб',loot:'—',tip:'Рыбалка — в приложении «Рыбалка» Пульта.'},
+ {id:'gondola_asteroid',en:'Gondola Asteroid',ru:'Астероид гондол',cost:0,rew:1,dif:0,nonohit:1,
+  desc:'Астероид, на котором растёт обильный лес гондол. Безмятежно.',
+  how:['Ящик стоит в середине карты. По подсказке его «не сдвинуть», но в этой версии у него обычное сопротивление — по коду его можно просто тащить.','Способ из подсказки: съесть мясо гондолы (в нём Advanced Tranquility) и самому стать гондолой — гондолы двигают что угодно.','Гондолы здесь — 50 HP, с них падают шкура и то самое мясо.'],
+  mobs:'Гондолы',loot:'—'},
+ {id:'grasslands_hunt',en:'Grasslands Hunt',ru:'Охота в степи',cost:0,rew:1,dif:0,nonohit:1,modular:1,
+  desc:'Мирная охота в дикой природе.',
+  how:['Убей оленей: каждый — 3,5 очка цели, нужно 10, то есть три оленя. Ящик появится на месте ауры.','На карте 3 точки, в каждой с шансом 85% появляется один олень. Если оленей меньше трёх, набрать 10 нельзя: останови домен и загрузи заново.','Олени пугливые и не атакуют.'],
+  mobs:'Олени (75 HP, не бьют)',loot:'—'},
+ {id:'clown_planet',en:'Clown Planet',ru:'Планета клоунов',cost:1,rew:3,dif:1,outfit:'clown',
+  desc:'В глубоких тёмных просторах космоса есть только Хонк.',
+  how:['Пройди фабрику, найди зашифрованный ящик и доставь его в сейфхаус.','Ящик можно отправить по трубам утилизации через приёмный жёлоб — он выедет у выхода рядом с сейфхаусом.'],
+  mobs:'Клоуны',loot:'Велосипедный гудок',bounty:'Bike Horn'},
+ {id:'heretic_hunt',en:'Heretical Hunt',ru:'Охота еретика',cost:1,rew:3,dif:1,outfit:'heretic',
+  desc:'Предай своих товарищей, чтобы достичь высшей силы.',
+  how:['Убивай «экипаж»: обычный член экипажа, врач, инженер, ассистент — 1 очко; офицер СБ, инженер в МОДе и стрелки с SMG — 2; главы (ГВ, СИ, ГСБ) — 3. Нужно 10.','Когда ритуал завершится, у руны появится ящик — дотащи его в сейфхаус на площадку.','Фальшивый экипаж ослаблен: до 60 HP и 5–8 урона. Сырые пророки — по 30 HP.'],
+  mobs:'Фальшивый экипаж, стрелки NT и Синдиката, сырые пророки',loot:'—'},
+ {id:'meta_central',en:'Meta Central',ru:'Мета Централ',cost:1,rew:3,dif:1,outfit:'sec',modular:1,ghosts:1,
+  desc:'Время от времени рабочие требуют у Nanotrasen прав. Это невыгодно.',
+  how:['Подави «рабочих» (стрелки NT и Синдиката с SMG появляются группами по 1–2 с шансом 50%).','Ящик появляется в одной из 11 случайных точек — обыщи карту, по пути собирай ценные материалы.','Домен зовёт призраков: на карте есть роль виртуального пирата.'],
+  mobs:'Революционеры с SMG',loot:'—'},
+ {id:'pipedream',en:'Disposal Pipe Factory',ru:'Фабрика труб',cost:1,rew:3,dif:1,modular:1,
+  desc:'Заброшенная и заражённая фабрика по производству труб для утилизации.',
+  how:['Фабрику заняли хайвботы: обычные, стрелки и усиленные.','Ящик — в одной из 4 случайных точек.'],
+  mobs:'Хайвботы',loot:'Металлический стержень (да, один)'},
+ {id:'xeno_nest',en:'Xeno Infestation',ru:'Гнездо ксеносов',cost:1,rew:3,dif:1,modular:1,
+  desc:'Сканеры корабля обнаружили формы жизни неизвестного происхождения. Попытки дружественного контакта провалились.',
+  how:['Ящик не спрятан, а охраняется — в одной из двух точек. Ожидай сопротивления.','Внутри — ксеноморфы: охотники, стражи, трутни и большая королева.'],
+  mobs:'Ксеноморфы, королева',loot:'Плюшевый ящер'},
+ {id:'stairs_and_cliffs',en:'Glacier Grind',ru:'Ледниковый подъём',cost:1,rew:4,dif:1,outfit:'ice',nonohit:1,sec:'Роликовые кроссовки ×2, ушанка ×1',
+  desc:'Предательский подъём, который переживут немногие смельчаки. Зато отличная кардиотренировка.',
+  how:['«Змейки и лестницы» на льду: лезь по ступеням, а с обрыва упадёшь вниз — на камни или в жидкую плазму.','Ящик ждёт наверху. По пути есть одна находка (curiosity): роликовые кроссовки или ушанка — ушанку берёт заказ карго «Polar Ushanka».','Награда 4 при цене 1 — выгодно.'],
+  mobs:'Снежный медведь',loot:'Костюм снеговика ×2',bounty:'Polar Ushanka'},
+ {id:'psyker_shuffle',en:'Crate Chaos',ru:'Хаос ящиков',cost:1,rew:5,dif:2,outfit:'echo',
+  desc:'Заброшенный уголок виртуального мира, где хранятся все ящики. Домен не поддерживает визуализацию — работай эхолокацией.',
+  how:['Ты слеп и видишь только эхолокацией. Двигайся медленно.','Все ящики подписаны «Unidentified Crate», а нужный при загрузке меняется местами со случайным. Осмотри ящик вплотную и постой 2 секунды — узнаешь, тот ли это.','Один из ящиков — мимик.','Цена 1, награда 5 — один из самых выгодных доменов.'],
+  mobs:'Ящик-мимик',loot:'—'},
+ {id:'abductor_ship',en:'Abductor Ship',ru:'Корабль абдукторов',cost:2,rew:4,dif:2,outfit:'bitductor',modular:1,
+  desc:'Проникни на корабль абдукторов и забери их добро.',
+  how:['Корабль улетает вместе с добычей. Охрана хорошо вооружена (в коде это бойцы ближнего боя и стрелки Синдиката).','Ящик — в одной из двух точек.'],
+  mobs:'Бойцы ближнего боя и стрелки',loot:'Плюшевый ядерщик',bounty:'Abductor Plush, Syndicate Plush'},
+ {id:'ash_drake',en:'Ashen Inferno',ru:'Пепельный ад',cost:2,rew:4,dif:2,outfit:'miner',boss:1,
+  desc:'Дом пепельного дрейка — могучего дракона, что бороздит просторы Лаваленда.',
+  how:['Убей пепельного дрейка: вместо обычной добычи из него выпадет зашифрованный ящик.','Аватару выдаётся только одежда шахтёра, без ПКА. Бери диски снаряжения: энергопистолет, ПКА-модкиты, трофеи дробителя.'],
+  mobs:'Пепельный дрейк',loot:'—'},
+ {id:'blood_drunk_miner',en:'Sanguine Excavation',ru:'Кровавые раскопки',cost:2,rew:4,dif:2,outfit:'miner',boss:1,
+  desc:'Немногие покидают поверхность Лаваленда без шрамов. Некоторые остаются, обезумев от охоты.',
+  how:['Убей Кровавого шахтёра — ящик выпадет из него.','Он быстрый и рывками сокращает дистанцию — держи хил и оружие с дисков.'],
+  mobs:'Кровавый шахтёр',loot:'—'},
+ {id:'fredingtonfastingbear',en:'Pizza Party',ru:'Пицца-пати',cost:2,rew:4,dif:2,
+  desc:'Знаменитая пиццерия, погубленная тем, что она предлагала.',
+  how:['Возьми фонарик и иди. Внутри — медведи: бойцовые, снежные, «русские» и масляный.','Ящик — в одной из 4 случайных точек.','Кусок пиццы из награды берёт заказ карго «Slice of Pizzeria Pizza».'],
+  mobs:'Медведи',loot:'Кусок пиццы из пиццерии',bounty:'Slice of Pizzeria Pizza'},
+ {id:'pirates',en:'Corsair Cove',ru:'Бухта корсаров',cost:2,rew:4,dif:2,ghosts:1,
+  desc:'Пробейся к спрятанному сокровищу, забери добычу и уходи, пока пираты не переломили ход боя.',
+  how:['Надень лежащую рядом одежду, чтобы слиться с толпой, и прорубайся через пиратов.','Ящик — в одной из 4 точек. Хватай и уходи, пока не задавили числом.','Домен зовёт призраков: они могут играть виртуальными пиратами-скелетами.'],
+  mobs:'Пираты (стрелки и рубаки), попугай',loot:'—'},
+ {id:'psyker_zombies',en:'Infected Domain',ru:'Заражённый домен',cost:2,rew:5,dif:2,outfit:'echo',
+  desc:'Заброшенный уголок виртуального мира, оставленный из-за зомби-вируса. Работай эхолокацией.',
+  how:['Ты слеп, работаешь эхолокацией. Домен нестабилен, полон дыр и зомби.','Рядом с началом найди оружейный ящик: хардсьют ГСБ, лазерная винтовка и две ёмкие батареи. Вооружись и зачисти.','Ящик — в одной из двух точек.'],
+  mobs:'Зомби',loot:'Гарнитура',bounty:'Psyker Headset'},
+ {id:'syndicate_assault',en:'Syndicate Assault',ru:'Штурм Синдиката',cost:2,rew:4,dif:2,modular:1,ghosts:1,
+  desc:'Проникни на вражеский корабль и верни украденный груз.',
+  how:['Оперативники Синдиката украли груз и пытаются скрыться. Они очень хорошо вооружены.','Ящик — в одной из 4 точек корабля.','Домен зовёт призраков: до трёх виртуальных оперативников Синдиката.'],
+  mobs:'Команда Синдиката, пилот, штурмовик',loot:'Плюшевый ядерщик',bounty:'Abductor Plush, Syndicate Plush'},
+ {id:'bubblegum',en:'Blood-Soaked Lair',ru:'Кровавое логово',cost:3,rew:5,dif:3,outfit:'miner',boss:1,
+  desc:'Король демонов резни. Бубльгум — огромное, массивное чудовище, склонное к насилию.',
+  how:['Убей Бубльгума — ящик выпадет из него.','Из выданного только одежда: нужны диски снаряжения и способностей.'],
+  mobs:'Бубльгум',loot:'Плюшевый Бубльгум',bounty:'Bubblegum Plush'},
+ {id:'colossus',en:'Celestial Trial',ru:'Небесное испытание',cost:3,rew:5,dif:3,outfit:'miner',boss:1,
+  desc:'Огромный древний зверь по имени Колосс. Судный день близок.',
+  how:['Убей Колосса — ящик выпадет из него. Держись подальше от его залпов в упор.'],
+  mobs:'Колосс',loot:'—'},
+ {id:'hierophant',en:'Zealot Arena',ru:'Арена фанатика',cost:3,rew:5,dif:3,outfit:'miner',boss:1,
+  desc:'Танцуйте, марионетки, танцуйте!',
+  how:['Убей Иерофанта — ящик выпадет из него. Не стой на линиях его ударов.'],
+  mobs:'Иерофант',loot:'—'},
+ {id:'wendigo',en:'Glacial Devourer',ru:'Ледяной пожиратель',cost:3,rew:5,dif:3,outfit:'miner',boss:1,
+  desc:'Легенды гласят о прожорливом Вендиго, скрывающемся глубоко в пещерах Айсмуна.',
+  how:['Убей Вендиго — ящик выпадет из него.'],
+  mobs:'Вендиго',loot:'—'},
+ {id:'island_brawl',en:'Island Brawl',ru:'Остров-побоище',cost:3,rew:5,dif:3,outfit:'beach',ghosts:1,nolinked:1,sec:'Пляжный мяч ×2, сандалии, тёмные очки, лазер-хамелеон, диск «мини-Узи»',
+  desc:'«Мирный» остров посреди ниоткуда. Домен завершается сам после определённого числа смертей.',
+  how:['Битраннеры и призраки появляются в случайных точках острова как вооружённые островитяне (18 спавнеров).','Каждая смерть островитянина — 1 очко цели; после 10 смертей появляется ящик. Главная цель — выжить.','Урон аватара здесь <b>не переносится на тело</b>, смерть аватара не калечит. Зато и бонуса «без урона» не будет.','На острове разбросаны находки (до 6 за раунд) и есть постоянный выход.'],
+  mobs:'Островитяне-игроки, крабы',loot:'—'},
+ {id:'ancient_milsim',en:'Ancient Military Simulator',ru:'Древний военный симулятор',cost:3,rew:5,dif:3,outfit:'solfed',modular:1,ghosts:1,
+  sec:'500 кр ×3, диск «ancient milsim» ×3, маяк снаряжения ×2, пистолет ×2, аптечка ×2, ЭМИ-граната ×2, бронежилет ×2',
+  desc:'Воссоздай «горячую» часть Пограничной войны в роли ударной группы Солариан, зачищающей базы CIN. Рекомендуется играть группой.',
+  how:['Солдаты Коалиции (по 100 HP, стрелки и рукопашники) идут группами до 3, с них падают монеты, магазины, ЭМИ и медипены.','Последняя часть — PvP: до 4 призраков играют «умными NPC» Коалиции. Не ходи один и бери диски.','Маяк снаряжения даёт ящик класса на выбор (mechanic, marksman, medic, trapper, saboteur, sentinel, trooper); в каждом ещё боевой нож, энергопистолет и гарнитура.','В ящике награды — 2000 кр наличными, 2 аптечки, 2 бронежилета, 2 пистолета.'],
+  mobs:'Солдаты CIN, SNPC-призраки',loot:'500 кр ×4, аптечка ×2, бронежилет ×2, пистолет ×2'},
+ {id:'vaporwave',en:'Cosmic Vestige',ru:'Космическая реликвия',cost:20,rew:6,dif:0,nonohit:1,
+  desc:'Неоновая реликвия в безмолвной пустоте — эхо ретро-футуристической эпохи. Расслабься, полюбуйся видом.',
+  how:['Мирная прогулка за самую большую награду (6) и 2000 кр наличными в ящике.','Стоит 20 очков сервера — это долгая серия доменов. В случайный выбор не попадает.'],
+  mobs:'Бабочка',loot:'500 кр ×4'}
+];
+// Рудa в ящике награды: множитель на очки (ORE_MULTIPLIER_*), с какого уровня награды появляется
+const ORES=[['Железо',3,1],['Стекло (песок)',2,1],['Серебро',0.7,2],['Титан',0.5,2],['Плазма',1,3],['Золото',0.6,3],['Уран',0.4,3],['Алмазы',0.3,4],['Блюспейс-кристаллы',0.2,4]];
+const BOUNTIES=[['Abductor Plush','Плюшевый ядерщик','Корабль абдукторов, Штурм Синдиката',6],['Syndicate Plush','Плюшевый ядерщик','Корабль абдукторов, Штурм Синдиката',8],['Bubblegum Plush','Плюшевый Бубльгум','Кровавое логово',10],['Slice of Pizzeria Pizza','Кусок пиццы из пиццерии','Пицца-пати',8],['Psyker Headset','Гарнитура','Заражённый домен (по коду подходит любая гарнитура)',8],['Bike Horn','Велосипедный гудок','Планета клоунов',4],['Polar Ushanka','Ушанка','Ледниковый подъём (находка), любая ушанка',3]];
+
+/* ===================== ОСНОВЫ ===================== */
+function renderBasics(){
+  let h='<div class="grid">';
+  h+=card('Что такое битран',body([
+    '<b>Битраннинг</b> — работа битраннера (Bitrunner, отдел снабжения, 3 места, начальник — квартирмейстер). Ты ложишься в <b>нетпод</b>, сознание переходит в <b>аватара</b> — временное тело в виртуальном домене, а настоящее тело лежит в капсуле.',
+    'Цель домена почти всегда одна: найти <b>зашифрованный ящик</b> (encrypted cache) и доставить его на площадку приёма в <b>сейфхаусе</b> — стартовой комнате домена. Тогда ящик с наградой материализуется на станции в <b>байтфордже</b>.',
+    'Награда — руда, предметы домена и очки: <b>очки сервера</b> (на загрузку новых доменов) и <b>BP</b> (bitrunning points) на твой счёт — их тратишь в автомате NexaCache.']),C.srv);
+  h+=card('Где играть',body([
+    'Отсек битраннеров (Bit Den) — в карго. Готовый отсек с машинами есть на Box, Meta, Delta, Kilo и VoidRaptor; на Blueshift и North Star его нет — машины собирают из плат (вкладка «Оборудование»).',
+    'Состав: <b>квантовый сервер</b>, рядом с ним <b>квантовая консоль</b> (на соседней клетке), <b>нетподы</b> и <b>байтфордж</b> — не дальше 4 клеток от сервера, и автомат <b>NexaCache</b>.',
+    'Доступ: консоль — шахтёрский доступ, автомат — доступ Bit Den. Он есть у битраннера и квартирмейстера.']),C.srv);
+  h+=card('Забег шаг за шагом',steps([
+    'Подойди к квантовой консоли и выбери домен. Вкладки — по сложности: Мирный, Лёгкий, Средний, Сложный. Звезда — цена в очках сервера, монеты — награда. В начале смены у сервера 0 очков, доступны только бесплатные домены.',
+    'Нажми на домен — сервер загрузит его. Загрузка списывает цену. Пока домен активен, второй не загрузить.',
+    'Нажми на нетпод без предмета в руке — выбери экипировку аватара (наборы Basic, Cargo, Engineering, Medical, Science, Security). Некоторые домены выдают свою, и выбор игнорируется.',
+    'Возьми с собой диски (снаряжение, способности, персонаж) — они должны лежать <b>на тебе</b>, и каждый надо заранее настроить: активируй в руке и выбери вариант.',
+    'Перетащи себя на открытый нетпод (drag-and-drop). Крышка закроется, через 2 секунды ты в домене, в сейфхаусе у голо-лестницы.',
+    'Найди зашифрованный ящик и затащи его на площадку приёма в сейфхаусе (пол «пульсирует потоками данных»). У боссов ящик выпадает из тела.',
+    'Ящик исчезает, на станции байтфордж выдаёт ящик награды и сертификат с оценкой. Всем, кто в этот момент подключён, приходит алерт «Domain Completed» — нажми его и выбери «Выйти».',
+    'Домен сам не выгружается: чтобы загрузить следующий, выйди и останови текущий.',
+    'Кнопка «Остановить домен» на консоли (если внутри кто-то есть, 20 секунд и всех предупредят). Потом сервер остывает: 2 минуты на базовых деталях.']),C.safe,'wide');
+  h+=card('Аватар',bul([
+    'На аватаре только <b>одежда</b> выбранного набора. Наушники, очки, перчатки, карманы, костюм и вещи в руках убираются (кроме доменов со своей экипировкой). На поясе — <b>монитор хоста</b>: активируй, чтобы узнать здоровье настоящего тела в процентах.',
+    'Если у набора есть рюкзак, в нём только коробка выживания, аптечка и фонарик. Оружия нет — его дают диски из NexaCache или карта.',
+    'У аватара свой ID «Bit Avatar» с пустым счётом, датчики формы выключены. Выйти за границу домена нельзя.',
+    'Внешность: по умолчанию случайная. Alt-клик по нетподу включает «сканирование» — аватар получит твоё имя и внешность. Или диск персонажа DeForest (у битраннера в кармане): активируй и выбери «Только внешность» или «Полная копия» текущего персонажа.',
+    'Кнопки аватара: «Open Domain Information» — подсказка домена, «Emergency Disconnect» — аварийный выход (аватар умирает, тело получает урон мозга).']),C.pod);
+  h+=card('Пока ты внутри',bul([
+    'Нетпод держит тело в <b>стазисе</b> и лечит его: по 4 ед. ушибов, ожогов и токсинов и 4 ед. крови в секунду.',
+    'Урон аватара (кроме стамины и удушья) <b>переносится на настоящее тело</b>, без ран. Если тело уходит дальше мягкого крита или урон больше его запаса здоровья — тебя выбрасывает с уроном мозга.',
+    'Тревоги на экране: «Netpod Breached» — кто-то вскрывает капсулу ломом (15 с), «Integrity Compromised» — капсула повреждена ниже 50%, «Domain Rebooting» — домен останавливают, «Threat Detected» — в домене появился глитч, «Security Breach» — враг прорывается в сейфхаус. Во всех случаях — к выходу.',
+    'Наблюдатели видят тебя: клик по нетподу переносит призрака к аватару.']),C.bad);
+  h+=card('Как выйти',tbl(['Способ','Что будет'],[
+    ['Голо-лестница: наступить или нажать (3 с)','<b>Безопасно</b>, без урона'],
+    ['Алерт «Domain Completed» → «Выйти»','<b>Безопасно</b>, после сдачи ящика'],
+    ['Сидеть в ящике, когда его сдают','<b>Безопасно</b>: всех внутри ящика отключает'],
+    ['Смерть аватара, «Emergency Disconnect»','Урон мозга хоста'],
+    ['Вскрытие нетпода, обесточивание, поломка','Урон мозга хоста'],
+    ['Хоста сдвинули, он умер или потерял сознание','Урон мозга хоста'],
+    ['Остановка домена с консоли или сломанный сервер','Урон мозга хоста']]) + note('Урон мозга при аварийном отключении — 40 ед. с базовыми манипуляторами сервера, меньше с улучшенными (см. «Оборудование»). Плюс вспышка, крик и 2 секунды паралича.','bad'),C.exit);
+  h+=card('Повторный вход',bul([
+    'Если аватар жив, при повторном входе в нетпод ты вернёшься в него же.',
+    'Если аватара нет, создаётся новый у свободной точки выхода, и на ней появляется голо-лестница. Точек выхода в домене ограниченное число: когда кончатся, нетпод ответит «недостаточно пропускной способности».',
+    'Консоль показывает число оставшихся входов и здоровье всех аватаров (ушибы, ожоги, токсины, удушье).']),C.exit);
+  h+='</div>';
+  $('#v-basics').innerHTML=h;
+}
+
+/* ===================== ДОМЕНЫ ===================== */
+function domCard(d){
+  const tags=[];
+  if(d.boss)tags.push('<span class="tag">босс: ящик выпадает из него</span>');
+  if(d.modular)tags.push('<span class="tag">мобы спавнятся случайно</span>');
+  if(d.ghosts)tags.push('<span class="tag">зовёт призраков</span>');
+  if(d.nonohit)tags.push('<span class="tag">без бонуса «без урона»</span>');
+  if(d.nolinked)tags.push('<span class="tag">урон не переносится на тело</span>');
+  if(d.sec)tags.push('<span class="tag">есть находки</span>');
+  const dl=[];
+  dl.push(['Экипировка',d.outfit?OUT[d.outfit]:'Твой выбор в нетподе']);
+  dl.push(['Кто внутри',d.mobs]);
+  dl.push(['В ящике награды',(d.loot&&d.loot!=='—'?d.loot+' + ':'')+'руда (см. «Награды»)']);
+  if(d.sec)dl.push(['Находки','Зашифрованные шкатулки (curiosity) на карте: несёшь в сейфхаус, как ящик. Пул на раунд: '+d.sec]);
+  if(d.bounty)dl.push(['Заказ карго',d.bounty]);
+  dl.push(['Видно в консоли','Название — со сканером T'+(d.dif+1)+(d.cost>5?' и от '+(d.cost-5)+' очков':'')+'; награда — со сканером T'+Math.max(1,d.dif)+(d.cost>3?' и от '+(d.cost-3)+' очков':'')]);
+  return card(`${esc(d.en)} <small>${esc(d.ru)}</small><span class="stat"><span class="c" title="Цена в очках сервера">★ ${d.cost}</span><span class="r" title="Очки награды">◆ ${d.rew}</span></span>`,
+    `<div class="tags"><span class="dif dif${d.dif}">${DIF[d.dif][0]}</span>${tags.join('')}</div>`+
+    `<div class="quote">${esc(d.desc)}</div>`+bul(d.how)+
+    `<dl class="dl">${dl.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`+(d.tip?note(d.tip):''),
+    ['var(--peace)','var(--warn)','#d9682a','var(--bad)'][d.dif]);
+}
+function renderDomains(){
+  const chips=[['all','Все'],['0','Мирные'],['1','Лёгкие'],['2','Средние'],['3','Сложные'],['free','Бесплатные'],['best','Выгодные']];
+  $('#difchips').innerHTML=chips.map(([id,n])=>`<button type="button" data-f="${id}" aria-pressed="${S.dom===id}">${n}</button>`).join('');
+  const q=($('#q').value||'').trim().toLowerCase();
+  let list=DOMS.filter(d=>{
+    if(S.dom==='free')return d.cost===0;
+    if(S.dom==='best')return d.rew-d.cost>=3&&d.cost<20;
+    if(S.dom!=='all')return d.dif===+S.dom;
+    return true});
+  if(q)list=list.filter(d=>(d.en+' '+d.ru+' '+d.desc+' '+d.mobs+' '+(d.loot||'')).toLowerCase().includes(q));
+  let h='';
+  if(S.dom==='best')h+=note('Выгодные — где награда хотя бы на 3 больше цены. Награда идёт в очки сервера и BP (×100 каждому), цена списывается при загрузке.');
+  h+=list.length?'<div class="grid">'+list.map(domCard).join('')+'</div>':'<div class="panel empty">Ничего не нашлось.</div>';
+  $('#domlist').innerHTML=h;
+}
+$('#difchips').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;S.dom=b.dataset.f;save();renderDomains()});
+$('#q').addEventListener('input',()=>renderDomains());
+
+/* ===================== НАГРАДЫ ===================== */
+const TIMES=[['до 1 мин',10],['1–2 мин',5],['2–5 мин',3],['5–10 мин',2],['больше 10 мин',1]];
+const grade=s=>s<=4?'D':s<=7?'C':s<=10?'B':s<=13?'A':'S';
+function renderRewards(){
+  const c=S.calc;
+  const opt=(arr,v)=>arr.map(([val,n])=>`<option value="${val}"${String(val)===String(v)?' selected':''}>${n}</option>`).join('');
+  let h='<div class="grid">';
+  h+=card('Калькулятор награды',`<div class="calc">
+    <div class="ctl">
+      <label>Домен <select id="c-dom">${DOMS.map(d=>`<option value="${d.id}"${d.id===c.dom?' selected':''}>${esc(d.en)} — ★${d.cost} ◆${d.rew}</option>`).join('')}</select></label>
+    </div>
+    <div class="ctl">
+      <label>Битраннеров <input type="number" id="c-n" min="1" max="8" value="${c.n}"></label>
+      <label>Из них без урона <input type="number" id="c-nh" min="0" max="8" value="${c.nh}"></label>
+      <label>Глитчей появилось <input type="number" id="c-th" min="0" max="5" value="${c.th}"></label>
+    </div>
+    <div class="ctl">
+      <label>Манипуляторы сервера <select id="c-tier">${opt([[1,'T1'],[2,'T2'],[3,'T3'],[4,'T4']],c.tier)}</select></label>
+      <label>Время <select id="c-time">${opt(TIMES.map(([n,v],i)=>[i,n]),c.time)}</select></label>
+      <label class="chk"><input type="checkbox" id="c-rnd"${c.rnd?' checked':''}> Случайный домен</label>
+    </div>
+    <div id="c-out"></div></div>`,C.gold,'wide');
+  h+=card('Как считается множитель',body([
+    'Множитель ящика = <b>0,8</b> + <b>0,2</b> за случайный домен + <b>бонус манипуляторов</b> (0,1 × уровень за каждый из двух: T1 = 0,2 … T4 = 0,8) + <b>2</b> за каждого появившегося глитча + <b>1,1</b> за каждого битраннера сверх первого + <b>0,8</b> за каждого, кто прошёл без урона.',
+    '«Без урона» — аватар не получил ни одного урона, кроме стамины и удушья. В мирных доменах, Ледниковом подъёме и на Острове этот бонус не даётся.',
+    'Случайный домен (кнопка «Случайный домен») выбирает платный домен дешевле 20, который тебе по карману, — нужно хотя бы 1 очко. Даёт только +0,2 к множителю.']),C.gold);
+  h+=card('Руда в ящике',body([
+    'База = множитель + очки награды домена. Каждой руды кладётся <b>от 0,5 до 1,5 базы × коэффициент</b> (округление вверх, минимум 1).',
+    'Какая руда будет, зависит от очков награды домена: железо и стекло всегда; от 2 — серебро и титан; от 3 — плазма, золото, уран; от 4 — алмазы и блюспейс-кристаллы.'])+
+    tbl(['Руда','#Коэфф.','#С награды'],ORES.map(([n,k,m])=>[n,fmt(k,1),m])),C.gold);
+  h+=card('Очки и BP',bul([
+    '<b>Очки сервера</b>: +очки награды домена за каждую сдачу ящика, −цена домена при загрузке. Копятся в сервере, а не у тебя. В начале смены — 0.',
+    '<b>BP</b> (bitrunning points): каждый, кто подключён через нетпод в момент сдачи, получает <b>очки награды × 100</b> на банковский счёт. Множитель на BP не влияет.',
+    'Тратятся BP в автомате NexaCache (вкладка «Оборудование»). Нужна ID-карта со счётом.']),C.ven);
+  h+=card('Оценка и диск технологий',body([
+    'Очки оценки = 5 × глитчи + очки награды + (сложность + 1) × бонус времени. Бонус времени: до 1 мин — 10, до 2 мин — 5, до 5 мин — 3, до 10 мин — 2, дольше — 1.',
+    'Оценка: 1–4 — D, 5–7 — C, 8–10 — B, 11–13 — A, 14 и больше — S. Она пишется в сертификат в ящике.',
+    'За оценку A или S в <b>среднем или сложном</b> домене в ящик кладётся <b>диск дизайнов</b> — один раз за раунд для каждого домена.',
+    'Каждая оценка прибавляет очки к «угрозе» сервера — от неё зависят глитчи (вкладка «Угрозы»).']),C.disk);
+  h+=card('Заказы карго за добычу',tbl(['Заказ','Что нужно','Откуда','#Награда'],BOUNTIES.map(([en,ru,src,k])=>[`<b>${en}</b>`,ru,src,(k*200).toLocaleString('ru-RU')+' кр'])),C.ven,'wide');
+  h+='</div>';
+  $('#v-rewards').innerHTML=h;
+  const bind=(id,k,num)=>$(id).addEventListener('input',e=>{const el=e.target;c[k]=el.type==='checkbox'?el.checked:num?Math.max(+el.min||0,Math.min(+el.max||99,Math.round(+el.value||0))):el.value;save();calc()});
+  bind('#c-dom','dom');bind('#c-n','n',1);bind('#c-nh','nh',1);bind('#c-th','th',1);bind('#c-tier','tier',1);bind('#c-time','time',1);bind('#c-rnd','rnd');
+  calc();
+}
+function calc(){
+  const c=S.calc,d=DOMS.find(x=>x.id===c.dom)||DOMS[0];
+  const n=Math.max(1,c.n|0),nh=Math.min(n,Math.max(0,c.nh|0)),th=Math.max(0,c.th|0),tier=Math.min(4,Math.max(1,c.tier|0));
+  const rnd=!!c.rnd&&d.cost>0&&d.cost<20;
+  const servo=2*tier*0.1;
+  const parts=[['База',0.8]];
+  if(rnd)parts.push(['Случайный',0.2]);
+  parts.push(['Манипуляторы',servo]);
+  if(th)parts.push(['Глитчи',2*th]);
+  if(n>1)parts.push(['Мультиплеер',1.1*(n-1)]);
+  if(nh&&!d.nonohit&&!d.nolinked)parts.push(['Без урона',0.8*nh]);
+  const mult=parts.reduce((a,[,v])=>a+v,0);
+  const base=mult+d.rew;
+  const ts=TIMES[Math.min(4,Math.max(0,c.time|0))][1];
+  const score=5*th+d.rew+(d.dif+1)*ts;
+  const g=grade(score);
+  const disk=d.dif>=2&&(g==='A'||g==='S');
+  let h=`<div class="kpis">
+    <div class="kpi"><b>×${fmt(mult)}</b><span>множитель ящика</span></div>
+    <div class="kpi ok"><b>${(d.rew*100).toLocaleString('ru-RU')} BP</b><span>каждому битраннеру</span></div>
+    <div class="kpi"><b>+${d.rew}</b><span>очков сервера (цена ${d.cost})</span></div>
+    <div class="kpi ${g==='S'||g==='A'?'ok':g==='D'?'bad':''}"><b>${g}</b><span>оценка (${score} очк.)</span></div>
+    <div class="kpi ${disk?'ok':''}"><b>${disk?'Да':'Нет'}</b><span>диск дизайнов</span></div>
+  </div>
+  <div class="mul">${parts.map(([k,v])=>`<span>${k} +${fmt(v)}</span>`).join('')}</div>`;
+  if(c.rnd&&!rnd)h+=`<div class="muted" style="font-size:13px">Этот домен не выпадает случайно (бесплатный или стоит 20), бонус «случайный» не считается.</div>`;
+  if(nh&&(d.nonohit||d.nolinked))h+=`<div class="muted" style="font-size:13px">В этом домене бонуса «без урона» нет.</div>`;
+  const rows=ORES.filter(([,,m])=>d.rew>=m).map(([nm,k])=>[nm,Math.max(1,Math.ceil(0.5*base*k)),Math.max(1,Math.ceil(1.5*base*k))]);
+  h+=tbl(['Руда','#Минимум','#Максимум'],rows.map(([a,b,x])=>[a,b,x]));
+  h+=`<div class="muted" style="font-size:12.5px">Плюс в ящике: ${d.loot&&d.loot!=='—'?esc(d.loot):'предметов домена нет'}. Руда — штуки руды, их надо переплавить в ПРМ.</div>`;
+  $('#c-out').innerHTML=h;
+}
+
+/* ===================== ОБОРУДОВАНИЕ ===================== */
+const VEND=[
+ ['Технологии','Диск снаряжения: простой (bitrunning gear: simple)','Медлуч, взрывчатка C4 или бесконечная коробка пиццы',750],
+ ['Технологии','Диск снаряжения: сложный','Люкс-медипен выживания, пистолет или бронежилет',1250],
+ ['Технологии','Диск снаряжения: продвинутый','Продвинутый энергопистолет, двуклинковый энергомеч или минибомба',2000],
+ ['Технологии','Диск способности: базовый','«Призыв сыра» или Малое исцеление',750],
+ ['Технологии','Диск способности: сложный','Огненный шар, Молния или Силовая стена',1500],
+ ['Технологии','Диск способности: элитный','Превращение в малого пепельного дрейка или полярного медведя',2500],
+ ['Технологии','Гиммик-диск: спорт','Набор в чемоданчике: боксёр, скейтер, лучник (лук), рыбак, геймер (ноутбук)',750],
+ ['Технологии','Гиммик-диск: подземелья','Алхимик (чумной доктор), разбойник, лекарь (жезл Асклепия), волшебник (заклинания «Стук» и «Дым»)',1250],
+ ['Технологии','Диск персонажа DeForest','Загрузить своего персонажа в аватара',500],
+ ['Технологии','Диск модкитов ПКА','Дальность, урон, перезарядка или урон по площади (сам ПКА не входит)',750],
+ ['Технологии','Диск модкитов ПКА: премиум','Повторитель, вампиризм, резонатор, охотник за головами или «для помещений»',1600],
+ ['Технологии','Диск трофеев дробителя','Крыло наблюдателя, магмовое крыло, череп легиона',750],
+ ['Технологии','Диск трофеев дробителя: премиум','Ледяное крыло, бластерные трубки, глаз шахтёра, шип хвоста, когти демона, талисман вихря',1600],
+ ['Технологии','Диск «мини-Узи»','Мини-Узи без патронов',2200],
+ ['Разное','Кукурузные чипсы, Space Mountain Wind','Перекус геймера',100],
+ ['Разное','PWR Game, Grey Bull','Энергетики',200],
+ ['Разное','Аптечки: ушибы, ожоги, кислород, токсины','По одной на выбор',500],
+ ['Разное','Овальные очки, кожаный тренч, берцы','Стиль «того самого»',1000],
+ ['Разное','Форма битраннера','Кожаный комбинезон',600],
+ ['Разное','Чёрные перчатки, чёрная шапка','',300],
+ ['Разное','Чёрный шарф, чёрная бандана','',250],
+ ['Разное','Сумка через плечо','',500],
+ ['Разное','Плюшевый ящер','Талисман удачи',400],
+ ['Разное','Мед-HUD, диагностический HUD','',800],
+ ['Bepis','Стопка микросхем, ручка выживания','',150],
+ ['Bepis','Плата «вечериночного» слипера, баллончик Spray-On','',750]];
+function renderGear(){
+  let h='<div class="grid">';
+  h+=card('Машины',tbl(['Машина','Детали','Что делает'],[
+    ['<b>Квантовый сервер</b>','2 манипулятора, сканирующий модуль, конденсатор','Создаёт домены, хранит очки, считает награду. Ест много энергии. Взлом емагом удваивает шанс и потолок глитчей.'],
+    ['<b>Квантовая консоль</b>','компьютерная плата','Выбор и остановка домена, очки, аватары. Ставится на соседнюю с сервером клетку. Доступ шахтёра.'],
+    ['<b>Нетпод</b>','манипулятор, 2 матер-бина','Капсула входа: стазис, лечение, выбор экипировки. До 4 клеток от сервера. Детали ни на что не влияют.'],
+    ['<b>Байтфордж</b>','микролазер','Выдаёт ящики награды. До 4 клеток от сервера; если их несколько — случайный.'],
+    ['<b>NexaCache</b>','компьютерная плата','Автомат за BP. Доступ Bit Den.']]),C.srv,'wide');
+  h+=card('Улучшение сервера',tbl(['Уровень деталей','#T1','#T2','#T3','#T4'],[
+    ['Манипуляторы (оба): бонус к множителю','+0,2','+0,4','+0,6','+0,8'],
+    ['Манипуляторы: урон мозга при аварийном выходе','32','24','16','8'],
+    ['Конденсатор: перезарядка после домена','2:00','1:42','1:24','1:06'],
+    ['Сканер: какие домены видно полностью','Мирные','+Лёгкие','+Средние','+Сложные']])+
+    note('Сканер не запрещает загрузку: скрытые домены видны как «???» и тоже загружаются. Название видно, если сложность меньше уровня сканера и цена не больше очков + 5; награда — если сложность не больше уровня сканера и цена не больше очков + 3.')+
+    note('Урон мозга для нетпода пересчитывается, когда сервер обновляет детали. Базовые 40 — пока сервер не обновлял детали после постройки нетпода.','warn'),C.srv,'wide');
+  h+=card('Своими силами',steps([
+    'Наука изучает узел <b>Bitrunning Technology</b> (5000 очков; нужны Mining Technology, игровые компьютерные платы и Advanced Bluespace).',
+    'Печать плат: Quantum Server, Netpod, Byteforge, Bitrunning Supplies Console — раздел Cargo Machinery; Quantum Console — Computer Boards. Протолаты карго и инженерии (автомат — только карго).',
+    'Поставь сервер, консоль вплотную к нему, нетподы и байтфордж в радиусе 4 клеток. Дай питание.']),C.srv);
+  h+=card('Диски',bul([
+    'Диск надо <b>настроить</b>: активируй в руке и выбери вариант. Выбор окончательный. Ненастроенный диск не загрузится, а аватар получит предупреждение.',
+    'Диски работают, только если лежат <b>на тебе</b> (в карманах, рюкзаке), когда ты ложишься в нетпод. Предмет появится в руках аватара, способность — в списке заклинаний.',
+    'Одинаковые способности не складываются. Каждый диск срабатывает на каждом входе — один и тот же диск можно использовать снова и снова.',
+    'Гиммик-набор приходит в чемоданчике, а у волшебника ещё и заклинания.']),C.disk);
+  h+=card('Автомат NexaCache',body(['Цена в автомате — со скидкой 35%: заказ приедет с <b>карго-шаттлом</b>. «Экспресс» стоит полную цену и прилетает капсулой сразу. Платишь BP с ID-карты, до 20 штук одного товара, пауза между заказами — 10 секунд.'])+
+    tbl(['Раздел','Товар','Что внутри','#Шаттл, BP','#Экспресс, BP'],VEND.map(([cat,n,d,p])=>[cat,n,d,Math.round(p*0.65).toLocaleString('ru-RU'),p.toLocaleString('ru-RU')])),C.ven,'wide');
+  h+=card('Нетпод: наборы экипировки',tbl(['Набор','Профессии'],[
+    ['Basic','Битраннер, ассистент, бармен, уборщик, куратор'],['Cargo','Карготехник, квартирмейстер, шахтёр'],['Engineering','Инженер, атмосферный техник'],
+    ['Medical','Врач, парамедик, химик'],['Science','Учёный, робототехник'],['Security','Офицер СБ, детектив']])+note('От набора остаётся только одежда, поэтому выбирай его ради внешности или брони формы.'),C.pod);
+  h+=card('Битраннер на смене',bul([
+    'Начальник — квартирмейстер, 3 места, зарплата средняя (отдел карго). Альтернативные названия: Domain Runner, Netrunner, Quantum Runner.',
+    'Доступы: Bit Den, карго, техтоннели, склад минералов, шахта и шахтёрская станция, производство карго, кабинет КМ.',
+    'Старт: форма битраннера, КПК, гарнитура карго, кеды, диск персонажа DeForest в кармане.',
+    'Ящики с рудой неси в ПРМ: руда — главный вклад битраннера в карго.']),C.safe);
+  h+='</div>';
+  $('#v-gear').innerHTML=h;
+}
+
+/* ===================== УГРОЗЫ ===================== */
+function renderThreats(){
+  let h='<div class="grid">';
+  h+=card('Глитчи',body([
+    'Глитч — временный антагонист в домене: призрак вселяется в одного из мобов домена без разума. Его цель — уничтожить «нештатные сущности», то есть тебя. После перезапуска домена он возвращается в своё тело.',
+    'Шанс при каждой загрузке домена: <b>угроза × 0,2</b>, но не меньше <b>5%</b> и не больше <b>15%</b>. Угроза сервера растёт на очки оценки после каждой сдачи ящика. Глитч нужен ещё и призрак, который согласится.',
+    'Каждый глитч даёт <b>+2</b> к множителю ящика и <b>+5</b> к очкам оценки — опасно, но выгодно.',
+    'Случайное событие «глитч» обходит мирные домены, но шанс при загрузке действует везде, где есть мобы без игрока (даже крабы).']),C.glitch);
+  h+=card('Роли',tbl(['Роль','#Угроза от','Что умеет'],[
+    ['<b>Cyber Police</b>','0','Человек в чёрном костюме и очках, владеет боевым искусством «Спящий карп».'],
+    ['<b>Cyber Tac</b>','50','Человек в бронежилете и шлеме SWAT, с пистолетом.'],
+    ['<b>Netguardian Prime</b>','90','Боевой робот: 500 HP, 45–65 урона вблизи, очереди по 6 пуль, раз в 30 с с шансом 35% — залп из трёх ракет 84 мм.']])+
+    note('Роль выбирается случайно из доступных по угрозе. После выбора угроза уменьшается на половину порога роли.'),C.glitch);
+  h+=card('Взлом сервера емагом',bul([
+    'Шанс глитча удваивается (угроза × 0,4), потолок — 30% вместо 15%.',
+    'Глитч, который доберётся до площадки приёма в сейфхаусе, после короткого сканирования <b>телепортируется на станцию</b> через байтфордж: здоровье 200–500, полное лечение.',
+    'Если байтфордж сломан или обесточен, глитч на станции замедляется. Сломать байтфордж — первый ответ СБ.',
+    'Мобы домена при взломе «прозревают» и получают сообщение о свободе.',
+    'Взлом — действие антагониста. Битраннеру без роли антагониста ломать свой сервер нельзя.']),C.bad);
+  h+=card('Как не умереть',bul([
+    'Помни: урон аватара бьёт по твоему телу. Следи за монитором хоста на поясе.',
+    'Перед сложными доменами бери диски: аптечки в рюкзаке мало. Диски работают на каждом входе.',
+    'Не останавливай домен, пока внутри коллеги: у них 20 секунд, и потом урон мозга.',
+    'Не закрывай чужой нетпод и не таскай его тело — это аварийное отключение.',
+    'Бросить домен можно: выйди по лестнице и останови его с консоли. Цена не вернётся.',
+    'Если в отсеке нет байтфорджа в 4 клетках от сервера, сданный ящик никуда не придёт — проверь заранее.']),C.safe);
+  h+='</div>';
+  $('#v-threats').innerHTML=h;
+}
+
+/* ===================== ОБЩЕЕ ===================== */
+const S0={tab:'basics',dom:'all',calc:{dom:'breeze_bay',n:1,nh:1,th:0,tier:1,time:2,rnd:false}};
+const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  s=Object.assign({},S0,s&&typeof s==='object'?s:{});
+  s.calc=Object.assign({},S0.calc,s.calc||{});
+  if(!DOMS.some(d=>d.id===s.calc.dom))s.calc.dom=S0.calc.dom;
+  return s})();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const TABS=['basics','domains','rewards','gear','threats'];
+const RENDER={basics:renderBasics,domains:renderDomains,rewards:renderRewards,gear:renderGear,threats:renderThreats};
+const done={};
+function go(t){
+  if(!TABS.includes(t))t='basics';
+  S.tab=t;
+  TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  if(!done[t]||t==='domains'){RENDER[t]();done[t]=1}
+  save();try{history.replaceState(null,'','#'+t)}catch(e){}
+  window.scrollTo(0,0)}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
+const h0=(location.hash||'').slice(1);
+go(TABS.includes(h0)?h0:S.tab);
+window.addEventListener('hashchange',()=>{const t=(location.hash||'').slice(1);if(TABS.includes(t)&&t!==S.tab)go(t)});
+</script>
+</body>
+</html>

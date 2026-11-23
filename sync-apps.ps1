@@ -74,4 +74,8 @@ Copy-Item (Join-Path $root 'robo\index.html'), (Join-Path $root 'robo\mod.js'), 
 $dst = Join-Path $apps 'fishing'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'fishing\index.html'), (Join-Path $root 'fishing\data.js') $dst
 
+# Битран — живёт в Пульте (bitrun\): виртуальные домены, награды, оборудование, глитчи
+$dst = Join-Path $apps 'bitrun'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'bitrun\index.html') $dst
+
 "Приложения скопированы в $apps"

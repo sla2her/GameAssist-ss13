@@ -1,5 +1,5 @@
 'use strict';
-// Пульт — оболочка для двадцати приложений: стартовое радиальное меню, переключение приложений
+// Пульт — оболочка для двадцати одного приложения: стартовое радиальное меню, переключение приложений
 // и два режима окна (компактный и расширенный). Работает в Пульт.exe, Пульт.apk и в браузере. Приложения открываются в iframe с того же
 // адреса, поэтому оболочка может подключить к ним стили компактного режима.
 
@@ -36,6 +36,7 @@ const ICONS = {
   bubble: '<circle cx="17" cy="17" r="4"/><path d="M4 4h9M4 4v9M4 4l8.5 8.5"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   fish: '<path d="M2.5 12c2.6-3.6 6-5.5 9.6-5.5 3.4 0 6.1 1.9 7.9 5.5-1.8 3.6-4.5 5.5-7.9 5.5-3.6 0-7-1.9-9.6-5.5z"/><path d="M20 12l2-3v6z"/><circle cx="8" cy="11" r="1"/><path d="M13 9.5c.8.7 1.2 1.5 1.2 2.5s-.4 1.8-1.2 2.5"/>',
+  vr: '<rect x="2.5" y="7" width="19" height="10" rx="3"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><path d="M10 12h4M7 7l1.5-3h7L17 7"/>',
   virus: '<circle cx="12" cy="12" r="5.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M18.4 5.6l-1.9 1.9M7.5 16.5l-1.9 1.9"/><circle cx="10.2" cy="10.8" r="1"/><circle cx="14" cy="13.4" r="1"/>',
 };
 const svg = (name, extra = '') =>
@@ -92,6 +93,9 @@ const APPS = [
   // Рыбалка — третье приложение «Общего»: справочник по рыбе и симулятор мини-игры; своей клавиши нет
   { id: 'fishing', name: 'Рыбалка', sub: 'Рыба и симулятор', desc: 'Места, шансы улова, снасти, мини-игра',
     src: 'apps/fishing/index.html', color: '#2f8fb8', icon: 'fish', hscroll: 'nav, .chips', css: false },
+  // Битран — четвёртое приложение «Карго»: виртуальные домены, награды, оборудование; своей клавиши нет
+  { id: 'bitrun', name: 'Битран', sub: 'Виртуальные домены', desc: 'Домены, калькулятор награды, нетподы, глитчи',
+    src: 'apps/bitrun/index.html', color: '#a83fb8', icon: 'vr', hscroll: 'nav, .chips', css: false },
 ];
 // Клавиша приложения: Alt+1…9, дальше — Alt+-, Alt+=, Alt+\
 const EXTRA_KEYS = [['Minus', '-'], ['Equal', '='], ['Backslash', '\\']];
@@ -110,7 +114,7 @@ const DEPTS = [
   { id: 'sci', name: 'Наука', sub: 'Схемы и робототехника', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo'] },
   { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
   { id: 'srv', name: 'Сервис', sub: 'Повар и бармен', color: '#e07a3f', icon: 'cloche', apps: ['kitchen'] },
-  { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev'] },
+  { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл, битран', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev', 'bitrun'] },
 ];
 const byDept = Object.fromEntries(DEPTS.map((d) => [d.id, d]));
 const deptOf = {};
