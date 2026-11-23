@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ксенобиология</title>
+<style>
+/* Ксенобиология: уход за слаймами, мутации цветов, реакции экстрактов, зелья, кроссбриды.
+   Вёрстка как у Вирусологии и Карго; данные из кода — xeno/data.js (собирает xeno/build_data.py). */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#2f9e84; --accent-fg:#04231c; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#4cc9a8; --accent-fg:#04231c; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#4cc9a8; --accent-fg:#04231c; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px;letter-spacing:.03em}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)}
+
+.seg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:7px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.subnav{margin-bottom:14px;display:inline-flex}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px;align-items:start}
+.card{overflow:hidden}
+.card>h3{margin:0;padding:12px 16px;font-size:15.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 12%,var(--panel));border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.card>h3 small{font-weight:400;color:var(--muted);font-size:12.5px}
+.card .body{padding:10px 16px 14px;font-size:14px}
+.card .body p{margin:0 0 8px}
+.card .body p:last-child{margin-bottom:0}
+.steps{counter-reset:s;list-style:none;margin:0;padding:12px 16px;display:grid;gap:8px;font-size:14px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px}
+.steps li::before{content:counter(s);font:12px var(--font-m);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--kc,var(--accent)) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--kc,var(--accent)) 45%,var(--panel))}
+.bul{margin:0;padding:10px 16px 12px 34px;font-size:14px;display:grid;gap:5px}
+.note{margin:0 16px 14px;padding:9px 12px;border-radius:8px;font-size:13.5px;background:color-mix(in srgb,var(--kc,var(--accent)) 9%,var(--panel));border-left:3px solid var(--kc,var(--accent))}
+.note.bad{--kc:var(--bad)} .note.ok{--kc:var(--ok)} .note.warn{--kc:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
+th{font-weight:600;background:var(--panel2);font-size:12.5px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto;padding:10px 16px 14px}
+kbd{font:12px var(--font-m);background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;white-space:nowrap}
+code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;padding:0 4px}
+.wide{grid-column:1/-1}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;padding:12px 16px 0}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--panel2)}
+.kpi b{display:block;font-size:20px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)} .kpi.warn b{color:var(--warn)} .kpi.ok b{color:var(--ok)}
+.pos{color:var(--ok);font-variant-numeric:tabular-nums} .neg{color:var(--bad);font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chips button{border:1px solid var(--line2);background:var(--panel);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+.chips button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.danger{display:inline-block;font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;color:var(--dc);background:color-mix(in srgb,var(--dc) 14%,transparent);white-space:nowrap}
+.d0{--dc:var(--ok)} .d1{--dc:var(--ok)} .d2{--dc:var(--warn)} .d3{--dc:var(--bad)}
+.foot{margin-top:26px;font-size:12.5px;color:var(--faint);max-width:90ch}
+
+.spr{width:32px;height:32px;image-rendering:pixelated;vertical-align:middle;flex:none}
+.spr.sm{width:24px;height:24px;margin:-4px 0}
+.spr.md{width:40px;height:40px;margin:-8px 0}
+.card>h3 .spr.md{margin:-10px 0}
+.card>h3:has(.spr){align-items:center}
+.cchip{display:inline-flex;align-items:center;gap:5px;padding:1px 9px 1px 3px;border-radius:20px;font-size:13px;white-space:nowrap;
+  background:color-mix(in srgb,var(--cc) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--cc) 40%,var(--panel))}
+.chips2{display:flex;flex-wrap:wrap;gap:6px}
+.palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(134px,1fr));gap:6px;margin-bottom:14px}
+.pal{display:flex;align-items:center;gap:6px;padding:4px 8px 4px 4px;border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;font-size:12.5px;color:var(--fg);text-align:left;line-height:1.15}
+.pal:hover{border-color:color-mix(in srgb,var(--cc) 55%,var(--line))}
+.pal[aria-pressed="true"]{background:color-mix(in srgb,var(--cc) 16%,var(--panel));border-color:var(--cc);box-shadow:inset 0 0 0 1px var(--cc)}
+.slider{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:14px}
+.slider input{flex:1;min-width:160px;accent-color:var(--accent)}
+.seg.mini{display:inline-flex}
+.seg.mini button{font-size:12px;padding:3px 8px}
+.rg{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:1px 7px;white-space:nowrap;background:var(--panel2);border:1px solid var(--line2)}
+.rg-plasma{color:#b44fd6;border-color:color-mix(in srgb,#b44fd6 45%,var(--line))}
+.rg-blood{color:#d0393f;border-color:color-mix(in srgb,#d0393f 45%,var(--line))}
+.rg-water{color:#2f86c8;border-color:color-mix(in srgb,#2f86c8 45%,var(--line))}
+.tools{margin-bottom:14px}
+.tools input{width:100%;max-width:560px;padding:8px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--panel)}
+.pult-compact .palette{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:4px}
+.pult-compact .seg.mini{display:flex;flex-wrap:wrap}
+@media (max-width:560px){
+  .brand small{display:none} nav{margin-left:0;width:100%} nav button{flex:1;padding:7px 6px}
+}
+/* В компактном окне Пульта */
+.pult-compact body{padding:0 10px 40px}
+.pult-compact header{padding:8px 0 6px;gap:8px}
+.pult-compact .brand small{display:none}
+.pult-compact nav{margin-left:0;width:100%}
+.pult-compact nav button{flex:1;padding:5px 6px}
+.pult-compact .subnav{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pult-compact .grid{grid-template-columns:minmax(0,1fr)}
+.pult-compact .card>h3,.pult-compact .card .body,.pult-compact .steps,.pult-compact .tbl,.pult-compact .kpis{padding-left:10px;padding-right:10px}
+.pult-compact .bul{padding-left:28px;padding-right:10px}
+.pult-compact .note{margin-left:10px;margin-right:10px}
+.pult-compact .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pult-compact .foot{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">КСБ</div><div><h1>Ксенобиология</h1><small>Уход · Мутации · Экстракты · Зелья · Кроссбриды</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-care" data-tab="care" aria-selected="true">Уход</button>
+    <button role="tab" id="tab-mut" data-tab="mut" aria-selected="false">Мутации</button>
+    <button role="tab" id="tab-ext" data-tab="ext" aria-selected="false">Экстракты</button>
+    <button role="tab" id="tab-pot" data-tab="pot" aria-selected="false">Зелья</button>
+    <button role="tab" id="tab-cross" data-tab="cross" aria-selected="false">Кроссбриды</button>
+  </nav>
+</header>
+
+<main>
+<section id="v-care">
+  <div class="seg subnav" data-subs="care"></div>
+  <div id="care-cycle"></div>
+  <div id="care-console" hidden></div>
+  <div id="care-safety" hidden></div>
+</section>
+
+<section id="v-mut" hidden>
+  <div class="seg subnav" data-subs="mut"></div>
+  <div id="mut-tree"></div>
+  <div id="mut-calc" hidden></div>
+</section>
+
+<section id="v-ext" hidden>
+  <div id="ext-root"></div>
+</section>
+
+<section id="v-pot" hidden>
+  <div id="pot-root"></div>
+</section>
+
+<section id="v-cross" hidden>
+  <div id="cross-root"></div>
+</section>
+
+<p class="foot">Неофициальный помощник по коду BlueMoon-Station: <code>code/modules/research/xenobiology</code> (экстракты, зелья, кроссбриды, консоль), <code>code/modules/mob/living/simple_animal/slime</code> (рост, деление, мутации), <code>code/modules/reagents/chemistry/recipes/slime_extracts.dm</code> (реакции), <code>modular_bluemoon/code/modules/economy/departments/science.dm</code> (оплата экстрактов). Таблица мутаций, реакции и список кроссбридов собираются из кода скриптом <code>xeno/build_data.py</code>. Код на сервере может отличаться от репозитория.</p>
+</main>
+</div>
+
+<script src="data.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const D=window.XENO_DATA;
+const KEY='xeno.state';
+const card=(title,body,c,cls='')=>`<div class="panel card ${cls}" style="--kc:${c||'var(--accent)'}"><h3>${title}</h3>${body}</div>`;
+const steps=a=>`<ol class="steps">${a.map(x=>`<li><span>${x}</span></li>`).join('')}</ol>`;
+const bul=a=>`<ul class="bul">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+const body=a=>`<div class="body">${(Array.isArray(a)?a:[a]).map(x=>`<p>${x}</p>`).join('')}</div>`;
+const note=(t,cls='')=>`<div class="note ${cls}">${t}</div>`;
+const tbl=(head,rows)=>`<div class="tbl"><table><thead><tr>${head.map(h=>`<th${h[0]==='#'?' class="n"':''}>${h.replace(/^#/,'')}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td${head[i][0]==='#'?' class="n"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const pct=(v,d)=>v.toFixed(d).replace('.',',');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+
+/* ===================== ЦВЕТА ===================== */
+const RU={'grey':'Серый','orange':'Оранжевый','metal':'Металлический','blue':'Синий','purple':'Фиолетовый',
+ 'dark purple':'Тёмно-фиолетовый','dark blue':'Тёмно-синий','yellow':'Жёлтый','silver':'Серебряный','green':'Зелёный',
+ 'gold':'Золотой','red':'Красный','pink':'Розовый','sepia':'Сепия','cerulean':'Лазурный','bluespace':'Блюспейс',
+ 'pyrite':'Пиритовый','light pink':'Светло-розовый','oil':'Нефтяной','black':'Чёрный','adamantine':'Адамантиновый','rainbow':'Радужный'};
+const HEX={'grey':'#9aa1ab','orange':'#f08a2a','metal':'#8a8f98','blue':'#5ea3e0','purple':'#a06ad6','dark purple':'#6b3fa0',
+ 'dark blue':'#3254c4','yellow':'#e8c73a','silver':'#c3c8cf','green':'#45c058','gold':'#e3b23c','red':'#e0453a','pink':'#ef7fb8',
+ 'sepia':'#8a5a30','cerulean':'#2f6fd0','bluespace':'#3fc3c3','pyrite':'#d8c66a','light pink':'#f5b3cc','oil':'#4a4a50',
+ 'black':'#30303a','adamantine':'#2a9e9a','rainbow':'#d06ad8'};
+const COLORS=Object.keys(D.extracts);
+// Поколение цвета: сколько делений от серого (поиск в ширину по таблице мутаций из кода)
+const GEN=(()=>{const g={grey:0},q=['grey'];while(q.length){const c=q.shift();(D.mut[c]||[]).forEach(n=>{if(!(n in g)){g[n]=g[c]+1;q.push(n)}})}g.rainbow=4;return g})();
+const PARENTS={};Object.entries(D.mut).forEach(([p,ch])=>new Set(ch).forEach(c=>{if(c!==p)(PARENTS[c]=PARENTS[c]||[]).push(p)}));
+const ORDER=COLORS.slice().sort((a,b)=>GEN[a]-GEN[b]||COLORS.indexOf(a)-COLORS.indexOf(b));
+const VALUE={grey:5,orange:10,metal:10,blue:10,purple:10,'dark purple':50,'dark blue':50,green:50,silver:50,gold:50,yellow:50,red:50,pink:50,
+ cerulean:75,sepia:75,bluespace:75,pyrite:75,'light pink':75,oil:75,adamantine:75,black:75,rainbow:100};
+const GENNAME=['Исходный','Поколение 1','Поколение 2','Поколение 3','Особый'];
+
+/* ===================== СПРАЙТЫ ===================== */
+const IMG={},SPR={};
+function sheet(name){if(!IMG[name]){IMG[name]=new Image();IMG[name].src=D.sheets[name].png;IMG[name].onload=()=>document.querySelectorAll(`img[data-sh="${name}"]`).forEach(drawImg)}return IMG[name]}
+function drawImg(el){const k=el.dataset.sh+'|'+el.dataset.st+'|'+(el.dataset.tint||'');
+  if(SPR[k]){el.src=SPR[k];return}
+  const sh=D.sheets[el.dataset.sh],im=sheet(el.dataset.sh);if(!im.complete||!im.naturalWidth)return;
+  const i=sh.states[el.dataset.st];if(i==null)return;
+  const c=document.createElement('canvas');c.width=sh.fw;c.height=sh.fh;const x=c.getContext('2d');
+  x.drawImage(im,(i%sh.cols)*sh.fw,Math.floor(i/sh.cols)*sh.fh,sh.fw,sh.fh,0,0,sh.fw,sh.fh);
+  if(el.dataset.tint){x.globalCompositeOperation='multiply';x.fillStyle=el.dataset.tint;x.fillRect(0,0,sh.fw,sh.fh);
+    x.globalCompositeOperation='destination-in';x.drawImage(im,(i%sh.cols)*sh.fw,Math.floor(i/sh.cols)*sh.fh,sh.fw,sh.fh,0,0,sh.fw,sh.fh)}
+  SPR[k]=el.src=c.toDataURL()}
+const spr=(sh,st,cls='spr',tint='')=>`<img class="${cls}" alt="" data-sh="${sh}" data-st="${esc(st)}"${tint?` data-tint="${tint}"`:''} src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">`;
+const slimeImg=(c,age='baby',cls='spr')=>spr('slimes',`${c} ${age} slime`,cls);
+const coreImg=(c,cls='spr')=>spr('slimes',`${c} slime extract`,cls);
+const crossImg=(t,c,cls='spr')=>spr('cross',t==='industrial'?'industrial_still':t,cls,c==='rainbow'||c==='grey'?'':(D.tint[c]||''));
+function paintSprites(){document.querySelectorAll('img[data-sh]').forEach(el=>{sheet(el.dataset.sh);drawImg(el)})}
+new MutationObserver(paintSprites).observe(document.body,{childList:true,subtree:true});
+const chip=(c,extra='')=>`<span class="cchip" style="--cc:${HEX[c]}">${slimeImg(c,'baby','spr sm')}${RU[c]}${extra}</span>`;
+
+const C={cycle:'#3fb89a',feed:'#d9a03a',danger:'#c0393f',console:'#5b7be0',money:'#3fa66b',core:'#9a6ad6'};
+
+/* ===================== УХОД: ЦИКЛ ===================== */
+function renderCycle(){
+  let h='<div class="grid">';
+  h+=card('Цикл слайма <small>от малыша до 4 детей</small>',steps([
+    'Слайм-малыш ест: цепляется к живому существу (обычно к мартышке) и тянет из неё сытость, по 7–15 ед. за тик, пока жертва не умрёт.',
+    `Пока сытость выше порога роста (малыш — <b>800</b>, взрослый — <b>1000</b>), слайм тратит 20 ед. и растёт на 1. На <b>${10}</b> малыш становится взрослым.`,
+    'Взрослый снова ест и снова растёт до 10 — и <b>делится на 4 малышей</b>. Каждый малыш с шансом мутации (по умолчанию <b>'+D.chance+' %</b>) получает новый цвет из таблицы родителя.',
+    'Шанс мутации у детей = шанс родителя ± 5 случайно. Мутатор и стабилизатор меняют его прямо у слайма (см. «Зелья»).',
+    'Экстракт достают из <b>мёртвого</b> слайма: процессор слаймов или операция «удаление ядра». У обычного слайма одно ядро, стероид у малыша добавляет ещё (до 5).']),C.cycle);
+  h+=card('Пороги сытости',tbl(['Порог','#Малыш','#Взрослый','Что значит'],[
+    ['Потолок','1000','1200','Выше не наесть'],
+    ['Рост','800','1000','Выше — растёт (−20 за шаг роста)'],
+    ['Голод','500','600','Ниже — ест всегда, как только видит еду'],
+    ['Истощение','200','300','Ниже — ест в первую очередь, может напасть на экипаж'],
+  ])+note('Тратит в покое 1 ед. за тик (малыш) или 2 (взрослый). На нуле с шансом 75 % каждый тик теряет здоровье. Ручной (docile) слайм всегда держит 700 и не голодает.'),C.feed);
+  h+=card('Чем кормить',bul([
+    '<b>Мартышки</b> — основной корм. Кубик мартышки + вода = мартышка. Кубики даёт <b>утилизатор мартышек</b> (monkey recycler): трупы мартышек → кубики.',
+    'Утилизатор: кубиков за мартышку = (тир контейнера + тир манипулятора) × 0,5. С базовыми деталями — 1 кубик за 1 мартышку, с деталями 4-го тира — 4 кубика, то есть мартышки сами себя окупают.',
+    'Консоль управления (см. «Консоль и команды») хранит кубики, кидает мартышек слаймам и отправляет мёртвых мартышек под камерой в утилизатор своего отсека.',
+    '<b>Лист плазмы</b> из рук — не еда, а дружба: +1 к отношению слайма к вам.',
+    'Слайм <b>не ест</b> синтетиков и роботов; трупы тоже не подходят — нужна живая цель.']),C.feed);
+  h+=card('Сила и электричество',body([
+    'Сытый слайм копит заряд (power level) до 10: выше порога роста шанс +1 = 30 − 2×заряд %, просто сытый (голод + 100) копит до 5.',
+    'Заряженный слайм бьёт током при касании и при атаке. С зарядом выше 5 он опасен даже в изолированных перчатках — не трогайте взрослых без нужды.',
+    'BZ и стазис сбрасывают заряд в 0.']),C.danger);
+  h+=card('Деньги науке <small>BlueMoon</small>',body('Первый за смену экстракт <b>каждого цвета</b>, вынутый процессором или операцией на станции, Nanotrasen оплачивает бюджету науки: ценность цвета × цена очка (по умолчанию 10 кр).')+
+    tbl(['Ценность','Цвета','#Кредиты'],[
+      ['5','Серый','50'],
+      ['10','Оранжевый, металлический, синий, фиолетовый','100'],
+      ['50','Тёмно-фиолетовый, тёмно-синий, зелёный, серебряный, золотой, жёлтый, красный, розовый','500'],
+      ['75','Лазурный, сепия, блюспейс, пиритовый, светло-розовый, нефтяной, адамантиновый, чёрный','750'],
+      ['100','Радужный','1000'],
+    ])+note('Платится один раз за цвет на смену. Второй экстракт того же цвета денег не принесёт — экономьте их для реакций и кроссбридов.','ok'),C.money);
+  h+=card('Как достать экстракт',bul([
+    '<b>Процессор слаймов</b> (slime processor): затаскивает мёртвых слаймов рядом и выдаёт ядра. Экстрактов = ядра + тир контейнера − 1, то есть процессор с деталями лучше дарит лишние ядра.',
+    '<b>Операция «удаление ядра»</b> на мёртвом слайме: скальпель, затем гемостат или лом — по ядру за шаг, повторять, пока ядра есть.',
+    'Живой слайм ядро не отдаст. Убить можно холодом (огнетушитель, тёмно-синий экстракт) или оружием.',
+    'Экстракт срабатывает <b>один раз</b>, если не усилен Extract Enhancer (+1, до 5) или Maximizer (сразу 5).']),C.core);
+  h+='</div>';
+  $('#care-cycle').innerHTML=h;
+}
+
+/* ===================== УХОД: КОНСОЛЬ ===================== */
+function renderConsole(){
+  let h='<div class="grid">';
+  h+=card('Консоль управления слаймами <small>Slime management console</small>',steps([
+    'Камера консоли видит только <b>отсеки ксенобиологии</b>. Лазурные чертежи (cerulean + кровь) добавляют к ним любой отсек.',
+    '<b>Place Slimes</b> — выложить всех слаймов из памяти консоли в точку камеры (вместимость 10).',
+    '<b>Pick up Slime</b> — забрать слайма в память консоли (живых, не занятых едой).',
+    '<b>Feed Slimes</b> — выбросить мартышку из запаса в точку камеры.',
+    '<b>Recycle Monkeys</b> — забрать мёртвых мартышек под камерой в утилизатор: запас кубиков растёт на его выработку.',
+    '<b>Scan Slime</b> — анализ слайма под камерой (цвет, сытость, шанс мутации, заряд).',
+    '<b>Apply Potion</b> — применить загруженное в консоль зелье к слайму под камерой.']),C.console);
+  h+=card('Горячие клавиши в камере',tbl(['Клавиша','Что делает'],[
+    ['<kbd>Shift</kbd>+клик по слайму','Забрать слайма в консоль'],
+    ['<kbd>Shift</kbd>+клик по полу','Выложить всех слаймов'],
+    ['<kbd>Ctrl</kbd>+клик по полу','Кинуть мартышку'],
+    ['<kbd>Alt</kbd>+клик по слайму','Применить зелье'],
+    ['<kbd>Ctrl</kbd>+клик по мартышке','Отправить труп мартышки в утилизатор'],
+  ])+note('Часть клавиш открывается апгрейдами консоли (Basic / Advanced Slime Console в R&D). Кубики кладутся в консоль рукой или из мешка; загруженное зелье вынимается Alt-кликом по консоли.'),C.console);
+  h+=card('Команды голосом',body('Слайм слушает фразы с его номером (как в имени «baby slime (123)») или со словом <code>slimes</code>. Работает на английском:')+
+    tbl(['Фраза','#Дружба','Что делает'],[
+      ['<code>hello</code> / <code>hi</code>','—','Ответит.'],
+      ['<code>follow</code>','3','Идёт за вами (перебьёт того, кому слайм доверяет меньше).'],
+      ['<code>stay</code>','3','Стоит на месте (дольше при большей дружбе).'],
+      ['<code>stop</code>','4–7','Бросает погоню (4), еду (5); без обиды — с 6 и 7.'],
+      ['<code>attack</code> + имя','8','Нападает на названного.'],
+    ])+note('Дружба: +1 за каждый лист плазмы из рук. Удар (стан-дубинка, ладонь) — «дисциплина»: сбивает охоту и со временем бешенство.'),C.console);
+  h+='</div>';
+  $('#care-console').innerHTML=h;
+}
+
+/* ===================== УХОД: БЕЗОПАСНОСТЬ ===================== */
+function renderSafety(){
+  let h='<div class="grid">';
+  h+=card('Холод',tbl(['#Температура тела','Что происходит'],[
+    ['< +5 °C','начинается охлаждение'],
+    ['≤ −40 °C','оглушение (Tempstun) — слайм не двигается'],
+    ['≤ −50 °C','урон: 2×√(температура в K) за тик, ниже 50 K — сразу 200'],
+  ])+note('Огнетушитель и вода охлаждают слайма. Это главный способ утихомирить или убить разбуянившегося слайма.'),C.danger);
+  h+=card('BZ: стазис',body(['Если доля BZ в воздухе <b>5 % и больше</b> (а слайм холоднее +100 °C), слайм теряет сознание, заряд падает в 0, бешенство проходит.','В стазисе он не голодает, не растёт и не делится — так держат запас цветов на потом. Уберите BZ — проснётся.'])+note('BZ варят атмосферники (плазма + N₂O в нагретой камере). Канистра BZ в загоне — самый безопасный способ хранить слаймов.','ok'),'#5b7be0');
+  h+=card('Бешенство и побег',bul([
+    'Голодный слайм (ниже порога истощения) охотится на всех, кого видит, включая экипаж.',
+    'Слайм, доевший человека с игроком, становится <b>бешеным</b> (rabid) и нападает на всех подряд.',
+    'Красный экстракт + кровь бесит всех слаймов в поле зрения (ручных — просто дичает). Не активируйте его в лаборатории.',
+    'Успокоить: Docility Potion снимает бешенство (но ручным не делает), холод, BZ, удары.',
+    'Окна и решётки загонов: слаймы проходят сквозь открытые двери и проползают под шлюзами, если те открыты. Держите загоны закрытыми.']),C.danger);
+  h+=card('Опасные реакции <small>пишутся админам</small>',tbl(['Экстракт','Капнуть','Что будет'],[
+    [chip('gold'),'плазма','через 5 с — 5 враждебных существ'],
+    [chip('oil'),'плазма','через 5 с — взрыв 1/3/6'],
+    [chip('orange'),'плазма','через 5 с — облако горящей плазмы'],
+    [chip('dark blue'),'плазма','через 5 с — облако азота 2,7 K (лёд)'],
+    [chip('yellow'),'кровь','ЭМИ радиусом 10'],
+    [chip('red'),'кровь','бешенство всех слаймов рядом'],
+    [chip('rainbow'),'Slime Jelly','нестабильная кластерная граната'],
+  ])+note('Золотой и нефтяной экстракт с плазмой автоматически логируются и видны администрации. Применение против экипажа без причины — НРП.','bad'),C.danger);
+  h+='</div>';
+  $('#care-safety').innerHTML=h;
+}
+
+/* ===================== МУТАЦИИ: ДЕРЕВО ===================== */
+function renderTree(){
+  const sel=S.col in D.extracts?S.col:'grey';
+  let h=`<div class="palette">${ORDER.map(c=>`<button type="button" class="pal" data-col="${esc(c)}" aria-pressed="${c===sel}" style="--cc:${HEX[c]}" title="${RU[c]} — ${c}">${slimeImg(c,'baby','spr')}<span>${RU[c]}</span></button>`).join('')}</div>`;
+  const kids=D.mut[sel]||[],p=Math.min(100,Math.max(0,S.chance))/100;
+  const dist={};
+  if(sel==='rainbow'||!D.mut[sel]&&sel!=='grey'){dist[sel]=1}
+  else if(S.chance>=100){dist.rainbow=1}
+  else{dist[sel]=(dist[sel]||0)+(1-p);kids.forEach(k=>dist[k]=(dist[k]||0)+p/4)}
+  const rows=Object.entries(dist).sort((a,b)=>b[1]-a[1]);
+  const parents=PARENTS[sel]||[];
+  h+='<div class="grid">';
+  h+=card(`${slimeImg(sel,'adult','spr md')} ${RU[sel]} <small>${sel} · ${GENNAME[GEN[sel]]}</small>`,
+    `<div class="body"><label class="slider">Шанс мутации родителя: <b>${S.chance} %</b><input type="range" min="0" max="100" step="1" value="${S.chance}" data-chance></label>
+     <div class="seg mini" style="margin-top:6px">${[['0','0 % (стабилизатор ×2)'],['15','15 % (стабилизатор)'],['30','30 % (обычный)'],['42','42 % (мутатор)'],['100','100 % (радуга)']].map(([v,n])=>`<button type="button" data-setch="${v}" aria-pressed="${+v===S.chance}">${n}</button>`).join('')}</div></div>`+
+    `<div class="tbl"><table><thead><tr><th>Каждый из 4 детей</th><th class="n">Шанс</th><th class="n">Хотя бы 1 из 4</th></tr></thead><tbody>${rows.map(([c,q])=>`<tr><td>${chip(c)}</td><td class="n">${pct(q*100,q<.1?1:0)} %</td><td class="n">${pct((1-Math.pow(1-q,4))*100,0)} %</td></tr>`).join('')}</tbody></table></div>`+
+    (sel==='rainbow'?note('Радужный слайм не мутирует: дети всегда радужные. Получить его можно только когда шанс мутации родителя дошёл до 100 % — тогда все 4 ребёнка радужные, какого бы цвета ни был родитель.','ok')
+     :!D.mut[sel]?note('Этот цвет — конец ветки: при мутации остаётся собой. Но шанс мутации всё равно копится, и на 100 % дети станут радужными.')
+     :new Set(kids).size===4?note('У цвета в коде 4 ячейки мутаций — по одной на каждый цвет-потомок.')
+     :note('У цвета в коде 4 ячейки мутаций, и один цвет занимает две: '+[...new Set(kids)].map(k=>`${RU[k]} — ${kids.filter(x=>x===k).length} из 4`).join(', ')+'.')),'var(--accent)');
+  h+=card('Откуда берётся',parents.length?`<div class="body"><p>Мутирует из:</p><div class="chips2">${parents.map(chip).join('')}</div></div>`:
+    body(sel==='grey'?'Серый — стартовый цвет, с него начинается любая ветка. Нового серого малыша даёт серый экстракт + плазма.':'Только при шансе мутации 100 % у любого цвета.'),C.cycle);
+  const ext=D.extracts[sel];
+  h+=card(`${coreImg(sel,'spr md')} Что даёт экстракт`,tbl(['Капнуть','Результат'],D.reactions.filter(r=>r.col===sel).map(r=>[reqTxt(r),RX[r.id]||esc(r.name)]))+
+    `<div class="body"><p class="muted">Кроссбрид: <b>${CROSSNAME[ext.cross]||ext.cross}</b>${D.cross[ext.cross.replace('-','')]?'':' — в коде нет, слайм выдаст «нестабильно»'}.</p></div>`,C.core);
+  h+='</div>';
+  $('#mut-tree').innerHTML=h;
+}
+
+/* ===================== МУТАЦИИ: ПУТЬ ===================== */
+function pathTo(target){ // кратчайшая цепочка от серого
+  const prev={grey:null},q=['grey'];
+  while(q.length){const c=q.shift();if(c===target)break;new Set(D.mut[c]||[]).forEach(n=>{if(!(n in prev)){prev[n]=c;q.push(n)}})}
+  if(!(target in prev))return null;const p=[];for(let c=target;c;c=prev[c])p.unshift(c);return p}
+function renderCalc(){
+  const t=S.target in D.extracts?S.target:'cerulean';
+  let h=`<div class="palette">${ORDER.map(c=>`<button type="button" class="pal" data-target="${esc(c)}" aria-pressed="${c===t}" style="--cc:${HEX[c]}" title="${RU[c]}">${slimeImg(c,'baby','spr')}<span>${RU[c]}</span></button>`).join('')}</div>`;
+  h+='<div class="grid">';
+  if(t==='rainbow'){
+    h+=card('Путь к радужному',steps([
+      'Возьмите любого слайма и поднимите ему шанс мутации до 100 %.',
+      'Мутатор: +12 и только один раз на слайма. Значит, копить надо через поколения: дети наследуют шанс родителя ± 5.',
+      'Отбирайте детей с самым высоким шансом (сканер или Scan Slime в консоли) и каждому дайте мутатор.',
+      'В среднем +12 за поколение с мутатором: с 30 % до 100 % — около 6 поколений.',
+      'На 100 % все 4 ребёнка рождаются радужными.']),C.core);
+  }else{
+    const p=pathTo(t),p0=S.chance/100;
+    const rows=[];let total=0;
+    for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i],n=(D.mut[a]||[]).filter(x=>x===b).length;
+      const q=p0*n/4, any=1-Math.pow(1-q,4);total+=1/any;
+      rows.push([`${chip(a)} → ${chip(b)}`,`${n} из 4`,`${pct(q*100,1)} %`,`${pct(any*100,0)} %`,pct(1/any,1)])}
+    h+=card(`Путь к цвету ${RU[t]} <small>от серого, шанс мутации ${S.chance} %</small>`,
+      `<div class="body"><label class="slider">Шанс мутации: <b>${S.chance} %</b><input type="range" min="0" max="100" value="${S.chance}" data-chance></label></div>`+
+      (rows.length?tbl(['Шаг','Ячеек','#Шанс ребёнка','#Хотя бы 1 из 4','#Делений в среднем'],rows)+
+      note(`В среднем около <b>${Math.ceil(total)}</b> делений нужного слайма по этой цепочке. Неудачных детей не выбрасывайте: серые и прочие пригодятся на корм, экстракты и кроссбриды.`,'ok'):body('Это стартовый цвет — делить не нужно.')),C.cycle,'wide');
+    h+=card('Как ускорить',bul([
+      '<b>Мутатор</b> (красный + плазма): +12 к шансу мутации, один раз на слайма. Дайте его родителю перед делением.',
+      '<b>Стабилизатор</b> (синий + кровь): −15. Нужен, когда цвет уже получен и надо размножать его без мутаций.',
+      'Делите только нужный цвет; лишних слаймов — в процессор, их экстракты тоже польза.',
+      'Каждое деление — это 4 ребёнка, и каждый мутирует <b>отдельно</b>. Шанс «хотя бы один» в таблице считает это.']),C.feed);
+  }
+  h+=card('Вся таблица мутаций <small>из кода</small>',tbl(['Родитель','Дети при мутации (4 ячейки)'],Object.entries(D.mut).map(([p,k])=>[chip(p),k.map(x=>RU[x]).join(' · ')])),C.cycle,'wide');
+  h+='</div>';
+  $('#mut-calc').innerHTML=h;
+}
+
+/* ===================== ЭКСТРАКТЫ ===================== */
+const RNAME={plasma:'Плазма',blood:'Кровь',water:'Вода',radium:'Радий',slimejelly:'Slime Jelly',holywater:'Святая вода',uranium:'Уран'};
+const reqTxt=r=>r.req.map(([k,n])=>`<span class="rg rg-${k}">${n>1?n+' ед. ':''}${RNAME[k]||k}</span>`).join(' + ');
+const RX={
+ m_spawn:'Новый <b>серый слайм-малыш</b>.',
+ m_inaprov:'<b>3 ед. Epinephrine</b> (нужно 5 ед. воды).',
+ m_monkey:'<b>3 кубика мартышек</b>.',
+ slime_toxin:'<b>Slime Mutation Toxin</b> — превращает гуманоида в слаймолюда.',
+ mutationtoxin:'<b>Human Mutation Toxin</b> — превращает в человека.',
+ lizard:'<b>Lizard Mutation Toxin</b> — превращает в ящера.',
+ mammal:'<b>Mammal Mutation Toxin</b> — превращает в анторо (mammal).',
+ m_metal:'<b>15 листов металла</b> и <b>5 пластали</b>.',
+ m_glass:'<b>15 стекла</b> и <b>5 армированного стекла</b>.',
+ m_tele:'Через 5 с — <b>5 враждебных существ</b>. Логируется админам.',
+ m_tele3:'Через 5 с — 3 существа из «враждебного» списка, но во фракции экипажа: обычно не нападают.',
+ m_tele5:'Через 5 с — <b>1 мирное животное</b> (питомец).',
+ m_tele2:'5–6 случайных <b>блюд</b> и вспышка, слепящая всех, кто смотрит.',
+ m_tele4:'5–6 случайных <b>напитков</b> и вспышка.',
+ m_frostoil:'<b>10 ед. Frost Oil</b>.',
+ m_slimestabilizer:'Зелье <b>Slime Stabilizer</b>.',
+ m_foam:'<b>Пена</b>: 20 Fluorosurfactant + 20 воды сразу вспениваются (нужно 5 ед. воды).',
+ m_freeze:'Через 5 с — <b>облако азота 2,7 K</b>: мгновенно морозит всё вокруг.',
+ m_fireproof:'<b>Slime Chill Potion</b>: делает одежду огнеупорной, 3 применения.',
+ m_capsaicinoil:'<b>10 ед. Capsaicin Oil</b>.',
+ m_fire:'Через 5 с — <b>50 моль плазмы при 1000 K</b>: пожар.',
+ m_smoke:'Фосфор + калий + сахар по 10 ед. → <b>дымовая завеса</b> (нужно 5 ед. воды).',
+ m_emp:'<b>ЭМИ радиусом 10</b>.',
+ m_cell:'<b>Слайм-батарея</b> (high-capacity, сама подзаряжается).',
+ m_glow:'<b>Слайм-фонарь</b>: светится, сжатие — ярче.',
+ m_steroid:'Зелье <b>Slime Steroid</b>.',
+ m_regen:'<b>5 ед. Regenerative Jelly</b>.',
+ m_plasma:'<b>3 листа плазмы</b>.',
+ m_slimemutator:'Зелье <b>Slime Mutator</b>.',
+ m_bloodlust:'<b>Бешенство</b> всех слаймов в поле зрения; ручные просто дичают.',
+ m_speed:'<b>Slime Speed Potion</b>: снимает замедление с предмета или транспорта.',
+ m_potion:'<b>Docility Potion</b>: ручной слайм.',
+ m_gender:'<b>Gender Change Potion</b>.',
+ aslimetoxin:'<b>Advanced Mutation Toxin</b>: превращает в слайма-моба.',
+ m_explosion:'Через 5 с — <b>взрыв 1/3/6</b>. Логируется админам.',
+ m_cornoil:'<b>10 ед. Corn Oil</b>.',
+ m_potion2:'<b>Intelligence Potion</b>: разум животному.',
+ m_renaming_potion:'<b>Renaming Potion</b>: разумный моб выбирает себе имя.',
+ adamantine:'<b>1 лист адамантина</b> (для адамантинового голема).',
+ m_floor2:'<b>25 блюспейс-плиток</b>: по ним ходят быстрее.',
+ m_crystal:'<b>1 блюспейс-кристалл</b>.',
+ m_radio:'<b>Bluespace Radio Potion</b>: радио животному.',
+ m_steroid2:'<b>Extract Enhancer</b>: +1 использование экстракта.',
+ s_territory:'<b>Cerulean prints</b>: чертёж, делает любой отсек зоной ксенобиологии (видна консоли).',
+ m_stop:'Через 5 с — <b>остановка времени</b> вокруг; экстракт возвращается в руку, если остались использования.',
+ m_camera:'<b>Фотоаппарат</b> и плёнка.',
+ m_floor:'<b>25 плиток сепии</b>: время на них течёт медленнее.',
+ s_paint:'Случайная <b>банка краски</b>.',
+ s_crayon:'Случайный <b>мелок</b>.',
+ slimerng:'Случайный <b>слайм-малыш любого цвета</b>. Если в экстракте ≥ 5 ед. плазмы — кластерная слайм-граната.',
+ slimebomb:'<b>Clusterblorble</b>: нестабильная кластерная граната со слаймами.',
+ slimetransfer:'<b>Consciousness Transference Potion</b>: переселиться в животное.',
+ flightpotion:'<b>Flight Potion</b>: крылья (нужно 5 святой воды + 5 урана).',
+};
+function renderExt(){
+  const q=(S.q||'').trim().toLowerCase();
+  let h=`<div class="tools"><input type="search" placeholder="Поиск: цвет, реагент, результат (напр. плазма, адамантин, зелье)" value="${esc(S.q||'')}" data-q></div>`;
+  h+='<div class="grid">';
+  let n=0;
+  ORDER.forEach(c=>{
+    const ext=D.extracts[c];
+    const rs=D.reactions.filter(r=>r.col===c);
+    const hay=(c+' '+RU[c]+' '+rs.map(r=>r.name+' '+(RX[r.id]||'')+' '+r.req.map(x=>RNAME[x[0]]||x[0]).join(' ')).join(' ')).toLowerCase().replace(/<[^>]+>/g,'');
+    if(q&&!hay.includes(q))return;n++;
+    h+=card(`${coreImg(c,'spr md')} ${RU[c]} <small>${c} · ${GENNAME[GEN[c]]} · ценность ${VALUE[c]}</small>`,
+      tbl(['Капнуть','Результат'],rs.map(r=>[reqTxt(r),RX[r.id]||esc(r.name)]))+
+      `<div class="body"><p class="muted">Кроссбрид: <b>${CROSSNAME[ext.cross]||ext.cross}</b>${D.cross[ext.cross.replace('-','')]?'':' (в коде нет)'}</p></div>`,HEX[c]);
+  });
+  if(!n)h+=note('Ничего не нашлось.');
+  h+='</div>';
+  h+=`<div class="grid" style="margin-top:14px">`+card('Как активировать',steps([
+    'Налейте реагент <b>шприцем или пипеткой</b> прямо в экстракт (у экстракта свой объём 100 ед.).',
+    'Реакция идёт сразу. Обычно хватает 1 ед.; там, где написано «5 ед.», меньше не сработает.',
+    'Экстракт одноразовый: после реакции он исчезает (если не усилен энхансером).',
+    'Реакции с задержкой (золотой, нефтяной, оранжевый, тёмно-синий, сепия) дают 5 секунд — успейте бросить или уйти.']),C.core)+
+    card('Экстракт в процессоре и блендере',bul([
+      'Измельчённый экстракт даёт <b>20 ед. Slime Jelly</b> (если у него остались использования).',
+      'Slime Jelly капают в радужный экстракт — это кластерная граната.',
+      'Экстракты не портятся: их можно копить в мешке (bio bag) до нужного момента.']),C.feed)+'</div>';
+  $('#ext-root').innerHTML=h;
+}
+
+/* ===================== ЗЕЛЬЯ ===================== */
+function renderPot(){
+  const P=[
+    ['pink','плазма','Docility Potion','Слайм становится <b>ручным</b>: сытость навсегда 700, никого не ест, можно дать имя. На бешеного действует слабее — только снимает бешенство.'],
+    ['light pink','плазма','Intelligence Potion','Даёт <b>разум</b> животному или слайму: игрок-призрак вселяется и слушается того, кто дал зелье. Только органика и только моб без игрока.'],
+    ['purple','плазма','Slime Steroid','<b>+1 ядро</b> слайму-малышу (до 5). На взрослого не действует — давайте малышам.'],
+    ['cerulean','плазма','Extract Enhancer','<b>+1 использование</b> экстракта (до 5). Экстракт с энхансером можно активировать несколько раз.'],
+    ['blue','кровь','Slime Stabilizer','<b>Шанс мутации −15</b> у слайма. Можно давать несколько раз.'],
+    ['red','плазма','Slime Mutator','<b>Шанс мутации +12</b>. Только один раз на слайма.'],
+    ['red','вода','Slime Speed Potion','Снимает <b>замедление</b> с предмета (броня, скафандр) или транспорта и красит его в красный.'],
+    ['dark blue','вода','Slime Chill Potion','Делает одежду <b>огнеупорной</b> (как у пожарного), 3 применения.'],
+    ['pink','кровь','Gender Change Potion','Меняет пол существа.'],
+    ['light pink','вода','Renaming Potion','Разумный моб (с игроком) <b>выбирает новое имя</b>.'],
+    ['bluespace','вода','Bluespace Radio Potion','Имплант-<b>радио</b> животному: оно слышит и говорит в эфир.'],
+    ['rainbow','кровь','Consciousness Transference','Вы <b>переселяетесь</b> в животное без игрока; тело остаётся пустым.'],
+    ['rainbow','5 святой воды + 5 урана','Flight Potion','Выпить: <b>крылья</b> (у подходящих рас).'],
+  ];
+  let h='<div class="grid">';
+  h+=card('Зелья из экстрактов',tbl(['Экстракт','Капнуть','Зелье','Что делает'],P.map(([c,r,n,d])=>[chip(c),r,`<b>${n}</b>`,d])),C.core,'wide');
+  h+=card('Как давать зелья',bul([
+    'Зелье для слайма — <b>ударить им слайма</b> (клик зельем по нему). Для предмета — клик зельем по предмету.',
+    'Через консоль: загрузите зелье в консоль и нажмите <b>Apply Potion</b> или <kbd>Alt</kbd>+клик по слайму в камере.',
+    'Мёртвому слайму зелья не помогают (кроме специальных из кроссбридов: Slime Reviver из заряженного серого).']),C.cycle);
+  h+=card('Зелья из кроссбридов',bul([
+    '<b>Extract Maximizer</b> (заряженный лазурный): экстракт сразу на 5 использований.',
+    '<b>Slime Reviver</b> (заряженный серый): оживляет мёртвого слайма.',
+    '<b>Charged Stabilizer</b> (заряженный синий): шанс мутации 0 навсегда.',
+    '<b>Spaceproof / Lavaproof Potion</b> (заряженный тёмно-синий / красный): одежда защищает от космоса / лавы.',
+    '<b>Love / Peace Potion</b> (заряженный розовый / светло-розовый).',
+    '<b>Extract Cloner</b> (горящий лазурный): копирует экстракт.']),C.feed);
+  h+='</div>';
+  $('#pot-root').innerHTML=h;
+}
+
+/* ===================== КРОССБРИДЫ ===================== */
+const CROSSNAME={reproductive:'Reproductive — размножающий',symbiont:'Symbiont',consuming:'Consuming — поглощающий',industrial:'Industrial — промышленный',
+ regenerative:'Regenerative — регенерирующий','self-sustaining':'Self-sustaining — самодостаточный',burning:'Burning — горящий',charged:'Charged — заряженный',
+ sanguine:'Sanguine',stabilized:'Stabilized — стабилизированный',chilling:'Chilling — охлаждающий',gentle:'Gentle',mutative:'Mutative',loyal:'Loyal',
+ transformative:'Transformative',detonating:'Detonating',crystalline:'Crystalline',warping:'Warping',prismatic:'Prismatic — призматический',
+ recurring:'Recurring — возобновляемый',lengthened:'Lengthened',hyperchromatic:'Hyperchromatic'};
+// тип кроссбрида -> [цвет-основа, как пользоваться]
+const XT={
+ reproductive:['grey','Скормите ему <b>3 кубика мартышек</b> → 1–4 обычных экстракта того же цвета. Кулдаун 3 с. Бесконечный источник экстрактов цвета.'],
+ industrial:['metal','Залейте плазму: впитывает по 2 ед. за тик и, накопив нужное, печатает предмет. Работает сам, пока есть плазма.'],
+ regenerative:['purple','Сожмите на себе (1 с) или на другом (5 с): <b>полное исцеление</b> как от ядра легиона + эффект цвета. Мёртвых не поднимает.'],
+ selfsustaining:['dark purple','Распадается на <b>4 самодостаточных экстракта</b>: в руке выбираете реагент — экстракт сам наполняется и срабатывает без шприца.'],
+ burning:['orange','Залейте <b>10 ед. плазмы</b> и сожмите в руке. В основном атакующий эффект.'],
+ charged:['yellow','Залейте <b>10 ед. плазмы</b> и сожмите в руке. Усиленная версия обычной реакции цвета.'],
+ chilling:['dark blue','Залейте <b>10 ед. плазмы</b> и сожмите в руке. В основном защитный эффект.'],
+ stabilized:['blue','Носите в руке, кармане или рюкзаке — <b>постоянный эффект</b>, пока экстракт при вас.'],
+ consuming:['silver','Кормите едой с питательными веществами (можно подносом): на 10 ед. нутриентов — 5 печений цвета. Кулдаун 1 минута.'],
+ prismatic:['pyrite','Кистью-экстрактом <b>красите</b> что угодно в цвет экстракта. Серый смывает краску, радужный — любой цвет.'],
+ recurring:['cerulean','Экстракт сам набирает +1 использование каждые 12–42 с (до 10). Если дать ему дойти до 0 — гаснет навсегда.'],
+};
+const XC={
+ burning:{grey:'Слайм-малыш, дружит с вами, разогрет и голоден — сразу атакует.',orange:'Облако Condensed Capsaicin (100 ед.) радиусом 7.',purple:'Автоинъектор «слаймовый стимулятор».',blue:'Пол вокруг (3) покрывается льдом, всех в 5 клетках охлаждает.',metal:'Разбирает стены вокруг (1 клетка).',yellow:'Удар током 25 всем в 4 клетках, кроме вас.',
+  'dark purple':'Выброс 60 моль плазмы под ногами.','dark blue':'Облако Frost Oil, а вам 10 ед. Cryoxadone.',silver:'3–6 блюд вокруг с примесью Slime Jelly.',bluespace:'Телепортирует всех рядом (1 клетка) на 6 клеток.',sepia:'Фотоаппарат перемотки (rewind camera).',cerulean:'Extract Cloner — зелье-копировщик экстракта.',
+  pyrite:'Бьёт все лампы в отсеке.',red:'Все слаймы в 7 клетках забывают друзей (кроме вас) и бесятся.',green:'Рука превращается в слаймовый клинок (30 ожога руке).',pink:'Мензурка с Pax.',gold:'3 враждебных существа, но вас они считают своим.',oil:'Через 5 с взрыв 2/4/4.',
+  black:'Вы превращаетесь в слайма (снимается заклинанием).','light pink':'Всем в 7 клетках по 5 ед. Pax.',adamantine:'Адамантиновый щит.',rainbow:'Радужный нож.'},
+ charged:{grey:'Slime Reviver — зелье оживления слайма.',orange:'Огонь на всех клетках в радиусе 5.',purple:'Мензурка Omnizine.',blue:'Charged Stabilizer — шанс мутации 0.',metal:'25 металла и 10 пластали.',yellow:'Гиперзаряженная слайм-батарея.',
+  'dark purple':'10 листов плазмы.','dark blue':'Spaceproof Potion — одежда держит космос.',silver:'Слаймовый торт и 10 случайных напитков.',bluespace:'10 блюспейс-кристаллов (листами).',sepia:'Spooky camera — видит призраков.',cerulean:'Extract Maximizer — экстракт на 5 использований.',
+  pyrite:'10 листов бананиума.',red:'Lavaproof Potion — одежда держит лаву.',green:'Смена расы на любой подвид слаймолюдов (выбор).',pink:'Love Potion.',gold:'Через 5 с — до 10 враждебных существ по очереди.',oil:'Через 5 с взрыв 3/2/1 — маленький, но мощный.',
+  black:'Случайная смена расы.','light pink':'Peace Potion.',adamantine:'Спавнер адамантинового голема-слуги.',rainbow:'3 слайма случайного цвета.'},
+ chilling:{grey:'3 кубика-барьера.',orange:'Кольцо огня вокруг (на расстоянии 2).',purple:'Всем в отсеке по 10 ед. Regenerative Jelly (не на открытом воздухе).',blue:'Маска «nobreath»: не нужно дышать.',metal:'Стены-силовые поля вокруг вас.',yellow:'Все АПЦ отсека +50 % заряда.',
+  'dark purple':'Убирает плазму из воздуха всего отсека (не на открытом воздухе).','dark blue':'Вы замерзаете в стазисе (защита от всего).',silver:'5–10 сухпайков.',bluespace:'Отметьте союзников (клик), сожмите: через 10 с всех тянет к вам.',sepia:'Отметьте союзников, сожмите: остановка времени, союзники не затронуты.',cerulean:'Слаймовый клон: вы управляете им, пока он в сознании, потом возвращаетесь в тело.',
+  pyrite:'Призматические очки.',red:'Все слаймы в 7 клетках становятся ручными.',green:'Рука превращается в «ледяную пушку» (30 ожога руке).',pink:'Слаймовый щенок корги.',gold:'Устройство поимки (capture device) для мобов.',oil:'Через 5 с — широкий, но слабый взрыв (лёгкие повреждения на 10).',
+  black:'Вы становитесь случайным големом.','light pink':'Цветок мира на голову.',adamantine:'Адамантиновая броня.',rainbow:'Радужные силовые поля на всех шлюзах отсека.'},
+ industrial:{grey:'5 кубиков мартышек за 2 ед. плазмы.',orange:'Слайм-зажигалка (6 ед.).',purple:'Регенерирующий автоинъектор (5 ед.).',blue:'Огнетушитель (10 ед.).',metal:'10 листов металла (3 ед.).',yellow:'Высокоёмкая батарея с случайным зарядом (5 ед.).',
+  'dark purple':'Лист плазмы (10 ед.).','dark blue':'Chill Potion на 1 применение (6 ед.).',silver:'Случайная еда или напиток (1 ед.).',bluespace:'Искусственный блюспейс-кристалл (7 ед.).',sepia:'Фотоаппарат (2 ед.).',cerulean:'Extract Enhancer (5 ед.).',
+  pyrite:'Баллончик краски (2 ед.).',red:'Пакет крови (5 ед.).',green:'Автоинъектор Slime Jelly (7 ед.).',pink:'Автоинъектор «мир и любовь» (6 ед.).',gold:'Случайная монета (10 ед.).',oil:'Самодельная граната IED (4 ед.).',
+  black:'Пачка ксеносигарет (6 ед.).','light pink':'Коробка конфет-сердечек (3 ед.).',adamantine:'Лист адамантина (10 ед.).',rainbow:'Случайный обычный экстракт (5 ед.).'},
+ regenerative:{grey:'Только исцеление.',orange:'Огонь вокруг (1 клетка) перед исцелением.',purple:'+10 ед. Regenerative Jelly.',blue:'Пол под целью мокрый.',metal:'Цель запирается в слаймовом шкафу.',yellow:'Полностью заряжает одну батарею в инвентаре.',
+  'dark purple':'Надевает фиолетовый комплект одежды на пустые слоты.','dark blue':'Огнеупорность костюма и шлема.',silver:'Полная сытость и жажда.',bluespace:'Цель телепортируется туда, где экстракт был создан.',sepia:'Дежавю: через время цель откатится на место и состояние момента применения.',cerulean:'Вы получаете копию экстракта (одноразово).',
+  pyrite:'Цель перекрашивается в случайный цвет.',red:'+3 ед. Ephedrine.',green:'Слайму — случайный цвет; слаймолюду — Slime Mutation Toxin.',pink:'+4 ед. Krokodil.',gold:'Монета в руку.',oil:'Ослепляет всех вокруг (7 клеток).',
+  black:'Рядом появляется мёртвый двойник цели с её ранами.','light pink':'Если лечите другого — исцеляетесь и вы.',adamantine:'Слаймовая кожа: +10 % сопротивления урону на 30 с.',rainbow:'10 с полной неуязвимости (и пацифизма).'},
+ stabilized:{grey:'Слаймы рядом (1 клетка) записывают вас в друзья.',orange:'Держит нормальную температуру тела.',purple:'Медленное лечение (по 0,4 ран, ожогов, токсинов за тик).',blue:'Вы не скользите по мокрому полу.',metal:'Раз в 30 тиков +1 лист к стопке в инвентаре.',yellow:'Подзаряжает батареи в инвентаре.',
+  'dark purple':'Горячие руки: еда в руке готовится, предметы нагреваются.','dark blue':'Тушит вас и предмет в руке.',silver:'Голод и жажда вдвое медленнее.',bluespace:'При тяжёлом ранении телепортирует в безопасное место; перезарядка 2 минуты.',sepia:'Скорость случайно скачет.',cerulean:'У вас есть слаймовый клон: если умрёте, переселитесь в него.',
+  pyrite:'Вы переливаетесь случайными цветами.',red:'Броня и снаряжение не замедляют.',green:'Вы выглядите как случайный человек (маскировка).',pink:'Простые животные рядом не нападают на вас.',gold:'Свой фамильяр-питомец; можно дать ему разум.',oil:'После смерти вы взрываетесь.',
+  black:'Удушая захватом, вытягиваете здоровье жертвы.','light pink':'Пацифизм, но бег не тратит выносливость и вы быстрее.',adamantine:'+5 % сопротивления урону.',rainbow:'Вложите регенерирующий экстракт: при крите он сработает сам.'},
+ consuming:{grey:'Slime cookie — просто сытная.',orange:'+110 к температуре тела и 10 с устойчивости к холоду.',purple:'Лечит по 5 всех видов урона.',blue:'10 с не скользите, а пол вокруг вас мокнет.',metal:'10 с: −10 % механического урона.',yellow:'30 с: полная защита от тока.',
+  'dark purple':'60 с токсины вас лечат, а не ранят.','dark blue':'Морозное: −110 к температуре, тушит.',silver:'+10 ед. стабилизированного нутриента.',bluespace:'Телепорт в случайную точку отсека.',sepia:'60 с: действия (работа руками) быстрее.',cerulean:'С шансом 50 % оставляет ещё одно печенье.',
+  pyrite:'Перекрашивает вас.',red:'Восполняет кровь (+25).',green:'Рвота и очистка всех реагентов.',pink:'30 с вы обнимаете всех рядом.',gold:'Золотая монета в руку.',oil:'10 с: люди в 2 клетках от вас вязнут в смоле.',
+  black:'30 с все видят вас скелетом.','light pink':'10 с: всех в 2 клетках накрывает «мир и любовь».',adamantine:'10 с: −10 % ожогов.',rainbow:'Случайное печенье любого цвета.'},
+};
+function crossDesc(t,c){
+  if(t==='reproductive')return `Даёт обычные ${RU[c].toLowerCase()}е экстракты: 3 кубика → 1–4 шт.`;
+  if(t==='selfsustaining')return `4 экстракта, которые срабатывают без шприца: выбор реагента в руке.`;
+  if(t==='recurring')return `${RU[c]} экстракт с восполнением использований.`;
+  if(t==='prismatic')return c==='grey'?'Смывает краску.':c==='rainbow'?'Красит в любой выбранный цвет.':`Красит в ${RU[c].toLowerCase()} цвет.`;
+  return (XC[t]||{})[c]||'—'}
+function renderCross(){
+  const types=Object.keys(D.cross);
+  const t=types.includes(S.ct)?S.ct:'stabilized';
+  let h='<div class="grid">';
+  h+=card('Как сделать кроссбрид',steps([
+    `Возьмите <b>взрослого живого</b> слайма любого цвета.`,
+    `Кормите его экстрактами <b>одного</b> цвета (клик экстрактом по слайму): тип кроссбрида задаёт цвет скормленных экстрактов (см. ниже), а цвет результата — цвет самого слайма.`,
+    `Нужно <b>${D.crossNeed}</b> экстрактов. На последнем слайм целиком превращается в кроссбрид (сам слайм пропадает).`,
+    'Начали кормить одним цветом — другим уже нельзя.',
+    'Например: синий слайм + 10 фиолетовых экстрактов = регенерирующий синий.']),C.core);
+  const okc=COLORS.filter(c=>D.cross[D.extracts[c].cross.replace('-','')]),bad=COLORS.filter(c=>!okc.includes(c));
+  h+=card('Цвет экстрактов → тип кроссбрида',tbl(['Кормить экстрактами','Тип'],okc.map(c=>[chip(c),`<b>${CROSSNAME[D.extracts[c].cross]||D.extracts[c].cross}</b>`]))+
+    (bad.length?note('Остальные цвета ('+bad.map(c=>RU[c].toLowerCase()).join(', ')+') в коде кроссбрида не имеют: слайм съест все 10 экстрактов и растечётся лужей, ничего не дав. Не тратьте на это ни экстракты, ни слайма.','warn'):''),C.cycle);
+  h+='</div>';
+  h+=`<div class="seg subnav" style="margin-top:14px">${types.map(x=>`<button type="button" data-ct="${x}" aria-pressed="${x===t}">${(CROSSNAME[x==='selfsustaining'?'self-sustaining':x]||x).split(' — ')[1]||x}</button>`).join('')}</div>`;
+  const [base,how]=XT[t]||['grey',''];
+  h+=`<div class="grid">`+card(`${crossImg(t,'','spr md')} ${CROSSNAME[t==='selfsustaining'?'self-sustaining':t]} <small>${D.crossNeed} экстрактов «${RU[base].toLowerCase()}» в слайма нужного цвета</small>`,body(how)+
+    tbl(['Цвет слайма','Результат'],D.cross[t].map(c=>[`<span class="cchip" style="--cc:${HEX[c]}">${crossImg(t,c,'spr sm')}${RU[c]}</span>`,crossDesc(t,c)])),HEX[base],'wide')+'</div>';
+  $('#cross-root').innerHTML=h;
+}
+
+/* ===================== ОБЩЕЕ ===================== */
+const S0={tab:'care',sub:{care:'cycle',mut:'tree'},col:'grey',target:'cerulean',chance:D.chance,q:'',ct:'stabilized'};
+const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  s=Object.assign({},S0,s&&typeof s==='object'?s:{});s.sub=Object.assign({},S0.sub,s.sub||{});return s})();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const TABS=['care','mut','ext','pot','cross'];
+const SUBS={care:[['cycle','Цикл и корм'],['console','Консоль и команды'],['safety','Опасности']],mut:[['tree','Цвет и дети'],['calc','Путь к цвету']],ext:[],pot:[],cross:[]};
+const RENDER={care:{cycle:renderCycle,console:renderConsole,safety:renderSafety},mut:{tree:renderTree,calc:renderCalc},ext:{'':renderExt},pot:{'':renderPot},cross:{'':renderCross}};
+const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);if(el)el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
+function go(t,sub){
+  if(sub)S.sub[t]=sub;
+  if(SUBS[t].length&&!SUBS[t].some(([id])=>id===S.sub[t]))S.sub[t]=SUBS[t][0][0];
+  S.tab=t;
+  TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
+  subSeg(t);SUBS[t].forEach(([id])=>{$('#'+t+'-'+id).hidden=id!==S.sub[t]});
+  const s=SUBS[t].length?S.sub[t]:'';RENDER[t][s]();save();setHash(t+(s?'/'+s:''));window.scrollTo(0,0)}
+const rerender=()=>{const s=SUBS[S.tab].length?S.sub[S.tab]:'';RENDER[S.tab][s]();save()};
+function setHash(h){try{history.replaceState(null,'','#'+h)}catch(e){}}
+document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)go(b.dataset.tab)});
+document.querySelectorAll('[data-subs]').forEach(el=>el.addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(b)go(el.dataset.subs,b.dataset.sub)}));
+document.addEventListener('click',e=>{
+  let b;
+  if(b=e.target.closest('[data-col]')){S.col=b.dataset.col;rerender()}
+  else if(b=e.target.closest('[data-target]')){S.target=b.dataset.target;rerender()}
+  else if(b=e.target.closest('[data-setch]')){S.chance=+b.dataset.setch;rerender()}
+  else if(b=e.target.closest('[data-ct]')){S.ct=b.dataset.ct;rerender()}
+  else if(b=e.target.closest('.cchip[data-go]')){S.col=b.dataset.go;go('mut','tree')}
+});
+document.addEventListener('input',e=>{
+  if(e.target.matches('[data-chance]')){S.chance=+e.target.value;const pos=e.target.selectionStart;rerender();const r=document.querySelector('[data-chance]');r&&r.focus()}
+  else if(e.target.matches('[data-q]')){S.q=e.target.value;const pos=e.target.selectionStart;rerender();const i=document.querySelector('[data-q]');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(_){}}}
+});
+
+const [h0,h1]=(location.hash||'').slice(1).split(/[\/-]/);
+if(TABS.includes(h0))go(h0,SUBS[h0].some(([id])=>id===h1)?h1:null);
+else go(TABS.includes(S.tab)?S.tab:'care');
+
+</script>
+</body>
+</html>

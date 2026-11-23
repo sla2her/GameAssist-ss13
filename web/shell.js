@@ -36,6 +36,8 @@ const ICONS = {
   bubble: '<circle cx="17" cy="17" r="4"/><path d="M4 4h9M4 4v9M4 4l8.5 8.5"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   fish: '<path d="M2.5 12c2.6-3.6 6-5.5 9.6-5.5 3.4 0 6.1 1.9 7.9 5.5-1.8 3.6-4.5 5.5-7.9 5.5-3.6 0-7-1.9-9.6-5.5z"/><path d="M20 12l2-3v6z"/><circle cx="8" cy="11" r="1"/><path d="M13 9.5c.8.7 1.2 1.5 1.2 2.5s-.4 1.8-1.2 2.5"/>',
+  slime: '<path d="M4 19c-1.5 0-2-1-1.5-2.5C4 11 7 5 12 5s8 6 9.5 11.5c.5 1.5 0 2.5-1.5 2.5z"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M10 15.5c1.2.8 2.8.8 4 0"/>',
+  leaf: '<path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19c3-4 6-7 10-10"/><path d="M5 19l-2 2"/>',
   virus: '<circle cx="12" cy="12" r="5.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5.6 5.6l1.9 1.9M16.5 16.5l1.9 1.9M18.4 5.6l-1.9 1.9M7.5 16.5l-1.9 1.9"/><circle cx="10.2" cy="10.8" r="1"/><circle cx="14" cy="13.4" r="1"/>',
 };
 const svg = (name, extra = '') =>
@@ -92,6 +94,12 @@ const APPS = [
   // Рыбалка — третье приложение «Общего»: справочник по рыбе и симулятор мини-игры; своей клавиши нет
   { id: 'fishing', name: 'Рыбалка', sub: 'Рыба и симулятор', desc: 'Места, шансы улова, снасти, мини-игра',
     src: 'apps/fishing/index.html', color: '#2f8fb8', icon: 'fish', hscroll: 'nav, .chips', css: false },
+  // Ксенобиология — третье приложение науки: слаймы, мутации цветов, экстракты, кроссбриды; своей клавиши нет
+  { id: 'xeno', name: 'Ксенобиология', short: 'Ксено', sub: 'Слаймы и экстракты', desc: 'Уход, мутации цветов, реакции, зелья, кроссбриды',
+    src: 'apps/xeno/index.html', color: '#2f9e84', icon: 'slime', hscroll: 'nav, .subnav, .chips', css: false },
+  // Ботаника — второе приложение сервиса: растения, лоток, химия, гены; своей клавиши нет
+  { id: 'botany', name: 'Ботаника', sub: 'Растения и мутации', desc: 'Статы и гены растений, лоток, химия, мутации',
+    src: 'apps/botany/index.html', color: '#5f9e46', icon: 'leaf', hscroll: 'nav, .subnav, .chips', css: false },
 ];
 // Клавиша приложения: Alt+1…9, дальше — Alt+-, Alt+=, Alt+\
 const EXTRA_KEYS = [['Minus', '-'], ['Equal', '='], ['Backslash', '\\']];
@@ -107,9 +115,9 @@ const DEPTS = [
   { id: 'law', name: 'Юридический отдел', short: 'Юр. отдел', sub: 'АВД и Представитель', color: '#b8863b', icon: 'scales', apps: ['avd'] },
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
   { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
-  { id: 'sci', name: 'Наука', sub: 'Схемы и робототехника', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo'] },
+  { id: 'sci', name: 'Наука', sub: 'Схемы, роботы, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'xeno'] },
   { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
-  { id: 'srv', name: 'Сервис', sub: 'Повар и бармен', color: '#e07a3f', icon: 'cloche', apps: ['kitchen'] },
+  { id: 'srv', name: 'Сервис', sub: 'Кухня, бар, ботаника', color: '#e07a3f', icon: 'cloche', apps: ['kitchen', 'botany'] },
   { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev'] },
 ];
 const byDept = Object.fromEntries(DEPTS.map((d) => [d.id, d]));
