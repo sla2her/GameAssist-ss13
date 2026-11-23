@@ -83,7 +83,12 @@ html.nohost.compact:not(.mobile) #win {
 .ibtn[aria-pressed="true"] { color: var(--text); background: var(--surface2); }
 .ibtn[aria-pressed="true"] svg { transform: rotate(-45deg); }
 .ibtn svg { transition: transform .15s; }
-.switch { display: flex; gap: 1px; padding-left: 4px; margin-left: 2px; border-left: 1px solid var(--line); }
+.switch {
+  display: flex; gap: 1px; padding-left: 4px; margin-left: 2px; border-left: 1px solid var(--line);
+  /* Значков много: в узком окне лента прокручивается, а кнопки справа (режим, закрепление) остаются видны */
+  min-width: 0; overflow-x: auto; scrollbar-width: none;
+}
+.switch::-webkit-scrollbar { display: none; }
 .switch button[aria-current="true"] { color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
 .switch button { position: relative; }
 .switch button.alive::after {
@@ -94,6 +99,8 @@ html.nohost.compact:not(.mobile) #win {
 .apptitle small { font-weight: 400; color: var(--muted); margin-left: 6px; }
 .compact .apptitle { margin-left: 6px; font-size: 12px; }
 .compact .apptitle small { display: none; }
+/* В компактном окне название уже есть в шапке модуля и на подсвеченном значке — место отдаём ленте */
+.compact .apptitle { display: none; }
 
 /* Прозрачность окна */
 .opacbox { position: relative; display: flex; }
@@ -235,7 +242,6 @@ html.nohost.compact:not(.mobile) #win {
 .mobile { -webkit-tap-highlight-color: transparent; }
 .mobile .bar { height: 40px; padding: 0 4px; }
 .mobile .hubbtn, .mobile .ibtn, .mobile .switch button { width: 36px; height: 34px; }
-.mobile .switch { overflow-x: auto; scrollbar-width: none; min-width: 0; }
 .mobile .homefoot .keys { display: none; }
 .phone #modeBtn, .phone .modepill { display: none; }
 .phone .rstack { --d: min(390px, calc(100vw - 20px), calc(100vh - 90px)); }
