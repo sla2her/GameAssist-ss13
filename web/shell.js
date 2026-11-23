@@ -360,6 +360,8 @@ function open(id) {
   $('switch').querySelectorAll('button').forEach((b) => {
     b.setAttribute('aria-current', b.dataset.id === id ? 'true' : 'false');
     b.classList.toggle('alive', !!frames[b.dataset.id]);
+    // Значков больше, чем помещается в узкой панели, — прокручиваем к текущему
+    if (b.dataset.id === id) b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   });
   document.title = app.name + ' — Пульт';
   send('title:' + document.title);
@@ -534,6 +536,13 @@ function buildSwitch() {
   $('switch').innerHTML = APPS.map((a, i) =>
     `<button data-id="${a.id}" style="--c:${a.color}" title="${a.name}${appKey(i) ? ` (${appKey(i)})` : ''}" aria-label="${a.name}">${svg(a.icon)}</button>`).join('');
   $('switch').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) open(b.dataset.id); });
+  // Значки не помещаются в узкое окно — колесо мыши крутит ленту по горизонтали
+  $('switch').addEventListener('wheel', (e) => {
+    const sw = $('switch');
+    if (sw.scrollWidth <= sw.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    sw.scrollLeft += e.deltaY;
+  }, { passive: false });
   $('hubBtn').innerHTML = `<svg viewBox="-12 -12 24 24" aria-hidden="true">${logoArcs(9, 3)}</svg>`;
   $('hubBtn').addEventListener('click', toggleMenu);
 }

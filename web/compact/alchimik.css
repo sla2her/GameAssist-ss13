@@ -13,11 +13,11 @@
 }
 .pult-compact .ver { display: block !important; font-size: 10.5px; }
 .pult-compact .credit { font-size: 10.5px; padding: 0 6px; }
-/* Вкладки — одной строкой с прокруткой */
+/* Вкладки — переносом в две строки: при прокрутке последние вкладки было не видно */
 .pult-compact .tabs {
-  order: 3; width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; margin: 0 -2px;
+  order: 3; width: 100%; flex-wrap: wrap; margin: 0 -2px;
 }
-.pult-compact .tab { padding: 5px 9px; white-space: nowrap; flex: none; }
+.pult-compact .tab { padding: 5px 9px; white-space: nowrap; flex: 1 1 auto; }
 
 .pult-compact main { padding: 5px; }
 .pult-compact .grid3 { grid-template-columns: minmax(0, 1fr) !important; gap: 6px; }
