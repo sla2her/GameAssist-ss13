@@ -133,6 +133,29 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .steps { display: block; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Газовый калькулятор */
+.calc { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); margin: 8px 0; }
+.cbox { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.cbox h3 { margin: 0 0 8px; color: var(--accent); }
+.frm { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; font-size: 13px; }
+.frm label { color: var(--dim); }
+.frm input, .frm select { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; color: var(--fg); padding: 4px 8px; font: inherit; min-width: 0; width: 100%; }
+.frm .row2 { display: flex; gap: 6px; }
+.res { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin-top: 10px; }
+.res div { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; }
+.res b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.res span { font-size: 11.5px; color: var(--dim); }
+.gauge { position: relative; height: 14px; border-radius: 7px; margin: 12px 0 18px; background: linear-gradient(90deg, #6b2a2a 0 3.3%, #6b5a2a 3.3% 8.3%, #2d5a3d 8.3% 54%, #6b5a2a 54% 91.6%, #6b2a2a 91.6%); }
+.gauge i { position: absolute; top: -4px; width: 4px; height: 22px; background: var(--fg); border-radius: 2px; transform: translateX(-2px); transition: left .3s; }
+.gauge em { position: absolute; top: 16px; font-size: 10.5px; color: var(--dim); font-style: normal; transform: translateX(-50%); }
+.mixbar { display: flex; height: 18px; border-radius: 6px; overflow: hidden; margin-top: 8px; border: 1px solid var(--line); }
+.mixbar span { display: block; height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--dim); margin-top: 4px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; }
+.verdict { margin-top: 8px; padding: 7px 10px; border-radius: 8px; font-size: 13px; background: var(--panel2); border-left: 3px solid var(--ok); }
+.verdict.bad { border-left-color: #e06c6c; }
+.verdict.mid { border-left-color: var(--note); }
 </style>
 </head>
 <body>
@@ -143,9 +166,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
 <div class="doc" id="doc" hidden><div class="in">
   <p class="lead">Как вернуть воздух в повреждённый отсек, чем дышат на станции и как смешивать и варить газы. Числа — по коду сборки BlueMoon.</p>
   <nav class="toc" aria-label="Разделы">
-    <a href="#air-norm">Нормы</a><a href="#air-fix">Вернуть воздух</a><a href="#air-alarm">Воздушная тревога</a>
+    <a href="#air-calc">Калькулятор</a><a href="#air-norm">Нормы</a><a href="#air-fix">Вернуть воздух</a><a href="#air-alarm">Воздушная тревога</a>
     <a href="#air-mix">Смешивание</a><a href="#air-cook">Варка газов</a><a href="#air-gases">Газы</a>
   </nav>
+
+  <h2 id="air-calc">Газовый калькулятор</h2>
+  <p class="lead">Меняйте числа — результат пересчитывается сразу. Формулы как в коде: PV = nRT (R = 8,31), клетка = 2 500 л, канистра = 1 000 л и при заводской заправке ≈ 4 560 кПа.</p>
+  <div class="calc">
+    <div class="cbox">
+      <h3>Отсек: сколько закачать</h3>
+      <div class="frm">
+        <label for="rmT">Клеток пола</label><input id="rmT" type="number" min="1" max="2000" value="20">
+        <label for="rmP">Сейчас, кПа</label><input id="rmP" type="number" min="0" step="1" value="0">
+        <label for="rmG">Цель, кПа</label><input id="rmG" type="number" min="1" step="1" value="101">
+        <label for="rmC">Температура, °C</label><input id="rmC" type="number" step="1" value="20">
+      </div>
+      <div class="gauge" id="rmGauge"><i></i><em style="left:3.3%">20</em><em style="left:8.3%">50</em><em style="left:16.9%">101</em><em style="left:54%">325</em><em style="left:91.6%">550</em></div>
+      <div class="res" id="rmRes"></div>
+    </div>
+    <div class="cbox">
+      <h3>Смешать две ёмкости</h3>
+      <div class="frm" id="mixF"></div>
+      <div class="res" id="mixRes"></div>
+      <div class="mixbar" id="mixBar"></div><div class="legend" id="mixLeg"></div>
+      <div class="verdict" id="mixV"></div>
+    </div>
+  </div>
 
   <h2 id="air-norm">Нормы: что такое «воздух»</h2>
   <div class="tbl"><table>
@@ -435,6 +481,72 @@ fetch('guides.json', { cache: 'no-store' })
     if (inPult && only !== 'air') window.parent.postMessage({ type: 'pult-hotkeys', keys: hotkeys }, location.origin);
   })
   .catch((err) => { $('do').textContent = 'Не удалось прочитать guides.json: ' + err.message; });
+</script>
+<script>
+// ---------- Газовый калькулятор (константы из code/__DEFINES/atmospherics.dm и auxgm/gas_types.dm) ----------
+(() => {
+  const R = 8.31, CELL = 2500, T0 = 273.15, CAN_V = 1000, CAN_P = 90 * 101.325 * 0.5;
+  const GAS = { o2: ['O₂', 20, '#5aa0ff'], n2: ['N₂', 20, '#d9534f'], co2: ['CO₂', 30, '#555c66'], plasma: ['Плазма', 200, '#e8873a'], n2o: ['N₂O', 40, '#e8e8e8'],
+    h2o: ['Водяной пар', 40, '#7fd0e0'], trit: ['Тритий', 10, '#6fd36f'], bz: ['BZ', 20, '#b07ad9'], pluox: ['Плюоксий', 80, '#3fb8d6'], h2: ['Водород', 10, '#f0f0a0'], nob: ['Гипер-ноблий', 2000, '#33d6c8'], freon: ['Фреон', 600, '#a0e0ff'] };
+  const PRE = { air: 'Воздух (21/79)', o2: 'O₂', n2: 'N₂', co2: 'CO₂', plasma: 'Плазма', n2o: 'N₂O', h2o: 'Водяной пар', trit: 'Тритий', bz: 'BZ', pluox: 'Плюоксий', h2: 'Водород', nob: 'Гипер-ноблий', freon: 'Фреон', vac: 'Вакуум' };
+  const VOL = [['1000', 'Канистра 1000 л'], ['2500', 'Клетка 2500 л'], ['70', 'Баллон 70 л'], ['200', 'Труба (~200 л)'], ['5000', 'Большая канистра 5000 л']];
+  const $$ = (id) => document.getElementById(id);
+  const num = (id, d) => { const v = parseFloat($$(id).value); return Number.isFinite(v) ? v : d; };
+  const f = (x, d = 0) => x.toLocaleString('ru-RU', { maximumFractionDigits: d });
+  const mixOf = (g, n) => g === 'vac' ? {} : g === 'air' ? { o2: n * 0.21, n2: n * 0.79 } : { [g]: n };
+  // --- отсек ---
+  function room() {
+    const tiles = Math.max(1, num('rmT', 1)), p0 = Math.max(0, num('rmP', 0)), pg = Math.max(0, num('rmG', 101)), T = num('rmC', 20) + T0;
+    const V = tiles * CELL, need = Math.max(0, (pg - p0) * V / (R * T));
+    const canN = CAN_P * CAN_V / (R * (T0 + 20)), canUse = Math.max(1, canN - pg * CAN_V / (R * T));
+    const cans = need > 0 ? Math.ceil(need / canUse) : 0;
+    $$('rmGauge').querySelector('i').style.left = Math.min(100, pg / 600 * 100) + '%';
+    const zone = pg < 20 ? 'Урон' : pg < 50 ? 'Тревога' : pg <= 325 ? 'Норма' : pg <= 550 ? 'Тревога' : 'Урон';
+    $$('rmRes').innerHTML = `<div><b>${f(V)} л</b><span>Объём отсека</span></div><div><b>${f(need)} моль</b><span>Нужно закачать</span></div>
+      <div><b>${cans}</b><span>Канистр «Air» (≈${f(canUse)} моль с каждой)</span></div><div><b>${f(pg * V / (R * T))} моль</b><span>Будет в отсеке</span></div>
+      <div><b>${zone}</b><span>Давление цели</span></div>`;
+  }
+  ['rmT', 'rmP', 'rmG', 'rmC'].forEach((id) => $$(id).addEventListener('input', room));
+  room();
+  // --- смешивание ---
+  const side = (k, g, v, p, t) => `<label>${k}: газ</label><select id="mx${k}g">${Object.entries(PRE).map(([id, n]) => `<option value="${id}"${id === g ? ' selected' : ''}>${n}</option>`).join('')}</select>
+    <label>${k}: объём</label><select id="mx${k}v">${VOL.map(([id, n]) => `<option value="${id}"${id === v ? ' selected' : ''}>${n}</option>`).join('')}</select>
+    <label>${k}: кПа / °C</label><div class="row2"><input id="mx${k}p" type="number" min="0" value="${p}" title="Давление, кПа"><input id="mx${k}t" type="number" value="${t}" title="Температура, °C"></div>`;
+  $$('mixF').innerHTML = side('А', 'o2', '1000', 4560, 20) + side('Б', 'n2', '2500', 0, 20);
+  function mix() {
+    const parts = ['А', 'Б'].map((k) => {
+      const v = +$$('mx' + k + 'v').value, p = Math.max(0, num('mx' + k + 'p', 0)), T = Math.max(2.7, num('mx' + k + 't', 20) + T0), g = $$('mx' + k + 'g').value;
+      return { v, T, m: mixOf(g, p * v / (R * T)) };
+    });
+    const V = parts[0].v + parts[1].v, tot = {}; let heat = 0, cap = 0;
+    parts.forEach((pt) => Object.entries(pt.m).forEach(([g, n]) => { tot[g] = (tot[g] || 0) + n; heat += n * GAS[g][1] * pt.T; cap += n * GAS[g][1]; }));
+    const n = Object.values(tot).reduce((a, b) => a + b, 0), T = cap ? heat / cap : T0 + 20, P = n * R * T / V;
+    const pp = (g) => n ? (tot[g] || 0) / n * P : 0;
+    $$('mixRes').innerHTML = `<div><b>${f(P, 1)} кПа</b><span>Давление смеси</span></div><div><b>${f(T - T0, 1)} °C</b><span>Температура (${f(T)} K)</span></div>
+      <div><b>${f(n, 1)} моль</b><span>Всего газа</span></div><div><b>${f(V)} л</b><span>Общий объём</span></div>`;
+    const ent = Object.entries(tot).filter(([, x]) => x > 0).sort((a, b) => b[1] - a[1]);
+    $$('mixBar').innerHTML = ent.map(([g, x]) => `<span style="width:${x / n * 100}%;background:${GAS[g][2]}" title="${GAS[g][0]}"></span>`).join('');
+    $$('mixLeg').innerHTML = ent.map(([g, x]) => `<span><i style="background:${GAS[g][2]}"></i>${GAS[g][0]} ${f(x / n * 100, 1)}% · ${f(pp(g), 1)} кПа</span>`).join('');
+    const bad = [], mid = [];
+    if (!n) bad.push('Вакуум.');
+    else {
+      if (pp('o2') < 16) bad.push(`O₂ ${f(pp('o2'), 1)} кПа — меньше 16, человек задохнётся.`);
+      if (pp('co2') >= 10) bad.push('CO₂ от 10 кПа — удушье.');
+      if (pp('plasma') > 0.5) bad.push('Плазма — ядовита.');
+      if (pp('n2o') > 5) mid.push('N₂O больше 5 кПа — усыпляет.');
+      if (P < 20 || P > 550) bad.push('Давление ранит без скафандра.'); else if (P < 50 || P > 325) mid.push('Давление вне нормы — тревога.');
+      if (T - T0 < -13 || T - T0 > 87) bad.push('Температура ранит.');
+      if (pp('plasma') > 0 && pp('o2') > 0 && T > 373) bad.push('Плазма + O₂ выше 100 °C — <b>горит</b>!');
+      else if (pp('plasma') > 0 && pp('o2') > 0) mid.push('Плазма с кислородом — горючая смесь, не подносить огонь.');
+      if (P > 9119) bad.push('Больше 90 атм — канистра не выдержит.');
+    }
+    const v = $$('mixV');
+    v.className = 'verdict' + (bad.length ? ' bad' : mid.length ? ' mid' : '');
+    v.innerHTML = bad.length || mid.length ? [...bad, ...mid].join('<br>') : 'Дышать можно: человеку подходит.';
+  }
+  $$('mixF').addEventListener('input', mix);
+  mix();
+})();
 </script>
 </body>
 </html>
