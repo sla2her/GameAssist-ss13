@@ -60,7 +60,7 @@ const APPS = [
   { id: 'engineer', name: 'Инженер', sub: 'Пошаговые инструкции', desc: 'Двигатель, стройка, цели станции — шаг за шагом',
     src: 'apps/engineer/index.html?only=guides', color: '#e2b33a', icon: 'wrench', hscroll: '.nav', css: false },
   { id: 'kitchen', name: 'Кухня и бар', short: 'Кухня', sub: 'Повар и бармен', desc: 'Рецепты блюд и коктейлей, «Мой бар»',
-    src: 'apps/kitchen/index.html', color: '#e07a3f', icon: 'pot', hscroll: '.tabs, .subtabs, .controls .chips' },
+    src: 'apps/kitchen/index.html', color: '#e07a3f', icon: 'pot', hscroll: '.tabs, .subtabs, .controls .chips', script: true },
   { id: 'himzavod', name: 'Химзавод', sub: 'Плюмбинг и химия', desc: 'Трубы, машины и реакции завода',
     src: 'apps/himzavod/index.html', color: '#9a6ad6', icon: 'factory', hscroll: 'header' },
   { id: 'character', name: 'Персонаж', sub: 'Редактор персонажа', desc: 'Окно настройки персонажа, превью и 60 слотов',
