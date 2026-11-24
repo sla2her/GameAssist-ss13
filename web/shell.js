@@ -366,6 +366,7 @@ function open(id) {
   document.title = app.name + ' — Пульт';
   send('title:' + document.title);
   store.set('last', id);
+  if (window.PultGame) window.PultGame.visit(id);
   if (android) android.setEngineerOpen(id === 'engineer');
   home.classList.add('closed');
   focusApp();

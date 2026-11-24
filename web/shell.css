@@ -396,3 +396,34 @@ html.ovl .ovlbtn svg { width: 30px; height: 30px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Достижения (game.js) ---------- */
+.trophybtn { right: 50px; }
+.trophybtn span { font-size: 15px; line-height: 1; filter: grayscale(.2); }
+.trophybtn:hover { transform: scale(1.08); }
+.compact .trophybtn { right: 40px; }
+.mobile .trophybtn { right: 56px; }
+html.ovl .trophybtn { display: none; }
+.achtoasts { position: absolute; right: 12px; bottom: 54px; z-index: 60; display: grid; gap: 8px; justify-items: end; pointer-events: none; }
+.achtoast {
+  display: flex; align-items: center; gap: 10px; min-width: 220px; max-width: 320px; padding: 9px 14px 9px 10px;
+  background: var(--bg2); border: 1px solid color-mix(in srgb, #e3b23c 60%, var(--line)); border-radius: 12px; box-shadow: var(--shadow);
+  animation: achIn .35s var(--ease) both;
+}
+.achtoast.out { animation: achOut .4s ease both; }
+.achtoast > b { font-size: 24px; line-height: 1; }
+.achtoast span { display: grid; font-weight: 600; font-size: 13.5px; }
+.achtoast small { font-weight: 500; font-size: 11px; color: #e3b23c; text-transform: uppercase; letter-spacing: .04em; }
+@keyframes achIn { from { opacity: 0; transform: translateY(12px) scale(.96); } }
+@keyframes achOut { to { opacity: 0; transform: translateX(30px); } }
+.achrank { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface2); }
+.achrank b { font-size: 18px; } .achrank small { color: var(--muted); font-size: 12px; } .achrank > div:first-child { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.achbar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.achbar i { display: block; height: 100%; background: linear-gradient(90deg, #e3b23c, #f0d27a); }
+.achgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.ach { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; opacity: .55; }
+.ach[data-app] { cursor: pointer; }
+.ach.got { opacity: 1; border-color: color-mix(in srgb, #e3b23c 45%, var(--line)); background: color-mix(in srgb, #e3b23c 7%, transparent); }
+.ach > b { font-size: 20px; text-align: center; }
+.ach span { display: grid; } .ach strong { font-size: 13px; } .ach small { font-size: 11.5px; color: var(--muted); }
+.ach em { font-style: normal; font-size: 11.5px; color: var(--muted); }
