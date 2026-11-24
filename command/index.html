@@ -231,6 +231,23 @@ details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--nav
 .pult-compact .ghead h2{font-size:18px}
 .pult-compact .foot{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Мини-викторина Пульта */
+.pq{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:12px;padding:16px 18px;display:grid;gap:12px;max-width:900px;margin-bottom:14px}
+.pq-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.pq-h b{font-size:17px}.pq-h span{font-size:12.5px;color:var(--muted)}
+.pq-q{font-size:16px;font-weight:600;line-height:1.45}
+.pq-pre{font-size:14px;line-height:1.5;padding:10px 12px;border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 8px 8px 0}
+.pq-o{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.pq-o button{text-align:left;border:1px solid var(--line2,var(--line));background:var(--panel2);border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit;font-size:14px;color:inherit}
+.pq-o button:hover:not(:disabled){border-color:var(--accent)}
+.pq-o button.right{background:color-mix(in srgb,var(--ok,#2e8a4b) 20%,var(--panel));border-color:var(--ok,#2e8a4b)}
+.pq-o button.wrong{background:color-mix(in srgb,var(--bad,#c0262d) 18%,var(--panel));border-color:var(--bad,#c0262d)}
+.pq-o button:disabled{cursor:default}
+.pq-r{font-size:14px;padding:9px 12px;border-radius:8px;border-left:3px solid var(--ok,#2e8a4b);background:color-mix(in srgb,var(--ok,#2e8a4b) 9%,var(--panel))}
+.pq-r.bad{border-left-color:var(--bad,#c0262d);background:color-mix(in srgb,var(--bad,#c0262d) 9%,var(--panel))}
+.pq-n{justify-self:start;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg,#fff);border-radius:9px;padding:6px 14px;font-weight:600;cursor:pointer;font:inherit}
+.pult-compact .pq{padding:12px}
 </style>
 </head>
 <body>
@@ -268,6 +285,7 @@ details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--nav
   </div>
   <div id="hop-acc" hidden></div>
   <div id="hop-work" hidden></div>
+  <div id="hop-train" hidden></div>
 </section>
 
 <!-- ============ ИИ ============ -->
@@ -373,7 +391,7 @@ const card=(title,body,c)=>`<div class="panel card" style="--kc:${c||'var(--acce
 const steps=a=>`<ol class="steps">${a.map(x=>`<li><span>${x}</span></li>`).join('')}</ol>`;
 const bul=a=>`<ul class="bul">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
 const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
-const SUBS={hop:[['docs','Документы'],['acc','Допуски'],['work','Порядок работы']],ai:[['laws','Законы'],['ctrl','Управление'],['cases','Ситуации']],cap:[['goals','Цели станции'],['shift','Смена'],['ann','Объявления'],['alert','Тревоги']]};
+const SUBS={hop:[['docs','Документы'],['acc','Допуски'],['work','Порядок работы'],['train','Тренажёр']],ai:[['laws','Законы'],['ctrl','Управление'],['cases','Ситуации']],cap:[['goals','Цели станции'],['shift','Смена'],['ann','Объявления'],['alert','Тревоги']]};
 
 // Правила бумаги SS13 — активный профиль Папируса (в Пульте общее хранилище), без него «Классика». Как в Панели АВД.
 const PAPIRUS_CLASSIC={name:'Классика (Paradise, Bay и форки)',useBr:false,limit:3072,cmds:{bold:['[b]','[/b]'],italic:['[i]','[/i]'],underline:['[u]','[/u]'],large:['[large]','[/large]'],small:['[small]','[/small]'],center:['[center]','[/center]'],right:['',''],h1:['[h1]','[/h1]'],h2:['[h2]','[/h2]'],h3:['[h3]','[/h3]'],list:['[list]','[/list]'],item:['[*]',''],hr:['[hr]',''],br:['[br]',''],field:['[field]',''],sign:['[sign]',''],date:['[date]',''],time:['[time]','']}};
@@ -762,6 +780,7 @@ const CHECKS=[
 function renderCapShift(){
   const cap=role('command',/^капитан/i),pol=role('command',/политик/i),gen=role('command',/общие положения/i);
   const done=CHECKS.filter(c=>S.check[c[0]]).length;
+  if(done===CHECKS.length)award('cap.shift');
   let h='<div class="grid">';
   h+=`<div class="panel card"><h3>Чек-лист смены<small>${done} из ${CHECKS.length}</small></h3><div class="prog"><i style="width:${Math.round(done/CHECKS.length*100)}%"></i></div><ul class="checks">${CHECKS.map(([id,t,c])=>`<li class="${S.check[id]?'done':''}"><label><input type="checkbox" data-chk="${id}"${S.check[id]?' checked':''}><span>${t}</span><span class="cite">${c}</span></label></li>`).join('')}</ul><div class="acts" style="padding:4px 16px 14px"><button class="btn sm" type="button" data-act="chkreset">Новая смена</button></div></div>`;
   const tb=pol&&pol.tables[0];
@@ -826,7 +845,48 @@ function renderCapAlert(){
 
 /* ===================== ОБЩЕЕ ===================== */
 const TABS=['hop','ai','cap'];
-const RENDER={hop:{docs:renderDocs,acc:renderHopAcc,work:renderHopWork},ai:{laws:renderAiLaws,ctrl:renderAiCtrl,cases:renderAiCases},cap:{goals:renderCapGoals,shift:renderCapShift,ann:renderCapAnn,alert:renderCapAlert}};
+
+/* --- Мини-викторина Пульта (одинаковая во всех модулях): серия, рекорд, достижение за серию 5 --- */
+const pqAward=id=>award(id);
+const PQ={};
+function pqMake(key,gen,ach,rerender){
+  let best=0;try{best=+(localStorage.getItem('pq.'+key)||0)}catch(e){}
+  PQ[key]={x:null,pick:null,ok:0,n:0,streak:0,best,gen,ach,rerender};
+}
+function pqHtml(key,title){
+  const Q=PQ[key];if(!Q.x){Q.x=Q.gen();Q.pick=null}
+  const x=Q.x,done=Q.pick!==null,right=done&&x.opts[Q.pick].ok;
+  return `<div class="pq"><div class="pq-h"><b>${title}</b><span>${Q.n?`верно ${Q.ok} из ${Q.n} · серия ${Q.streak} · рекорд ${Q.best}`:'серия из 5 верных — достижение 🏆'}</span></div>
+    ${x.pre||''}<div class="pq-q">${x.q}</div>
+    <div class="pq-o">${x.opts.map((o,i)=>`<button type="button" data-pq="${key}" data-i="${i}" class="${done?(o.ok?'right':(i===Q.pick?'wrong':'')):''}" ${done?'disabled':''}>${o.h}</button>`).join('')}</div>
+    ${done?`<div class="pq-r ${right?'ok':'bad'}"><b>${right?'Верно!':'Нет.'}</b> ${x.ex||''}</div><button type="button" class="pq-n" data-pqn="${key}">Дальше →</button>`:''}</div>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-pq]');
+  if(b){const Q=PQ[b.dataset.pq];if(!Q||Q.pick!==null)return;Q.pick=+b.dataset.i;Q.n++;
+    if(Q.x.opts[Q.pick].ok){Q.ok++;Q.streak++;if(Q.streak>Q.best){Q.best=Q.streak;try{localStorage.setItem('pq.'+b.dataset.pq,Q.best)}catch(e){}}if(Q.streak>=5&&Q.ach)pqAward(Q.ach)}else Q.streak=0;
+    Q.rerender();return}
+  const n=e.target.closest('[data-pqn]');if(n){const Q=PQ[n.dataset.pqn];Q.x=Q.gen();Q.pick=null;Q.rerender()}
+});
+const pqPick=(arr,n,not)=>{const a=arr.filter(x=>!not||!not(x)).slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,n)};
+const pqShuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+const HQ_AREAS=REGIONS.flatMap(R=>R.a.map(a=>({a,R})));
+pqMake('hop',()=>{
+  const jobs=Object.keys(JOBS),job=jobs[Math.floor(Math.random()*jobs.length)];
+  const own=JOBS[job],pick=Math.random()<.3&&own.length?HQ_AREAS.find(x=>x.a===own[Math.floor(Math.random()*own.length)]):HQ_AREAS[Math.floor(Math.random()*HQ_AREAS.length)];
+  const {a,R}=pick;
+  let right;
+  if(own.includes(a))right='own';else if(R.id==='capt')right='capt';else if(R.head==='hop')right='hop';else right='head';
+  const heads=Object.keys(HEADS).filter(h=>h!=='cap');
+  const hk=right==='head'?R.head:heads[Math.floor(Math.random()*heads.length)];
+  const opts=[{k:'own',h:'Выдать: положено по должности'},{k:'hop',h:'Решает сам ГП'},{k:'head',h:'Нужно письменное разрешение: '+HEADS[hk]},{k:'capt',h:'Только ВрИО Капитана'}];
+  const ex={own:`«${a}» входит в типовой набор допусков должности «${job}».`,capt:'Капитанский уровень выдаётся только ВрИО Капитана.',hop:`Зона «${a}» — регион «${R.n}», по нему решает сам ГП.`,head:`Зона «${a}» — регион «${R.n}»: письменное разрешение даёт ${HEADS[R.head]} (п. 8.6 НРП ГП).`}[right];
+  return{pre:`<div class="pq-pre">Код Зелёный, обычная смена. К вам подходит <b>${esc(job)}</b> и просит добавить на карту доступ: <b>${esc(a)}</b>.</div>`,q:'Как поступить?',opts:opts.map(o=>({h:esc(o.h),ok:o.k===right})),ex:esc(ex)+' На Янтарном коде и выше правила меняются — см. «Допуски».'};
+},'hop.streak5',()=>renderHopTrain());
+function renderHopTrain(){$('#hop-train').innerHTML=pqHtml('hop','Тренажёр Главы Персонала: допуски')}
+
+const RENDER={hop:{docs:renderDocs,acc:renderHopAcc,work:renderHopWork,train:renderHopTrain},ai:{laws:renderAiLaws,ctrl:renderAiCtrl,cases:renderAiCases},cap:{goals:renderCapGoals,shift:renderCapShift,ann:renderCapAnn,alert:renderCapAlert}};
 function go(t,sub){
   if(PART)t=PART;
   if(sub)S.sub[t]=sub;S.tab=t;
