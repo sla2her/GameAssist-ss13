@@ -148,6 +148,20 @@ details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--nav
 .ans{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;padding:8px 16px;border-top:1px solid var(--line);font-size:13.5px}
 .ans:first-of-type{border-top:0}
 .ans b{font-size:12.5px}
+.aiq-b{padding:12px 16px 14px;display:grid;gap:10px}
+.aiq-law{font-size:13px;color:var(--muted)}
+.aiq-q{font-size:17px;font-weight:600}
+.aiq-btns{display:flex;gap:8px;flex-wrap:wrap}
+.aiq-btns button{border:1px solid var(--line2);background:var(--panel2);border-radius:9px;padding:7px 18px;font-weight:600;cursor:pointer}
+.aiq-btns button:hover:not(:disabled){border-color:var(--accent)}
+.aiq-btns button.right{background:color-mix(in srgb,var(--ok) 20%,var(--panel));border-color:var(--ok)}
+.aiq-btns button.wrong{background:color-mix(in srgb,var(--bad) 18%,var(--panel));border-color:var(--bad)}
+.aiq-btns button:disabled{cursor:default}
+.aiq-r{padding:9px 12px;border-radius:8px;font-size:14px;border-left:3px solid var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.aiq-r.bad{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--panel))}
+.aiq-o summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.aiq-o .ans{padding-left:0;padding-right:0}
+.aiq-next{justify-self:start;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg,#fff);border-radius:9px;padding:6px 14px;font-weight:600;cursor:pointer}
 .verdict{font-weight:600}
 .v-yes{color:var(--ok)} .v-no{color:var(--cc)} .v-mid{color:var(--sign)}
 .phr{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 16px;border-top:1px solid var(--line);font-size:14px}
@@ -630,8 +644,26 @@ const CASES=[
 ];
 const CASE_SETS=['НТ-Стандарт','Кру-Азимов','Корпоративный'];
 const VERD={yes:['v-yes','Да'],no:['v-no','Нет'],mid:['v-mid','Смотря как']};
+
+/* --- Тренажёр ИИ: случайная ситуация и свод законов, игрок выбирает ответ --- */
+const AIQ={c:-1,l:0,pick:null,ok:0,n:0,streak:0};
+function aiqNext(){let c;do{c=Math.floor(Math.random()*CASES.length)}while(CASES.length>1&&c===AIQ.c);AIQ.c=c;AIQ.l=Math.floor(Math.random()*CASE_SETS.length);AIQ.pick=null}
+function aiqHtml(){
+  if(AIQ.c<0)aiqNext();
+  const c=CASES[AIQ.c],[v,t]=c.a[AIQ.l],done=AIQ.pick!==null,right=done&&AIQ.pick===v;
+  return `<div class="panel card aiq" style="margin-bottom:14px"><h3>Тренажёр ИИ <small>${AIQ.n?`верно ${AIQ.ok} из ${AIQ.n} · серия ${AIQ.streak}`:'ответьте, как поступил бы ИИ'}</small></h3>
+    <div class="aiq-b"><div class="aiq-law">Ваш свод законов: <b>${CASE_SETS[AIQ.l]}</b></div>
+    <div class="aiq-q">${esc(c.q)}</div>
+    <div class="aiq-btns">${Object.entries(VERD).map(([k,[cls,n]])=>`<button type="button" data-aiq="${k}" class="${done?(k===v?'right':(k===AIQ.pick?'wrong':'')):''}" ${done?'disabled':''}>${n}</button>`).join('')}</div>
+    ${done?`<div class="aiq-r ${right?'ok':'bad'}"><b>${right?'Верно.':'Не совсем.'}</b> ${esc(t)}</div>
+      <details class="aiq-o"><summary>Как ответили бы другие своды</summary>${c.a.map(([vv,tt],i)=>i===AIQ.l?'':`<div class="ans"><b>${CASE_SETS[i]}</b><span><span class="verdict ${VERD[vv][0]}">${VERD[vv][1]}.</span> ${esc(tt)}</span></div>`).join('')}</details>
+      <button type="button" class="aiq-next" data-aiqnext>Следующая ситуация →</button>`:''}</div></div>`}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-aiq]');if(b&&AIQ.pick===null){const v=CASES[AIQ.c].a[AIQ.l][0];AIQ.pick=b.dataset.aiq;AIQ.n++;if(AIQ.pick===v){AIQ.ok++;AIQ.streak++}else AIQ.streak=0;renderAiCases();return}
+  if(e.target.closest('[data-aiqnext]')){aiqNext();renderAiCases()}
+});
 function renderAiCases(){
-  let h=`<div class="panel card" style="margin-bottom:14px"><h3>Как решать спорную ситуацию</h3>${steps(['Есть ли нулевой, взломанный или ионный закон? Он важнее основных.','Какой закон затронут первым по списку? Он и решает.','Кто отдаёт приказ: член ли он экипажа, какой у него ранг и роль (важно для НТ-Стандарта)?','Есть ли вред? Помните: вред — то, что при повторении убивает; оглушение — не вред.','Не затронуты законы — можно ничего не делать или отыграть по характеру ИИ. Объясните отказ вежливо.'])}<div class="note">Ниже — трактовки Пульта для трёх самых частых сводов, а не правила сервера. Своя логика допустима, если она следует законам.</div></div>`;
+  let h=aiqHtml()+`<div class="panel card" style="margin-bottom:14px"><h3>Как решать спорную ситуацию</h3>${steps(['Есть ли нулевой, взломанный или ионный закон? Он важнее основных.','Какой закон затронут первым по списку? Он и решает.','Кто отдаёт приказ: член ли он экипажа, какой у него ранг и роль (важно для НТ-Стандарта)?','Есть ли вред? Помните: вред — то, что при повторении убивает; оглушение — не вред.','Не затронуты законы — можно ничего не делать или отыграть по характеру ИИ. Объясните отказ вежливо.'])}<div class="note">Ниже — трактовки Пульта для трёх самых частых сводов, а не правила сервера. Своя логика допустима, если она следует законам.</div></div>`;
   h+='<div class="grid">';
   h+=CASES.map(c=>`<div class="panel card case"><h4>${esc(c.q)}</h4>${c.a.map(([v,t],i)=>`<div class="ans"><b>${CASE_SETS[i]}</b><span><span class="verdict ${VERD[v][0]}">${VERD[v][1]}.</span> ${esc(t)}</span></div>`).join('')}</div>`).join('');
   h+='</div>';
