@@ -99,6 +99,33 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
 .pult-compact .bul{padding-left:28px;padding-right:10px}
 .pult-compact .note{margin-left:10px;margin-right:10px}
 .pult-compact .foot{display:none}
+
+/* Тренировка */
+.grid.train{grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr))}
+.scene{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:0 16px 12px}
+.obj{border:1px solid var(--line2);background:var(--panel2);border-radius:10px;padding:10px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.obj:hover:not(:disabled){border-color:var(--accent)}
+.obj span{font-size:12px;color:var(--muted)}
+.obj.done{background:color-mix(in srgb,var(--ok) 10%,var(--panel));border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.obj.busy{animation:scanp .35s infinite alternate}
+@keyframes scanp{to{background:color-mix(in srgb,var(--accent) 25%,var(--panel))}}
+.obj:disabled{cursor:default}
+.scanlog{margin:0 16px 14px;padding:10px 12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);font-size:13px;max-height:340px;overflow:auto;display:grid;gap:8px}
+.scanlog .ln{display:grid;gap:3px}
+code.fp{font:12px var(--font-m);letter-spacing:.02em;word-break:break-all}
+.labf{padding:12px 16px 6px}
+.labf input{width:100%;border:1px solid var(--line2);border-radius:8px;background:var(--panel);padding:6px 10px;font:13px var(--font-m)}
+.recs{display:grid;gap:6px;padding:6px 16px 14px}
+.rec{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;display:grid;gap:2px}
+.rec.hit{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.rec.dead{opacity:.55}
+.rec .ra{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.rec .ra button{border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:3px 10px;font-size:12.5px;cursor:pointer}
+.rec .ra button.acc{border-color:var(--bad);color:var(--bad)}
+.rec .ra button:disabled{opacity:.5;cursor:default}
+.rec .said{font-style:italic;font-size:12.5px}
+.pult-compact .scene,.pult-compact .recs,.pult-compact .labf{padding-left:10px;padding-right:10px}
+.pult-compact .scanlog{margin-left:10px;margin-right:10px}
 </style>
 </head>
 <body>
@@ -113,6 +140,7 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
   <div class="seg subnav" id="subnav"></div>
   <div id="v-tools"></div>
   <div id="v-case" hidden></div>
+  <div id="v-train" hidden></div>
   <div id="v-talk" hidden></div>
   <div id="v-methods" hidden></div>
   <div id="v-nrp" hidden></div>
@@ -348,8 +376,93 @@ function renderNrp(){
 }
 
 /* ===================== ОБЩЕЕ ===================== */
-const SUBS=[['tools','Инструменты'],['case','Расследование'],['talk','Допрос'],['methods','Методики'],['nrp','НРП']];
-const RENDER={tools:renderTools,case:renderCase,talk:renderTalk,methods:renderMethods,nrp:renderNrp};
+
+/* ===================== ТРЕНИРОВКА: УЧЕБНОЕ ДЕЛО ===================== */
+// Случайное дело: место преступления, сканер, база записей и обвинение. Механика как в игре: отпечатки — строка,
+// кровь — ДНК и группа, волокна — описание материала. Персонажи и улики выдуманы генератором.
+const DJOBS=[
+  ['Инженер','оранжевого инженерного комбинезона','инженерного отсека'],['Учёный','белого лабораторного халата','научного отдела'],
+  ['Врач','синего медицинского костюма','медбея'],['Повар','белой поварской формы','кухни'],['Уборщик','фиолетового комбинезона','подсобки уборщика'],
+  ['Ассистент','серого комбинезона','коридоров у мостика'],['Шахтёр','коричневого шахтёрского комбинезона','карго'],['Бармен','чёрного жилета','бара'],
+  ['Ботаник','зелёного фартука','гидропоники'],['Химик','оранжевого халата химика','химлаборатории'],['Робототехник','чёрного комбинезона робототехника','робототехники'],['Грузчик','оранжевого грузового комбинезона','карго']];
+const DGLOVES=[[null,'без перчаток'],['чёрных перчаток','чёрные перчатки'],['изолированных жёлтых перчаток','изолированные перчатки'],['латексных перчаток','латексные перчатки'],['нитриловых перчаток','нитриловые перчатки']];
+const DFIRST=['Алекс','Мира','Тобиас','Ева','Корвин','Лана','Гектор','Ирма','Нико','Сора','Феликс','Дана','Рой','Вера','Оскар','Тея','Марк','Ада','Лео','Юна'];
+const DLAST=['Кравец','Норд','Блэквуд','Сато','Вейл','Орлов','Харт','Ромеро','Линд','Кейн','Мэйс','Фрост','Грей','Новак','Рид','Штейн','Вуд','Ланге','Бирн','Кох'];
+const DWEAP=[['кухонный нож','колото-резаные раны'],['огнетушитель','тупые травмы'],['гаечный ключ','тупые травмы'],['лазерный пистолет','ожоги'],['стеклянный осколок','резаные раны'],['ящик с инструментами','тупые травмы']];
+const DPLACES=['техтоннели у бара','склад карго','коридор у гидропоники','подсобка инженеров','зал ожидания эвакуации','библиотека'];
+const DALIBI=['был в своём отделе, работал','стоял в очереди в баре','был в медбее на осмотре','чинил что-то в техтоннелях','спал в общежитии','обедал в столовой','был на мостике, ждал ГП'];
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const hex=n=>Array.from({length:n},()=>'0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+let T=null;
+function newCase(){
+  const jobs=shuffle(DJOBS.slice()),first=shuffle(DFIRST.slice()),last=shuffle(DLAST.slice());
+  const ppl=Array.from({length:7},(_,i)=>{const g=Math.random()<.45?DGLOVES[0]:rnd(DGLOVES.slice(1));
+    return{id:i,name:first[i]+' '+last[i],job:jobs[i][0],fib:jobs[i][1],dept:jobs[i][2],gl:g,fp:hex(32),dna:hex(16),bt:rnd(['O−','O+','A−','A+','B−','B+','AB+']),alibi:rnd(DALIBI),cam:Math.random()<.35}});
+  const victim=ppl[0],killer=ppl[1+Math.floor(Math.random()*6)],others=ppl.filter(p=>p!==victim&&p!==killer);
+  killer.cam=false;
+  // ложный след: у одного невиновного те же перчатки, другой просто проходил через шлюз
+  const twin=rnd(others);if(killer.gl[0])twin.gl=killer.gl;
+  const passer=rnd(others.filter(p=>p!==twin));
+  const w=rnd(DWEAP),place=rnd(DPLACES);
+  const mark=p=>p.gl[0]?{k:'fib',t:'волокна '+p.gl[0]}:{k:'fp',t:p.fp};
+  const scratch=Math.random()<.6;
+  const ev={
+    weapon:{n:'Орудие: '+w[0],res:[mark(killer),{k:'blood',t:victim.dna,bt:victim.bt}]},
+    body:{n:'Тело жертвы',res:[{k:'blood',t:victim.dna,bt:victim.bt},{k:'fib',t:'волокна '+killer.fib}].concat(scratch?[{k:'blood',t:killer.dna,bt:killer.bt,note:'под ногтями'}]:[{k:'info',t:'Под ногтями ничего нет.'}])},
+    door:{n:'Шлюз у места',res:shuffle([mark(killer),mark(passer),mark(victim)])},
+    floor:{n:'Пол и кровь',res:[{k:'info',t:`Кровавые следы ботинок уходят в сторону ${killer.dept}.`},{k:'blood',t:victim.dna,bt:victim.bt}]},
+    trash:{n:'Ближайшая мусорка',res:killer.gl[0]?[{k:'info',t:`Выброшены окровавленные ${killer.gl[1]}.`},{k:'blood',t:victim.dna,bt:victim.bt}]:[{k:'info',t:'Только мусор, ничего полезного.'}]},
+    console:{n:'Консоль рядом',res:[mark(passer),{k:'info',t:'Последний вход в систему — '+passer.job.toLowerCase()+'.'}]},
+  };
+  T={ppl:shuffle(ppl.slice()),victim,killer,twin,passer,w,place,ev,scanned:[],log:[],min:0,q:'',acc:null,talked:[]};
+}
+const fmtRes=r=>r.k==='fp'?`<span class="tag t-warn">Отпечатки</span> <code class="fp">${r.t}</code>`:r.k==='blood'?`<span class="tag t-bad">Кровь</span> ДНК <code class="fp">${r.t}</code> · группа ${r.bt}${r.note?' · <i>'+r.note+'</i>':''}`:r.k==='fib'?`<span class="tag t-ok">Волокна</span> ${r.t}`:`<span class="muted">${r.t}</span>`;
+function renderTrain(){
+  if(!T)newCase();
+  const v=T.victim,done=T.acc!==null;
+  let h='<div class="grid train">';
+  h+=card(`Учебное дело <small>сгенерировано случайно · прошло ${T.min} мин</small>`,
+    `<div class="body"><p>В месте «${T.place}» найдено тело: <b>${v.name}</b>, ${v.job.toLowerCase()}. Медики: ${T.w[1]}. Найдите убийцу среди экипажа: сканируйте улики, сверяйте с базой записей, опрашивайте и предъявите обвинение. Каждое действие отнимает время.</p></div>
+    <div class="scene">${Object.entries(T.ev).map(([id,e])=>`<button type="button" class="obj${T.scanned.includes(id)?' done':''}" data-scan="${id}" ${done?'disabled':''}><b>${e.n}</b><span>${T.scanned.includes(id)?'отсканировано':'сканировать · 3 мин'}</span></button>`).join('')}</div>
+    <div class="scanlog" id="scanlog">${T.log.length?T.log.map(l=>`<div class="ln"><b>${l.n}</b>${l.res.map(r=>`<div>${fmtRes(r)}</div>`).join('')}</div>`).join(''):'<p class="muted" style="margin:0">Отчёт сканера пуст. Щёлкните предмет на месте преступления.</p>'}</div>`,C.scene);
+  const q=T.q.trim().toLowerCase(),isHit=p=>!!q&&(p.name.toLowerCase().includes(q)||p.fp.includes(q)||p.dna.includes(q));
+  h+=card('Консоль записей безопасности <small>поиск по имени, отпечаткам или ДНК</small>',
+    `<div class="labf"><input type="search" id="recq" placeholder="Вставьте часть строки отпечатка или ДНК…" value="${esc(T.q)}"></div>
+    <div class="recs">${T.ppl.slice().sort((a,b)=>isHit(b)-isHit(a)).map(p=>{const hit=isHit(p);const dead=p===v;
+      return `<div class="rec${hit?' hit':''}${dead?' dead':''}"><div class="rh"><b>${p.name}</b> <span class="muted">${p.job}${dead?' · погиб':''}</span></div>
+      <div class="rr">Отпечатки <code class="fp">${p.fp}</code></div><div class="rr">ДНК <code class="fp">${p.dna}</code> · ${p.bt}</div>
+      <div class="rr muted">Сегодня: форма из ${p.fib}${T.talked.includes(p.id)?', '+(p.gl[0]?p.gl[1]:'без перчаток'):''}</div>
+      ${dead?'':`<div class="ra">${T.talked.includes(p.id)?`<span class="said">«${p.alibi}»${p.cam?' <span class="tag t-ok">ИИ: на камерах, алиби подтверждено</span>':''}</span>`:`<button type="button" data-talk="${p.id}" ${done?'disabled':''}>Опросить · 5 мин</button>`}
+        <button type="button" class="acc" data-acc="${p.id}" ${done?'disabled':''}>Обвинить</button></div>`}</div>`}).join('')}</div>`,C.link);
+  if(done)h+=card(T.acc===T.killer.id?'Верно! Дело раскрыто':'Ошибка: обвинён невиновный',trainVerdict(),T.acc===T.killer.id?'var(--ok)':'var(--bad)','wide');
+  h+='</div>';
+  h+=`<div style="margin-top:14px;display:flex;gap:8px"><button type="button" class="proto" id="newcase" style="margin-left:0">Новое дело</button></div>`;
+  $('#v-train').innerHTML=h;
+}
+function trainVerdict(){
+  const k=T.killer,ok=T.acc===k.id,s=[];
+  s.push(`Убийца — <b>${k.name}</b> (${k.job.toLowerCase()}).`);
+  s.push(k.gl[0]?`Он был в ${k.gl[1].replace('перчатки','перчатках')}: отпечатков нет, но волокна «${k.gl[0]}» остались на орудии и шлюзе${T.twin.gl===k.gl?`. Такие же перчатки у ${T.twin.name} — одна улика не доказательство`:''}.`:'Он был без перчаток: его отпечатки на орудии совпадают с базой.');
+  s.push(`На теле — волокна ${k.fib}: это его рабочая форма.`);
+  if(T.ev.body.res.some(r=>r.note))s.push('Под ногтями жертвы — его кровь: жертва сопротивлялась.');
+  s.push(`Кровавые следы уходили в сторону ${k.dept}.`);
+  s.push(`${T.passer.name} просто проходил через шлюз и работал за консолью — это ложный след.`);
+  const sc=T.scanned.length;
+  return `<div class="body"><p>${s.join(' ')}</p><p class="muted">Итог: ${T.min} мин, отсканировано ${sc} из ${Object.keys(T.ev).length}, опрошено ${T.talked.length}. ${ok?(T.min<=25?'Быстро и чисто — уровень ГСБ.':'Раскрыто. В следующий раз — меньше лишних действий.'):'Перед обвинением ищите 2–3 независимые улики против одного человека.'}</p></div>`;
+}
+document.addEventListener('click',e=>{
+  if(!$('#v-train')||$('#v-train').hidden)return;
+  const sc=e.target.closest('[data-scan]');if(sc&&!sc.disabled){const id=sc.dataset.scan;if(!T.scanned.includes(id)){sc.classList.add('busy');sc.querySelector('span').textContent='сканирую…';
+    setTimeout(()=>{T.scanned.push(id);T.min+=3;T.log.unshift(T.ev[id]);renderTrain()},700)}return}
+  const tk=e.target.closest('[data-talk]');if(tk){T.talked.push(+tk.dataset.talk);T.min+=5;renderTrain();return}
+  const ac=e.target.closest('[data-acc]');if(ac){T.acc=+ac.dataset.acc;renderTrain();$('#v-train .card:last-child').scrollIntoView({block:'nearest'});return}
+  if(e.target.closest('#newcase')){newCase();renderTrain();window.scrollTo(0,0)}
+});
+document.addEventListener('input',e=>{if(e.target.id==='recq'){T.q=e.target.value;const pos=e.target.selectionStart;renderTrain();const i=$('#recq');i.focus();i.setSelectionRange(pos,pos)}});
+
+const SUBS=[['tools','Инструменты'],['case','Расследование'],['train','Тренировка'],['talk','Допрос'],['methods','Методики'],['nrp','НРП']];
+const RENDER={train:renderTrain,tools:renderTools,case:renderCase,talk:renderTalk,methods:renderMethods,nrp:renderNrp};
 const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}return Object.assign({sub:'tools'},s&&typeof s==='object'?s:{})})();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function go(sub){
