@@ -473,6 +473,7 @@ const RX={
 /* ===================== МУТАЦИИ: ЗАГОН (мини-игра) ===================== */
 // Упрощённый цикл из кода: малыш ест обезьян → взрослый → делится на 4 малышей, каждый мутирует с шансом родителя
 // в один из 4 цветов таблицы D.mut. Голодный слайм злеет и кусается. Серый экстракт + кровь → кубики обезьян.
+const award=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
 const PEN={sl:[],mon:0,hp:100,sel:-1,t:0,log:[],target:null,mutr:0,stab:0,ext:{},spent:0,won:false,lost:false,run:false,timer:0,uid:0};
 function penNew(){
   const g2=ORDER.filter(c=>GEN[c]===2);
@@ -496,14 +497,14 @@ function penAct(a){
   if(a==='split'&&s&&s.grow>=10){
     if(PEN.sl.length+3>10)return penLog('В загоне тесно: максимум 10 слаймов. Сначала заберите экстракты.');
     PEN.sl=PEN.sl.filter(x=>x!==s);const kids=[];
-    for(let i=0;i<4;i++){let c=s.c;if(s.ch>=100)c='rainbow';else if(D.mut[s.c]&&Math.random()*100<s.ch)c=D.mut[s.c][Math.floor(Math.random()*4)];kids.push(c);penAdd(c)}
+    for(let i=0;i<4;i++){let c=s.c;if(s.ch>=100)c='rainbow';else if(D.mut[s.c]&&Math.random()*100<s.ch)c=D.mut[s.c][Math.floor(Math.random()*4)];kids.push(c);penAdd(c);if(c==='rainbow')award('xeno.rainbow')}
     PEN.sel=-1;penLog(`#${s.id} разделился: ${kids.map(c=>RU[c]).join(', ')}.`)}
   if(a==='core'&&s){PEN.sl=PEN.sl.filter(x=>x!==s);PEN.ext[s.c]=(PEN.ext[s.c]||0)+(s.grow>=10?2:1);PEN.sel=-1;penLog(`Забрали ${s.grow>=10?'2 экстракта':'экстракт'}: ${RU[s.c]}.`)}
   if(a==='mutr'&&s&&PEN.mutr>0){PEN.mutr--;s.ch=Math.min(100,s.ch+12);penLog(`Мутатор: у #${s.id} шанс мутации ${s.ch} %.`)}
   if(a==='stab'&&s&&PEN.stab>0){PEN.stab--;s.ch=Math.max(0,s.ch-15);penLog(`Стабилизатор: у #${s.id} шанс мутации ${s.ch} %.`)}
   if(a==='cube'){if(!PEN.ext.grey)return penLog('Нужен серый экстракт.');PEN.ext.grey--;PEN.mon+=3;penLog('Серый экстракт + кровь → 3 кубика обезьян.')}
   if(a==='spawn'){if(!PEN.ext.grey)return penLog('Нужен серый экстракт.');if(PEN.sl.length>=10)return penLog('В загоне тесно.');PEN.ext.grey--;penAdd('grey');penLog('Серый экстракт + плазма → новый серый малыш.')}
-  if(!PEN.won&&(PEN.ext[PEN.target]||PEN.sl.some(x=>x.c===PEN.target))){PEN.won=true;penLog(`<b>Цель достигнута: ${RU[PEN.target]}!</b> Обезьян потрачено: ${PEN.spent}.`)}
+  if(!PEN.won&&(PEN.ext[PEN.target]||PEN.sl.some(x=>x.c===PEN.target))){PEN.won=true;award('xeno.win');penLog(`<b>Цель достигнута: ${RU[PEN.target]}!</b> Обезьян потрачено: ${PEN.spent}.`)}
 }
 function renderPen(){
   if(!PEN.target)penNew();

@@ -547,6 +547,7 @@ function renderAuth(){
 /* ===================== ТРЕНАЖЁР НРП ===================== */
 // Случайный пункт НРП — угадать, чья это норма. Только обязанности, запреты и права конкретных должностей.
 const QPOOL=ITEMS.filter(x=>!['alert','law'].includes(x.d.id)&&['duty','ban','right'].includes(x.g.k)&&!/общ|положени|политик/i.test(x.r.t)&&x.it.t.length>=40&&x.it.t.length<=360);
+const award=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
 const QZ={x:null,opts:[],pick:null,ok:0,n:0,streak:0,best:0};
 try{const b=+localStorage.getItem('avd.quiz.best');if(b)QZ.best=b}catch(e){}
 function qzNext(){
@@ -570,7 +571,7 @@ function renderQuiz(){
       <div class="acts"><button type="button" class="btn pri" data-qznext>Следующий пункт →</button><button type="button" class="btn" data-qzopen>Открыть в справочнике</button></div>`:''}
   </div>`}
 document.addEventListener('click',e=>{
-  const b=e.target.closest('[data-qz]');if(b&&QZ.pick===null){QZ.pick=+b.dataset.qz;QZ.n++;if(QZ.opts[QZ.pick]===QZ.x){QZ.ok++;QZ.streak++;if(QZ.streak>QZ.best){QZ.best=QZ.streak;try{localStorage.setItem('avd.quiz.best',QZ.best)}catch(e){}}}else QZ.streak=0;renderQuiz();return}
+  const b=e.target.closest('[data-qz]');if(b&&QZ.pick===null){QZ.pick=+b.dataset.qz;QZ.n++;if(QZ.opts[QZ.pick]===QZ.x){QZ.ok++;QZ.streak++;if(QZ.streak>=5)award('avd.streak5');if(QZ.streak>=15)award('avd.streak15');if(QZ.streak>QZ.best){QZ.best=QZ.streak;try{localStorage.setItem('avd.quiz.best',QZ.best)}catch(e){}}}else QZ.streak=0;renderQuiz();return}
   if(e.target.closest('[data-qznext]')){qzNext();renderQuiz();return}
   if(e.target.closest('[data-qzopen]')){S.dept=QZ.x.d.id;S.role=QZ.x.ri;save();go('viol')}
 });

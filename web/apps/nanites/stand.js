@@ -570,7 +570,7 @@ function bindStand() {
     else if (d.wire) { const [u, k] = d.wire.split(':'); const r = instById(+u); hint(`Провод разорван: ${ru(byId[r.id])} больше не слушает код ${r[k]} (${FIELDS.find((f) => f[0] === k)[1]}).`); r[k] = 0; save(); rebuildBoard(); }
     else if (d.goto) return;
     else if (d.rdel != null) { const b = instById(ST.sel); b.rules.splice(+d.rdel, 1); save(); rebuildBoard(); }
-    else if (t.id === 'st-play' || d.mplay) { ST.run = !ST.run; loop(); updateLive(); }
+    else if (t.id === 'st-play' || d.mplay) { ST.run = !ST.run; if (ST.run) (id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}})('nan.run'); loop(); updateLive(); }
     else if (t.id === 'st-step') { tick(); updateLive(); }
     else if (t.id === 'st-reset') { ST.run = false; loop(); newSim(); updateLive(); }
     else if (t.id === 'st-cloud') { SIM.cloud = !SIM.cloud; log(SIM.cloud ? 'Облако подключено.' : 'Облако отключено: раз в 30 с — 8% сбоя.', SIM.cloud ? 'ok' : 'warn'); updateLive(); }
