@@ -156,13 +156,72 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .verdict { margin-top: 8px; padding: 7px 10px; border-radius: 8px; font-size: 13px; background: var(--panel2); border-left: 3px solid var(--ok); }
 .verdict.bad { border-left-color: #e06c6c; }
 .verdict.mid { border-left-color: var(--note); }
+
+/* Тренажёры (games.js) */
+.wide-in { max-width: 1100px; }
+.gtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.gtabs button { border: 1px solid var(--line); background: var(--panel2); border-radius: 999px; padding: 5px 14px; font-size: 13.5px; }
+.gtabs button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.smtop { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.crystal { display: grid; justify-items: center; gap: 6px; }
+.crystal small { color: var(--dim); font-size: 12px; }
+.gem { width: 70px; height: 96px; clip-path: polygon(50% 0, 100% 30%, 82% 100%, 18% 100%, 0 30%); background: linear-gradient(160deg, #ffe9a8, #e8a33d 60%, #8a5a10);
+  filter: drop-shadow(0 0 calc(6px + var(--g) * 26px) rgba(255, 200, 60, calc(.25 + var(--g) * .75))); animation: gempulse calc(2.4s - var(--g) * 1.6s) ease-in-out infinite alternate; }
+.crystal.hot .gem { background: linear-gradient(160deg, #ffd0c0, #e0453a 60%, #6a1a10); filter: drop-shadow(0 0 30px rgba(255, 70, 40, .9)); }
+@keyframes gempulse { to { transform: scale(1.06); } }
+.gauges { display: grid; gap: 6px; }
+.gg { display: grid; grid-template-columns: 120px minmax(0, 1fr) 96px; gap: 8px; align-items: center; font-size: 13px; }
+.gg span { color: var(--dim); } .gg em { font-style: normal; font-variant-numeric: tabular-nums; text-align: right; }
+.gg i { display: block; height: 10px; border-radius: 5px; background: var(--panel2); overflow: hidden; }
+.gg i b { display: block; height: 100%; background: var(--ok); transition: width .4s; }
+.gg.bad i b { background: #e06c6c; } .gg.bad em { color: #e06c6c; }
+.smctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.smctl button { border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 5px 12px; }
+.smctl button.pri { background: var(--accent); color: #1a1205; border-color: var(--accent); font-weight: 600; }
+.smctl span { color: var(--dim); font-size: 13px; }
+.smgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 10px 0; }
+.dev { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: grid; gap: 6px; align-content: start; }
+.dev h4 { margin: 0; font-size: 12.5px; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+.row4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px; }
+.sw { display: grid; text-align: left; border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 6px 9px; font-size: 13px; }
+.sw small { color: var(--dim); font-size: 11.5px; }
+.sw.on { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--panel2)); }
+.sw:disabled { opacity: .5; cursor: default; }
+.smbottom { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 10px; }
+.chk { margin: 0; padding-left: 22px; display: grid; gap: 3px; font-size: 13px; color: var(--dim); }
+.chk li.ok { color: var(--ok); } .chk li.ok::marker { content: '✓ '; }
+.glog { display: grid; gap: 3px; font-size: 12.5px; max-height: 260px; overflow: auto; }
+.glog span { color: var(--faint); font-family: Consolas, monospace; margin-right: 4px; }
+.glog .warn, .glog .bad { color: #e9a0a0; border: 0; padding: 0; margin: 0; background: none; } .glog .ok { color: var(--ok); }
+.door { position: relative; height: 130px; max-width: 260px; margin: 0 auto 10px; border: 6px solid #555c66; border-radius: 6px; background: #0e1013; overflow: hidden; }
+.door .leaf { position: absolute; top: 0; bottom: 0; width: 50%; background: repeating-linear-gradient(0deg, #3a4048 0 8px, #444b55 8px 16px); transition: transform .6s; }
+.door .leaf.l { left: 0; border-right: 2px solid #222; } .door .leaf.r { right: 0; border-left: 2px solid #222; }
+.door.open .leaf.l { transform: translateX(-96%); } .door.open .leaf.r { transform: translateX(96%); }
+.door.shock { box-shadow: 0 0 14px #5fd0ff; animation: zap .25s infinite alternate; }
+@keyframes zap { to { border-color: #5fd0ff; } }
+.door .lights { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+.door .lights i { width: 9px; height: 9px; border-radius: 50%; background: #333; }
+.door .lights i.on { background: #6fd36f; } .door .lights i.bolt { background: #e06c6c; } .door .lights i.zap { background: #5fd0ff; }
+.wstat { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 13.5px; margin-bottom: 10px; }
+.wstat b.bad { color: #e06c6c; }
+.wires { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 5px; margin-bottom: 10px; }
+.wires.closed { opacity: .35; pointer-events: none; }
+.wire { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto auto; gap: 6px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; font-size: 13px; }
+.wire i { height: 6px; border-radius: 3px; background: var(--wc); }
+.wire.cut i { background: linear-gradient(90deg, var(--wc) 40%, transparent 40% 60%, var(--wc) 60%); }
+.glog i.sq { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; border: 1px solid #888; vertical-align: -1px; }
+.wire em { color: var(--accent); font-style: normal; }
+.wire button { border: 1px solid var(--line); background: var(--panel2); border-radius: 6px; padding: 2px 8px; font-size: 12px; }
+@media (max-width: 560px) { .smtop { grid-template-columns: 1fr; } .gg { grid-template-columns: 90px minmax(0, 1fr) 80px; } }
 </style>
 </head>
 <body>
 <div class="tabs" role="tablist">
   <button role="tab" data-tab="guides" aria-selected="true">Инструкции</button>
+  <button role="tab" data-tab="games" aria-selected="false">🎮 Тренажёры</button>
   <button role="tab" data-tab="air" aria-selected="false">Как дышать 101</button>
 </div>
+<div class="doc" id="games" hidden></div>
 <div class="doc" id="doc" hidden><div class="in">
   <p class="lead">Как вернуть воздух в повреждённый отсек, чем дышат на станции и как смешивать и варить газы. Числа — по коду сборки BlueMoon.</p>
   <nav class="toc" aria-label="Разделы">
@@ -342,6 +401,12 @@ function load() {
   } catch (e) { /* */ }
 }
 
+function guideDone(g) {
+  let d = [];
+  try { d = JSON.parse(localStorage.getItem('engineer.done') || '[]'); } catch (e) { /* */ }
+  if (!d.includes(g.name)) { d.push(g.name); try { localStorage.setItem('engineer.done', JSON.stringify(d)); } catch (e) { /* */ } }
+  try { const p = window.parent !== window && parent.PultGame; if (p) { p.award('eng.guide'); if (d.length >= 5) p.award('eng.guide5'); } } catch (e) { /* */ }
+}
 function step(d) {
   const n = guide().steps.length;
   const v = Math.max(0, Math.min(n, si + d));
@@ -363,6 +428,7 @@ function render(flash) {
   $('progress').innerHTML = steps.map((s, i) => `<i class="${i < si ? 'done' : i === si ? 'cur' : ''}" data-i="${i}" title="${i + 1}. ${esc(s.tool)}"></i>`).join('');
 
   if (si >= n) {
+    guideDone(g);
     $('tool').textContent = '✓ Готово'; $('tool').style.color = 'var(--ok)';
     $('do').textContent = `${g.name} — все шаги пройдены.`;
     $('note').textContent = '';
@@ -415,15 +481,18 @@ function renderKeys() {
 const only = { guides: 'guides', air: 'air' }[new URLSearchParams(location.search).get('only')] || null;
 let tab = 'guides';
 function setTab(t) {
-  if (only) t = only;
-  tab = t === 'air' ? 'air' : 'guides';
+  if (only === 'air' || (only === 'guides' && t !== 'games')) t = only;
+  tab = t === 'air' || t === 'games' ? t : 'guides';
   document.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === tab));
   $('layout').hidden = tab !== 'guides';
   $('doc').hidden = tab !== 'air';
+  $('games').hidden = tab !== 'games';
+  if (tab === 'games' && window.engineerGames) window.engineerGames.show();
   if (!only) try { localStorage.setItem('engineer.tab', tab); } catch (e) { /* */ }
 }
 document.querySelectorAll('[data-tab]').forEach((b) => { b.onclick = () => setTab(b.dataset.tab); });
-if (only) { document.querySelector('.tabs').style.display = 'none'; setTab(only); }
+if (only === 'air') { document.querySelector('.tabs').style.display = 'none'; setTab(only); }
+else if (only) { document.querySelector('[data-tab="air"]').style.display = 'none'; setTab(only); }
 else try { setTab(localStorage.getItem('engineer.tab') || 'guides'); } catch (e) { setTab('guides'); }
 // Оглавление справки листает только её, не трогая адрес страницы
 $('doc').addEventListener('click', (e) => {
@@ -553,5 +622,6 @@ fetch('guides.json', { cache: 'no-store' })
   mix();
 })();
 </script>
+<script src="games.js"></script>
 </body>
 </html>

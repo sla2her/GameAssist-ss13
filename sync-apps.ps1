@@ -27,7 +27,7 @@ Copy-Item (Join-Path $src 'js') $dst -Recurse
 
 # Инженер — веб-версия оверлея живёт в Пульте (engineer\), инструкции берём из engineer-helper\guides.json
 $dst = Join-Path $apps 'engineer'; Reset-Dir $dst
-Copy-Item (Join-Path $root 'engineer\index.html') $dst
+Copy-Item (Join-Path $root 'engineer\index.html'), (Join-Path $root 'engineer\games.js') $dst
 Copy-Item (Join-Path $clod 'engineer-helper\guides.json') $dst
 
 # Кухня и бар — один файл со встроенной базой рецептов
