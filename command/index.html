@@ -646,6 +646,7 @@ const CASE_SETS=['НТ-Стандарт','Кру-Азимов','Корпорат
 const VERD={yes:['v-yes','Да'],no:['v-no','Нет'],mid:['v-mid','Смотря как']};
 
 /* --- Тренажёр ИИ: случайная ситуация и свод законов, игрок выбирает ответ --- */
+const award=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
 const AIQ={c:-1,l:0,pick:null,ok:0,n:0,streak:0};
 function aiqNext(){let c;do{c=Math.floor(Math.random()*CASES.length)}while(CASES.length>1&&c===AIQ.c);AIQ.c=c;AIQ.l=Math.floor(Math.random()*CASE_SETS.length);AIQ.pick=null}
 function aiqHtml(){
@@ -659,7 +660,7 @@ function aiqHtml(){
       <details class="aiq-o"><summary>Как ответили бы другие своды</summary>${c.a.map(([vv,tt],i)=>i===AIQ.l?'':`<div class="ans"><b>${CASE_SETS[i]}</b><span><span class="verdict ${VERD[vv][0]}">${VERD[vv][1]}.</span> ${esc(tt)}</span></div>`).join('')}</details>
       <button type="button" class="aiq-next" data-aiqnext>Следующая ситуация →</button>`:''}</div></div>`}
 document.addEventListener('click',e=>{
-  const b=e.target.closest('[data-aiq]');if(b&&AIQ.pick===null){const v=CASES[AIQ.c].a[AIQ.l][0];AIQ.pick=b.dataset.aiq;AIQ.n++;if(AIQ.pick===v){AIQ.ok++;AIQ.streak++}else AIQ.streak=0;renderAiCases();return}
+  const b=e.target.closest('[data-aiq]');if(b&&AIQ.pick===null){const v=CASES[AIQ.c].a[AIQ.l][0];AIQ.pick=b.dataset.aiq;AIQ.n++;if(AIQ.pick===v){AIQ.ok++;AIQ.streak++;if(AIQ.streak>=5)award('ai.streak5');if(AIQ.streak>=12)award('ai.streak12')}else AIQ.streak=0;renderAiCases();return}
   if(e.target.closest('[data-aiqnext]')){aiqNext();renderAiCases()}
 });
 function renderAiCases(){

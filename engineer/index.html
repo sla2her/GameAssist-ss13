@@ -485,6 +485,7 @@ fetch('guides.json', { cache: 'no-store' })
 <script>
 // ---------- Газовый калькулятор (константы из code/__DEFINES/atmospherics.dm и auxgm/gas_types.dm) ----------
 (() => {
+  const award = (id) => { try { const g = window.parent !== window && parent.PultGame; g && g.award(id); } catch (e) { /* */ } };
   const R = 8.31, CELL = 2500, T0 = 273.15, CAN_V = 1000, CAN_P = 90 * 101.325 * 0.5;
   const GAS = { o2: ['O₂', 20, '#5aa0ff'], n2: ['N₂', 20, '#d9534f'], co2: ['CO₂', 30, '#555c66'], plasma: ['Плазма', 200, '#e8873a'], n2o: ['N₂O', 40, '#e8e8e8'],
     h2o: ['Водяной пар', 40, '#7fd0e0'], trit: ['Тритий', 10, '#6fd36f'], bz: ['BZ', 20, '#b07ad9'], pluox: ['Плюоксий', 80, '#3fb8d6'], h2: ['Водород', 10, '#f0f0a0'], nob: ['Гипер-ноблий', 2000, '#33d6c8'], freon: ['Фреон', 600, '#a0e0ff'] };
@@ -506,13 +507,14 @@ fetch('guides.json', { cache: 'no-store' })
       <div><b>${cans}</b><span>Канистр «Air» (≈${f(canUse)} моль с каждой)</span></div><div><b>${f(pg * V / (R * T))} моль</b><span>Будет в отсеке</span></div>
       <div><b>${zone}</b><span>Давление цели</span></div>`;
   }
-  ['rmT', 'rmP', 'rmG', 'rmC'].forEach((id) => $$(id).addEventListener('input', room));
+  ['rmT', 'rmP', 'rmG', 'rmC'].forEach((id) => $$(id).addEventListener('input', () => { room(); award('air.room'); }));
   room();
   // --- смешивание ---
   const side = (k, g, v, p, t) => `<label>${k}: газ</label><select id="mx${k}g">${Object.entries(PRE).map(([id, n]) => `<option value="${id}"${id === g ? ' selected' : ''}>${n}</option>`).join('')}</select>
     <label>${k}: объём</label><select id="mx${k}v">${VOL.map(([id, n]) => `<option value="${id}"${id === v ? ' selected' : ''}>${n}</option>`).join('')}</select>
     <label>${k}: кПа / °C</label><div class="row2"><input id="mx${k}p" type="number" min="0" value="${p}" title="Давление, кПа"><input id="mx${k}t" type="number" value="${t}" title="Температура, °C"></div>`;
   $$('mixF').innerHTML = side('А', 'o2', '1000', 4560, 20) + side('Б', 'n2', '2500', 0, 20);
+  let mixTouched = false;
   function mix() {
     const parts = ['А', 'Б'].map((k) => {
       const v = +$$('mx' + k + 'v').value, p = Math.max(0, num('mx' + k + 'p', 0)), T = Math.max(2.7, num('mx' + k + 't', 20) + T0), g = $$('mx' + k + 'g').value;
@@ -542,9 +544,12 @@ fetch('guides.json', { cache: 'no-store' })
     }
     const v = $$('mixV');
     v.className = 'verdict' + (bad.length ? ' bad' : mid.length ? ' mid' : '');
+    const pure = ['А', 'Б'].every((k) => !['air', 'vac'].includes($$('mx' + k + 'g').value)) && $$('mxАg').value !== $$('mxБg').value;
+    if (mixTouched && pure && !bad.length && !mid.length && n) award('air.breathe');
+    if (mixTouched && pp('plasma') > 0 && pp('o2') > 0 && T > 373) award('air.fire');
     v.innerHTML = bad.length || mid.length ? [...bad, ...mid].join('<br>') : 'Дышать можно: человеку подходит.';
   }
-  $$('mixF').addEventListener('input', mix);
+  $$('mixF').addEventListener('input', () => { mixTouched = true; mix(); });
   mix();
 })();
 </script>

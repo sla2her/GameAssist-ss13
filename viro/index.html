@@ -441,6 +441,7 @@ function renderRecipes(){
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 /* ===================== КОНСТРУКТОР ШТАММА И СИМУЛЯЦИЯ ВСПЫШКИ ===================== */
+const award=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
 const STATN=['Скрытность','Устойчивость','Скорость','Передача'];
 const LAB={sel:[],q:'',lvl:0};
 try{const s=JSON.parse(localStorage.getItem('viro.lab')||'null');if(s&&Array.isArray(s.sel))LAB.sel=s.sel.filter(n=>SYM.some(x=>x[0]===n)).slice(0,6)}catch(e){}
@@ -457,6 +458,7 @@ function labCalc(){
 }
 function renderLab(){
   const R=labCalc();
+  if(R.n>=3&&R.sev===0&&R.spread==='Кровь')award('viro.safe');
   const q=LAB.q.trim().toLowerCase();
   const list=SYM.filter(s=>(!LAB.lvl||s[6]===LAB.lvl)&&(!q||(s[0]+' '+s[1]).toLowerCase().includes(q)));
   const lvls=[...new Set(SYM.map(s=>s[6]))].sort((a,b)=>a-b);
@@ -529,7 +531,7 @@ function simStep(){
     if(p.st<5&&Math.random()*100<R.stage)p.st++;
     if(R.sev>=4&&p.st>=4){p.hp-=R.sev*(p.st-3)*.35;if(p.hp<=0){p.dead=true}}
     if(SIM.cured&&Math.random()*100<R.cure){p.st=0;p.imm=true}});
-  if(!SIM.ppl.some(p=>p.st>0&&!p.dead))SIM.run=false;
+  if(!SIM.ppl.some(p=>p.st>0&&!p.dead)){SIM.run=false;award('viro.outbreak');if(SIM.cured&&!SIM.ppl.some(p=>p.dead)&&SIM.ppl.some(p=>p.imm))award('viro.cure')}
 }
 function simDraw(){
   const cv=$('#simcv');if(!cv)return;const x=cv.getContext('2d'),cs=getComputedStyle(document.documentElement);
