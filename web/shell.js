@@ -92,6 +92,9 @@ const APPS = [
   // Вирусология — второе приложение медотдела после Алхимика и Химзавода; своей клавиши нет
   { id: 'viro', name: 'Вирусология', sub: 'Вирусы и эпидемии', desc: 'Статы, полезные вирусы, лечение, разумный вирус',
     src: 'apps/viro/index.html', color: '#4aa8d8', icon: 'virus', hscroll: 'nav, .subnav, .chips', css: false },
+  // Медбей — тренажёр «Пациент на столе» по коду лечения BlueMoon; своей клавиши нет
+  { id: 'medbay', name: 'Медбей', sub: 'Пациент на столе', desc: 'Анализатор, кукла здоровья, наборы и лекарства на время',
+    src: 'apps/medbay/index.html', color: '#2f8fc4', icon: 'cross', hscroll: 'nav, .tools, .zbtns', css: false },
   // Робототехник — второе приложение науки; пошаговая сборка с оверлеем поверх игры (F10), своей клавиши нет
   { id: 'robo', name: 'Робототехник', short: 'Робо', sub: 'Киборги, мехи, МОДы', desc: 'Пошаговая сборка, МОД-стенд, оверлей F10, НРП',
     src: 'apps/robo/index.html', color: '#8c6ad8', icon: 'robot', hscroll: 'nav, .subnav, .mpre', css: false },
@@ -132,7 +135,7 @@ const DEPTS = [
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
   { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
   { id: 'sci', name: 'Наука', sub: 'R&D, генетика, наниты, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'rnd', 'genetics', 'nanites', 'xeno'] },
-  { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
+  { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы, медбей', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro', 'medbay'] },
   { id: 'srv', name: 'Сервис', sub: 'Кухня, бар, ботаника', color: '#e07a3f', icon: 'cloche', apps: ['kitchen', 'botany'] },
   { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл, битран', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev', 'bitrun'] },
 ];

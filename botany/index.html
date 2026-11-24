@@ -158,6 +158,46 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
 .pq-r.bad{border-left-color:var(--bad,#c0262d);background:color-mix(in srgb,var(--bad,#c0262d) 9%,var(--panel))}
 .pq-n{justify-self:start;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg,#fff);border-radius:9px;padding:6px 14px;font-weight:600;cursor:pointer;font:inherit}
 .pult-compact .pq{padding:12px}
+/* «Теплица» */
+.fm{display:grid;gap:12px}
+.fm-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fm-top>span{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:13px;font-variant-numeric:tabular-nums}
+.fm-speed{display:flex;gap:4px}
+.fm-speed button,.fm-reset{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:3px 12px;cursor:pointer;font-size:15px;color:var(--fg)}
+.fm-speed button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.fm-reset{margin-left:auto}
+.fm-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:12px;align-items:start}
+@media (max-width:860px){.fm-main{grid-template-columns:1fr}}
+.fm-trays{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.fm-tray{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:8px;cursor:pointer;display:grid;gap:4px}
+.fm-tray:hover{border-color:var(--line2)}.fm-tray.on{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.fm-stack{position:relative;width:128px;height:128px;margin:0 auto}
+.fm-stack .fl{position:absolute;inset:0;width:128px;height:128px;image-rendering:pixelated}
+.fm-name{font-weight:600;font-size:13.5px;text-align:center;line-height:1.2;min-height:2.4em}
+.fm-bar{display:flex;align-items:center;gap:6px;font-size:12px;height:14px}
+.fm-bar i{flex:1;height:7px;border-radius:4px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}
+.fm-bar b{display:block;height:100%}
+.fm-bar.w b{background:#3d8fe0}.fm-bar.n b{background:#c9a227}.fm-bar.h b{background:var(--ok)}
+.fm-tags{display:flex;gap:6px;font-size:12px;min-height:16px;justify-content:center}
+.fm-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.fm-card h3{margin:0 0 8px;font-size:15px}
+.fm-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.fm-tools button,.fm-seeds button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:4px 2px;cursor:pointer;color:var(--fg);font-size:11px;line-height:1.15;text-align:center}
+.fm-tools button:hover,.fm-seeds button:hover{border-color:var(--accent)}
+.fm-seeds{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;margin-bottom:8px}
+.fm-seeds small{display:block;color:var(--faint);font-size:10px}
+.px{width:48px;height:48px;image-rendering:pixelated}.px.big{width:96px;height:96px}.px.sm{width:24px;height:24px;vertical-align:middle}
+.fm-det{display:flex;gap:10px}
+.fm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:8px 0}
+.fm-det>div{min-width:0}
+.fm-stats span{background:var(--panel2);border-radius:7px;padding:3px 7px;display:flex;flex-direction:column}
+.fm-stats small{font-size:10.5px;color:var(--faint)}
+.fm-muted{color:var(--muted);font-size:13px}
+.fm-log{font-size:13px;display:grid;gap:3px}.fm-log .ok{color:var(--ok)}.fm-log .bad{color:var(--bad)}
+.fm-album{display:flex;flex-wrap:wrap;gap:4px}
+.fm-album span{background:var(--panel2);border-radius:8px;filter:grayscale(1) opacity(.35)}
+.fm-album span.got{filter:none}
+.pult-compact .fm-stack,.pult-compact .fm-stack .fl{width:96px;height:96px}
 </style>
 </head>
 <body>
@@ -169,6 +209,7 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
     <button role="tab" id="tab-tray" data-tab="tray" aria-selected="false">Лоток</button>
     <button role="tab" id="tab-chem" data-tab="chem" aria-selected="false">Химия</button>
     <button role="tab" id="tab-genes" data-tab="genes" aria-selected="false">Гены</button>
+    <button role="tab" id="tab-farm" data-tab="farm" aria-selected="false">🎮 Теплица</button>
   </nav>
 </header>
 
@@ -183,12 +224,15 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
 </section>
 <section id="v-chem" hidden><div id="chem-root"></div></section>
 <section id="v-genes" hidden><div id="genes-root"></div></section>
+<section id="v-farm" hidden><div id="farm-root"></div></section>
 
 <p class="foot">Неофициальный помощник по коду BlueMoon-Station: <code>code/modules/hydroponics</code> (лоток, семена, гены, ДНК-манипулятор), <code>code/modules/hydroponics/grown</code> и модульные папки (растения), <code>on_hydroponics_apply</code> в реагентах (химия лотка). Растения, статы, реагенты, мутации и спрайты собираются из кода скриптом <code>botany/build_data.py</code>. Код на сервере может отличаться от репозитория.</p>
 </main>
 </div>
 
 <script src="data.js"></script>
+<script src="farm-sprites.js"></script>
+<script src="farm.js"></script>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -469,7 +513,7 @@ const S0={tab:'plants',sub:{tray:'grow'},sel:'tomato',q:'',f:'all',cq:''};
 const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
   s=Object.assign({},S0,s&&typeof s==='object'?s:{});s.sub=Object.assign({},S0.sub,s.sub||{});return s})();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-const TABS=['plants','tray','chem','genes'];
+const TABS=['plants','tray','chem','genes','farm'];
 
 /* --- Мини-викторина Пульта (одинаковая во всех модулях): серия, рекорд, достижение за серию 5 --- */
 const pqAward=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
@@ -511,8 +555,8 @@ pqMake('mut',()=>{
 },'botany.quiz',()=>renderBotQuiz());
 function renderBotQuiz(){$('#tray-quiz').innerHTML=pqHtml('mut','Тренажёр ботаника: мутации')}
 
-const SUBS={plants:[],tray:[['grow','Выращивание'],['mut','Мутации'],['tools','Машины'],['quiz','Тренажёр']],chem:[],genes:[]};
-const RENDER={plants:{'':renderPlants},tray:{grow:renderGrow,mut:renderMut,tools:renderTools,quiz:renderBotQuiz},chem:{'':renderChem},genes:{'':renderGenes}};
+const SUBS={plants:[],tray:[['grow','Выращивание'],['mut','Мутации'],['tools','Машины'],['quiz','Тренажёр']],chem:[],genes:[],farm:[]};
+const RENDER={plants:{'':renderPlants},tray:{grow:renderGrow,mut:renderMut,tools:renderTools,quiz:renderBotQuiz},chem:{'':renderChem},genes:{'':renderGenes},farm:{'':()=>window.renderFarm&&window.renderFarm()}};
 const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);if(el)el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
 function go(t,sub){
   if(sub)S.sub[t]=sub;
