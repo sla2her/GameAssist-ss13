@@ -124,6 +124,26 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
 .pult-compact .note{margin-left:10px;margin-right:10px}
 .pult-compact .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 .pult-compact .foot{display:none}
+
+/* Загон */
+.penhud{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:12px 16px;font-size:14px}
+.penhud b.bad{color:var(--bad,#c0262d)}
+.pbtn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px}
+.pbtn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg,#fff);font-weight:600}
+.pbtn:disabled{opacity:.45;cursor:default}
+.penfield{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:4px 16px 12px}
+.slm{display:grid;gap:3px;justify-items:start;text-align:left;border:1px solid var(--line);border-left:4px solid var(--cc);background:var(--panel2);border-radius:10px;padding:8px 10px;cursor:pointer;font-size:12.5px}
+.slm.on{outline:2px solid var(--accent);outline-offset:1px}
+.slm.rabid{animation:rab .4s infinite alternate}
+@keyframes rab{to{background:color-mix(in srgb,#e0453a 22%,var(--panel2))}}
+.slm span{display:grid;grid-template-columns:52px 1fr;align-items:center;width:100%;color:var(--muted)}
+.slm small{color:var(--muted)}
+.pbar{display:block;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.pbar>i{display:block;height:100%;background:#3fb89a}
+.pbar.h>i{background:#e0453a}.pbar.n>i{background:#d9a03a}
+.penact{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 16px 14px;font-size:13.5px}
+.penlog{padding:10px 16px 14px;font-size:13px;display:grid;gap:3px;max-height:260px;overflow:auto}
+.pult-compact .penfield,.pult-compact .penact,.pult-compact .penhud,.pult-compact .penlog{padding-left:10px;padding-right:10px}
 </style>
 </head>
 <body>
@@ -151,6 +171,7 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
   <div class="seg subnav" data-subs="mut"></div>
   <div id="mut-tree"></div>
   <div id="mut-calc" hidden></div>
+  <div id="mut-pen" hidden></div>
 </section>
 
 <section id="v-ext" hidden>
@@ -448,6 +469,77 @@ const RX={
  slimetransfer:'<b>Consciousness Transference Potion</b>: переселиться в животное.',
  flightpotion:'<b>Flight Potion</b>: крылья (нужно 5 святой воды + 5 урана).',
 };
+
+/* ===================== МУТАЦИИ: ЗАГОН (мини-игра) ===================== */
+// Упрощённый цикл из кода: малыш ест обезьян → взрослый → делится на 4 малышей, каждый мутирует с шансом родителя
+// в один из 4 цветов таблицы D.mut. Голодный слайм злеет и кусается. Серый экстракт + кровь → кубики обезьян.
+const award=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
+const PEN={sl:[],mon:0,hp:100,sel:-1,t:0,log:[],target:null,mutr:0,stab:0,ext:{},spent:0,won:false,lost:false,run:false,timer:0,uid:0};
+function penNew(){
+  const g2=ORDER.filter(c=>GEN[c]===2);
+  Object.assign(PEN,{sl:[],mon:12,hp:100,sel:-1,t:0,log:[],target:g2[Math.floor(Math.random()*g2.length)],mutr:1,stab:1,ext:{},spent:0,won:false,lost:false});
+  penAdd('grey');penAdd('grey');penLog(`Цель смены: получить <b>${RU[PEN.target]}</b> экстракт. Путь: ${pathTo(PEN.target).map(c=>RU[c]).join(' → ')}.`);
+}
+function penAdd(c,ch=30){PEN.sl.push({id:++PEN.uid,c,grow:0,hun:20,ch,rabid:false,born:PEN.t});}
+function penLog(m){PEN.log.unshift(`<span class="muted">${Math.floor(PEN.t*1.5/60)}:${String(Math.floor(PEN.t*1.5%60)).padStart(2,'0')}</span> ${m}`);PEN.log.length=Math.min(PEN.log.length,40)}
+function penTick(){
+  if(PEN.won||PEN.lost)return;
+  PEN.t++;
+  PEN.sl.forEach(s=>{s.hun=Math.min(100,s.hun+(s.grow>=10?4:3));
+    if(s.hun>=100&&!s.rabid){s.rabid=true;penLog(`${RU[s.c]} слайм #${s.id} голоден и <b>взбесился</b>!`)}
+    if(s.rabid&&Math.random()<.18){PEN.hp-=8;penLog(`Слайм #${s.id} укусил вас: −8 здоровья.`)}});
+  if(PEN.hp<=0){PEN.lost=true;PEN.hp=0;penLog('<b>Вас съели слаймы.</b> Кормите их вовремя.')}
+}
+function penAct(a){
+  const s=PEN.sl.find(x=>x.id===PEN.sel);
+  if(a==='feed'&&s){if(PEN.mon<1)return penLog('Обезьян нет. Сделайте кубики: серый экстракт + кровь.');
+    PEN.mon--;PEN.spent++;s.hun=0;s.rabid=false;s.grow=Math.min(10,s.grow+4);penLog(`#${s.id} съел обезьяну${s.grow>=10?' и <b>вырос</b> — можно делить':''}.`)}
+  if(a==='split'&&s&&s.grow>=10){
+    if(PEN.sl.length+3>10)return penLog('В загоне тесно: максимум 10 слаймов. Сначала заберите экстракты.');
+    PEN.sl=PEN.sl.filter(x=>x!==s);const kids=[];
+    for(let i=0;i<4;i++){let c=s.c;if(s.ch>=100)c='rainbow';else if(D.mut[s.c]&&Math.random()*100<s.ch)c=D.mut[s.c][Math.floor(Math.random()*4)];kids.push(c);penAdd(c);if(c==='rainbow')award('xeno.rainbow')}
+    PEN.sel=-1;penLog(`#${s.id} разделился: ${kids.map(c=>RU[c]).join(', ')}.`)}
+  if(a==='core'&&s){PEN.sl=PEN.sl.filter(x=>x!==s);PEN.ext[s.c]=(PEN.ext[s.c]||0)+(s.grow>=10?2:1);PEN.sel=-1;penLog(`Забрали ${s.grow>=10?'2 экстракта':'экстракт'}: ${RU[s.c]}.`)}
+  if(a==='mutr'&&s&&PEN.mutr>0){PEN.mutr--;s.ch=Math.min(100,s.ch+12);penLog(`Мутатор: у #${s.id} шанс мутации ${s.ch} %.`)}
+  if(a==='stab'&&s&&PEN.stab>0){PEN.stab--;s.ch=Math.max(0,s.ch-15);penLog(`Стабилизатор: у #${s.id} шанс мутации ${s.ch} %.`)}
+  if(a==='cube'){if(!PEN.ext.grey)return penLog('Нужен серый экстракт.');PEN.ext.grey--;PEN.mon+=3;penLog('Серый экстракт + кровь → 3 кубика обезьян.')}
+  if(a==='spawn'){if(!PEN.ext.grey)return penLog('Нужен серый экстракт.');if(PEN.sl.length>=10)return penLog('В загоне тесно.');PEN.ext.grey--;penAdd('grey');penLog('Серый экстракт + плазма → новый серый малыш.')}
+  if(!PEN.won&&(PEN.ext[PEN.target]||PEN.sl.some(x=>x.c===PEN.target))){PEN.won=true;award('xeno.win');penLog(`<b>Цель достигнута: ${RU[PEN.target]}!</b> Обезьян потрачено: ${PEN.spent}.`)}
+}
+function renderPen(){
+  if(!PEN.target)penNew();
+  const s=PEN.sl.find(x=>x.id===PEN.sel),over=PEN.won||PEN.lost;
+  const bar=(v,cls)=>`<i class="pbar ${cls}"><i style="width:${v}%"></i></i>`;
+  let h='<div class="grid pen">';
+  h+=card(`Загон <small>${PEN.sl.length}/10 слаймов · щёлкните слайма, чтобы выбрать</small>`,
+    `<div class="penhud"><span>Цель: ${chip(PEN.target)}</span><span>🐒 Обезьян: <b>${PEN.mon}</b></span><span>❤ Здоровье: <b class="${PEN.hp<40?'bad':''}">${PEN.hp}</b></span><span>Время: <b>${Math.floor(PEN.t*1.5/60)} мин</b></span>
+      <button type="button" class="pbtn pri" data-pen="run">${PEN.run?'⏸ Пауза':'▶ Старт'}</button><button type="button" class="pbtn" data-pen="new">Новая смена</button></div>
+    ${over?`<div class="note ${PEN.won?'ok':'bad'}" style="margin:8px 16px">${PEN.won?`Победа! ${RU[PEN.target]} за ${Math.floor(PEN.t*1.5/60)} мин, обезьян: ${PEN.spent}.`:'Смена провалена: слаймы победили.'} Нажмите «Новая смена».</div>`:''}
+    <div class="penfield">${PEN.sl.map(x=>`<button type="button" class="slm${x.id===PEN.sel?' on':''}${x.rabid?' rabid':''}" data-slm="${x.id}" style="--cc:${HEX[x.c]}">
+      ${slimeImg(x.c,x.grow>=10?'adult':'baby','spr md')}<b>#${x.id} ${RU[x.c]}</b>
+      <span>Рост ${bar(x.grow*10,'g')}</span><span>Голод ${bar(x.hun,x.hun>70?'h':'n')}</span><small>мутация ${x.ch} %${x.rabid?' · <b>злой</b>':''}</small></button>`).join('')||'<p class="muted" style="padding:16px">Загон пуст.</p>'}</div>
+    <div class="penact">${s?`<b>#${s.id} ${RU[s.c]}</b>
+      <button type="button" class="pbtn" data-pen="feed" ${over?'disabled':''}>Скормить обезьяну</button>
+      <button type="button" class="pbtn" data-pen="split" ${over||s.grow<10?'disabled':''}>Разделить</button>
+      <button type="button" class="pbtn" data-pen="core" ${over?'disabled':''}>Забрать экстракт</button>
+      <button type="button" class="pbtn" data-pen="mutr" ${over||!PEN.mutr?'disabled':''}>Мутатор (+12 %) ×${PEN.mutr}</button>
+      <button type="button" class="pbtn" data-pen="stab" ${over||!PEN.stab?'disabled':''}>Стабилизатор (−15 %) ×${PEN.stab}</button>`:'<span class="muted">Выберите слайма в загоне.</span>'}</div>`,C.cycle,'wide');
+  h+=card('Склад экстрактов',`<div class="body">${Object.entries(PEN.ext).filter(([,n])=>n>0).map(([c,n])=>`<span class="cchip" style="--cc:${HEX[c]}">${coreImg(c,'spr sm')}${RU[c]} ×${n}</span>`).join(' ')||'<span class="muted">Пусто.</span>'}
+    <div class="penact" style="padding:10px 0 0"><button type="button" class="pbtn" data-pen="cube" ${over?'disabled':''}>Серый + кровь → 3 обезьяны</button><button type="button" class="pbtn" data-pen="spawn" ${over?'disabled':''}>Серый + плазма → малыш</button></div></div>`,C.core);
+  h+=card('Журнал',`<div class="penlog">${PEN.log.map(l=>`<div>${l}</div>`).join('')}</div>`,C.console);
+  h+=card('Как играть',bul(['Нажмите «Старт»: время пошло, слаймы голодают.','Кормите малыша обезьянами: три обезьяны — и он взрослый.','Взрослого делите: 4 малыша, каждый с шансом мутации родителя меняет цвет по таблице «Цвет и дети».','Голод 100 % — слайм злеет и кусается. Сытый слайм успокаивается.','Лишних и ненужных — на экстракты. Серые экстракты превращаются в обезьян и новых малышей.','Мутатор поднимает шанс мутации, стабилизатор опускает — тратьте с умом.']),C.feed);
+  h+='</div>';
+  $('#mut-pen').innerHTML=h;
+}
+function penLoop(){clearTimeout(PEN.timer);if(!PEN.run||$('#mut-pen').hidden){PEN.run=false;return}penTick();if(PEN.won||PEN.lost)PEN.run=false;renderPen();PEN.timer=setTimeout(penLoop,1500)}
+document.addEventListener('click',e=>{
+  const m=e.target.closest('[data-slm]');if(m){PEN.sel=+m.dataset.slm;renderPen();return}
+  const b=e.target.closest('[data-pen]');if(!b)return;const a=b.dataset.pen;
+  if(a==='run'){PEN.run=!PEN.run&&!PEN.won&&!PEN.lost;penLoop();renderPen();return}
+  if(a==='new'){PEN.run=false;penNew();renderPen();return}
+  penAct(a);if(PEN.won)PEN.run=false;renderPen();
+});
+
 function renderExt(){
   const q=(S.q||'').trim().toLowerCase();
   let h=`<div class="tools"><input type="search" placeholder="Поиск: цвет, реагент, результат (напр. плазма, адамантин, зелье)" value="${esc(S.q||'')}" data-q></div>`;
@@ -593,8 +685,8 @@ const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}cat
   s=Object.assign({},S0,s&&typeof s==='object'?s:{});s.sub=Object.assign({},S0.sub,s.sub||{});return s})();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const TABS=['care','mut','ext','pot','cross'];
-const SUBS={care:[['cycle','Цикл и корм'],['console','Консоль и команды'],['safety','Опасности']],mut:[['tree','Цвет и дети'],['calc','Путь к цвету']],ext:[],pot:[],cross:[]};
-const RENDER={care:{cycle:renderCycle,console:renderConsole,safety:renderSafety},mut:{tree:renderTree,calc:renderCalc},ext:{'':renderExt},pot:{'':renderPot},cross:{'':renderCross}};
+const SUBS={care:[['cycle','Цикл и корм'],['console','Консоль и команды'],['safety','Опасности']],mut:[['tree','Цвет и дети'],['calc','Путь к цвету'],['pen','Загон (игра)']],ext:[],pot:[],cross:[]};
+const RENDER={care:{cycle:renderCycle,console:renderConsole,safety:renderSafety},mut:{tree:renderTree,calc:renderCalc,pen:renderPen},ext:{'':renderExt},pot:{'':renderPot},cross:{'':renderCross}};
 const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);if(el)el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
 function go(t,sub){
   if(sub)S.sub[t]=sub;

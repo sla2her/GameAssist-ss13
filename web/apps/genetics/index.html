@@ -644,7 +644,7 @@ function domutcheck(p,changed){
   const was=p.active||[];const now=p.index.filter(([id])=>isActive(p,id)).map(([id])=>id);
   p.active=now;
   now.filter(id=>!was.includes(id)).forEach(id=>{const m=MUT[id];
-    S.sq.solved=S.sq.solved||[];if(!S.sq.solved.includes(id))S.sq.solved.push(id);
+    S.sq.solved=S.sq.solved||[];if(!S.sq.solved.includes(id))S.sq.solved.push(id);(id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}})('gen.solve');
     if(id==='race'&&p.kind!=='monkey'){p.kind='monkey';S.sq.evo=true;seqLog(`<span class="warning">${esc(p.name)} превращается в мартышку!</span>`)}
     else if(m.gain)seqLog(`<span class="notice"><i>${esc(p.name)} чувствует:</i> ${esc(m.gain)}</span>`)});
   was.filter(id=>!now.includes(id)).forEach(id=>{const m=MUT[id];

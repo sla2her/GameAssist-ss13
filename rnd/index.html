@@ -910,7 +910,7 @@ const PRESETS = [
 ];
 let goals = store.get('goals', []).filter((g) => N[g]);
 const saveGoals = () => store.set('goals', goals);
-function addGoal(id) { if (N[id] && !goals.includes(id)) { goals.push(id); saveGoals(); } renderPlan(); }
+function addGoal(id) { if (N[id] && !goals.includes(id)) { goals.push(id); saveGoals(); (id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}})('rnd.plan'); } renderPlan(); }
 
 $('presets').innerHTML = PRESETS.map((p, i) => `<button data-p="${i}" title="${esc(p.tip)}">${esc(p.n)}</button>`).join('') +
   '<button data-p="all" title="Все видимые узлы дерева">Всё дерево</button><button data-p="clear">Очистить</button>';

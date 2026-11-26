@@ -141,6 +141,63 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
 .pult-compact .note{margin-left:10px;margin-right:10px}
 .pult-compact .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 .pult-compact .foot{display:none}
+
+/* Мини-викторина Пульта */
+.pq{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:12px;padding:16px 18px;display:grid;gap:12px;max-width:900px;margin-bottom:14px}
+.pq-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.pq-h b{font-size:17px}.pq-h span{font-size:12.5px;color:var(--muted)}
+.pq-q{font-size:16px;font-weight:600;line-height:1.45}
+.pq-pre{font-size:14px;line-height:1.5;padding:10px 12px;border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 8px 8px 0}
+.pq-o{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.pq-o button{text-align:left;border:1px solid var(--line2,var(--line));background:var(--panel2);border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit;font-size:14px;color:inherit}
+.pq-o button:hover:not(:disabled){border-color:var(--accent)}
+.pq-o button.right{background:color-mix(in srgb,var(--ok,#2e8a4b) 20%,var(--panel));border-color:var(--ok,#2e8a4b)}
+.pq-o button.wrong{background:color-mix(in srgb,var(--bad,#c0262d) 18%,var(--panel));border-color:var(--bad,#c0262d)}
+.pq-o button:disabled{cursor:default}
+.pq-r{font-size:14px;padding:9px 12px;border-radius:8px;border-left:3px solid var(--ok,#2e8a4b);background:color-mix(in srgb,var(--ok,#2e8a4b) 9%,var(--panel))}
+.pq-r.bad{border-left-color:var(--bad,#c0262d);background:color-mix(in srgb,var(--bad,#c0262d) 9%,var(--panel))}
+.pq-n{justify-self:start;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg,#fff);border-radius:9px;padding:6px 14px;font-weight:600;cursor:pointer;font:inherit}
+.pult-compact .pq{padding:12px}
+/* «Теплица» */
+.fm{display:grid;gap:12px}
+.fm-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fm-top>span{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:13px;font-variant-numeric:tabular-nums}
+.fm-speed{display:flex;gap:4px}
+.fm-speed button,.fm-reset{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:3px 12px;cursor:pointer;font-size:15px;color:var(--fg)}
+.fm-speed button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.fm-reset{margin-left:auto}
+.fm-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:12px;align-items:start}
+@media (max-width:860px){.fm-main{grid-template-columns:1fr}}
+.fm-trays{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.fm-tray{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:8px;cursor:pointer;display:grid;gap:4px}
+.fm-tray:hover{border-color:var(--line2)}.fm-tray.on{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.fm-stack{position:relative;width:128px;height:128px;margin:0 auto}
+.fm-stack .fl{position:absolute;inset:0;width:128px;height:128px;image-rendering:pixelated}
+.fm-name{font-weight:600;font-size:13.5px;text-align:center;line-height:1.2;min-height:2.4em}
+.fm-bar{display:flex;align-items:center;gap:6px;font-size:12px;height:14px}
+.fm-bar i{flex:1;height:7px;border-radius:4px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}
+.fm-bar b{display:block;height:100%}
+.fm-bar.w b{background:#3d8fe0}.fm-bar.n b{background:#c9a227}.fm-bar.h b{background:var(--ok)}
+.fm-tags{display:flex;gap:6px;font-size:12px;min-height:16px;justify-content:center}
+.fm-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.fm-card h3{margin:0 0 8px;font-size:15px}
+.fm-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.fm-tools button,.fm-seeds button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:4px 2px;cursor:pointer;color:var(--fg);font-size:11px;line-height:1.15;text-align:center}
+.fm-tools button:hover,.fm-seeds button:hover{border-color:var(--accent)}
+.fm-seeds{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;margin-bottom:8px}
+.fm-seeds small{display:block;color:var(--faint);font-size:10px}
+.px{width:48px;height:48px;image-rendering:pixelated}.px.big{width:96px;height:96px}.px.sm{width:24px;height:24px;vertical-align:middle}
+.fm-det{display:flex;gap:10px}
+.fm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:8px 0}
+.fm-det>div{min-width:0}
+.fm-stats span{background:var(--panel2);border-radius:7px;padding:3px 7px;display:flex;flex-direction:column}
+.fm-stats small{font-size:10.5px;color:var(--faint)}
+.fm-muted{color:var(--muted);font-size:13px}
+.fm-log{font-size:13px;display:grid;gap:3px}.fm-log .ok{color:var(--ok)}.fm-log .bad{color:var(--bad)}
+.fm-album{display:flex;flex-wrap:wrap;gap:4px}
+.fm-album span{background:var(--panel2);border-radius:8px;filter:grayscale(1) opacity(.35)}
+.fm-album span.got{filter:none}
+.pult-compact .fm-stack,.pult-compact .fm-stack .fl{width:96px;height:96px}
 </style>
 </head>
 <body>
@@ -152,6 +209,7 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
     <button role="tab" id="tab-tray" data-tab="tray" aria-selected="false">Лоток</button>
     <button role="tab" id="tab-chem" data-tab="chem" aria-selected="false">Химия</button>
     <button role="tab" id="tab-genes" data-tab="genes" aria-selected="false">Гены</button>
+    <button role="tab" id="tab-farm" data-tab="farm" aria-selected="false">🎮 Теплица</button>
   </nav>
 </header>
 
@@ -162,15 +220,19 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
   <div id="tray-grow"></div>
   <div id="tray-mut" hidden></div>
   <div id="tray-tools" hidden></div>
+  <div id="tray-quiz" hidden></div>
 </section>
 <section id="v-chem" hidden><div id="chem-root"></div></section>
 <section id="v-genes" hidden><div id="genes-root"></div></section>
+<section id="v-farm" hidden><div id="farm-root"></div></section>
 
 <p class="foot">Неофициальный помощник по коду BlueMoon-Station: <code>code/modules/hydroponics</code> (лоток, семена, гены, ДНК-манипулятор), <code>code/modules/hydroponics/grown</code> и модульные папки (растения), <code>on_hydroponics_apply</code> в реагентах (химия лотка). Растения, статы, реагенты, мутации и спрайты собираются из кода скриптом <code>botany/build_data.py</code>. Код на сервере может отличаться от репозитория.</p>
 </main>
 </div>
 
 <script src="data.js"></script>
+<script src="farm-sprites.js"></script>
+<script src="farm.js"></script>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -451,9 +513,50 @@ const S0={tab:'plants',sub:{tray:'grow'},sel:'tomato',q:'',f:'all',cq:''};
 const S=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
   s=Object.assign({},S0,s&&typeof s==='object'?s:{});s.sub=Object.assign({},S0.sub,s.sub||{});return s})();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-const TABS=['plants','tray','chem','genes'];
-const SUBS={plants:[],tray:[['grow','Выращивание'],['mut','Мутации'],['tools','Машины']],chem:[],genes:[]};
-const RENDER={plants:{'':renderPlants},tray:{grow:renderGrow,mut:renderMut,tools:renderTools},chem:{'':renderChem},genes:{'':renderGenes}};
+const TABS=['plants','tray','chem','genes','farm'];
+
+/* --- Мини-викторина Пульта (одинаковая во всех модулях): серия, рекорд, достижение за серию 5 --- */
+const pqAward=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
+const PQ={};
+function pqMake(key,gen,ach,rerender){
+  let best=0;try{best=+(localStorage.getItem('pq.'+key)||0)}catch(e){}
+  PQ[key]={x:null,pick:null,ok:0,n:0,streak:0,best,gen,ach,rerender};
+}
+function pqHtml(key,title){
+  const Q=PQ[key];if(!Q.x){Q.x=Q.gen();Q.pick=null}
+  const x=Q.x,done=Q.pick!==null,right=done&&x.opts[Q.pick].ok;
+  return `<div class="pq"><div class="pq-h"><b>${title}</b><span>${Q.n?`верно ${Q.ok} из ${Q.n} · серия ${Q.streak} · рекорд ${Q.best}`:'серия из 5 верных — достижение 🏆'}</span></div>
+    ${x.pre||''}<div class="pq-q">${x.q}</div>
+    <div class="pq-o">${x.opts.map((o,i)=>`<button type="button" data-pq="${key}" data-i="${i}" class="${done?(o.ok?'right':(i===Q.pick?'wrong':'')):''}" ${done?'disabled':''}>${o.h}</button>`).join('')}</div>
+    ${done?`<div class="pq-r ${right?'ok':'bad'}"><b>${right?'Верно!':'Нет.'}</b> ${x.ex||''}</div><button type="button" class="pq-n" data-pqn="${key}">Дальше →</button>`:''}</div>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-pq]');
+  if(b){const Q=PQ[b.dataset.pq];if(!Q||Q.pick!==null)return;Q.pick=+b.dataset.i;Q.n++;
+    if(Q.x.opts[Q.pick].ok){Q.ok++;Q.streak++;if(Q.streak>Q.best){Q.best=Q.streak;try{localStorage.setItem('pq.'+b.dataset.pq,Q.best)}catch(e){}}if(Q.streak>=5&&Q.ach)pqAward(Q.ach)}else Q.streak=0;
+    Q.rerender();return}
+  const n=e.target.closest('[data-pqn]');if(n){const Q=PQ[n.dataset.pqn];Q.x=Q.gen();Q.pick=null;Q.rerender()}
+});
+const pqPick=(arr,n,not)=>{const a=arr.filter(x=>!not||!not(x)).slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,n)};
+const pqShuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+const BQ_ALL=Object.entries(D.plants).map(([id,p])=>({id,p,n:RU[id]||p.en}));
+const BQ_MUT=BQ_ALL.filter(x=>x.p.mut&&x.p.mut.length&&x.p.mut.some(m=>D.plants[m]));
+const BQ_PAR={};BQ_MUT.forEach(x=>x.p.mut.forEach(m=>{(BQ_PAR[m]=BQ_PAR[m]||[]).push(x.id)}));
+const bqName=id=>RU[id]||(D.plants[id]&&D.plants[id].en)||id;
+pqMake('mut',()=>{
+  const x=BQ_MUT[Math.floor(Math.random()*BQ_MUT.length)],kids=x.p.mut.filter(m=>D.plants[m]);
+  if(Math.random()<.5){const k=kids[Math.floor(Math.random()*kids.length)];
+    const o=pqShuffle([k,...pqPick(BQ_ALL.map(y=>y.id),3,id=>kids.includes(id)||id===x.id)]);
+    return{q:`Во что может мутировать <b>${esc(x.n)}</b>?`,opts:o.map(id=>({h:esc(bqName(id)),ok:id===k})),ex:`${esc(x.n)} → ${kids.map(m=>esc(bqName(m))).join(', ')}. Мутацию запускает нестабильность выше 80 (или мутаген в лотке).`}}
+  const k=kids[Math.floor(Math.random()*kids.length)],par=BQ_PAR[k]||[x.id];
+  const o=pqShuffle([x.id,...pqPick(BQ_ALL.map(y=>y.id),3,id=>par.includes(id)||id===k)]);
+  return{q:`Из какого растения мутирует <b>${esc(bqName(k))}</b>?`,opts:o.map(id=>({h:esc(bqName(id)),ok:par.includes(id)})),ex:`${esc(bqName(k))} получается из: ${par.map(id=>esc(bqName(id))).join(', ')}.`}
+},'botany.quiz',()=>renderBotQuiz());
+function renderBotQuiz(){$('#tray-quiz').innerHTML=pqHtml('mut','Тренажёр ботаника: мутации')}
+
+const SUBS={plants:[],tray:[['grow','Выращивание'],['mut','Мутации'],['tools','Машины'],['quiz','Тренажёр']],chem:[],genes:[],farm:[]};
+const RENDER={plants:{'':renderPlants},tray:{grow:renderGrow,mut:renderMut,tools:renderTools,quiz:renderBotQuiz},chem:{'':renderChem},genes:{'':renderGenes},farm:{'':()=>window.renderFarm&&window.renderFarm()}};
 const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);if(el)el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
 function go(t,sub){
   if(sub)S.sub[t]=sub;

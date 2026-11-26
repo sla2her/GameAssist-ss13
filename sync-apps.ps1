@@ -27,7 +27,7 @@ Copy-Item (Join-Path $src 'js') $dst -Recurse
 
 # Инженер — веб-версия оверлея живёт в Пульте (engineer\), инструкции берём из engineer-helper\guides.json
 $dst = Join-Path $apps 'engineer'; Reset-Dir $dst
-Copy-Item (Join-Path $root 'engineer\index.html') $dst
+Copy-Item (Join-Path $root 'engineer\index.html'), (Join-Path $root 'engineer\games.js') $dst
 Copy-Item (Join-Path $clod 'engineer-helper\guides.json') $dst
 
 # Кухня и бар — один файл со встроенной базой рецептов
@@ -65,6 +65,9 @@ Copy-Item (Join-Path $root 'detective\index.html'), (Join-Path $root 'detective\
 # Вирусология — живёт в Пульте (viro\): статы болезней, рецепты полезных вирусов, лечение, разумный вирус
 $dst = Join-Path $apps 'viro'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'viro\index.html') $dst
+# Медбей — живёт в Пульте (medbay\): тренажёр «Пациент на столе»; sprites.js — спрайты из кода BlueMoon
+$dst = Join-Path $apps 'medbay'; Reset-Dir $dst
+Copy-Item (Join-Path $root 'medbay\index.html'), (Join-Path $root 'medbay\sprites.js') $dst
 
 # Робототехник — живёт в Пульте (robo\): сборка киборгов, мехов и ботов, оверлей; НРП берёт у Панели АВД (..\avd\nrp.js)
 $dst = Join-Path $apps 'robo'; Reset-Dir $dst
@@ -81,7 +84,7 @@ Copy-Item (Join-Path $root 'xeno\index.html'), (Join-Path $root 'xeno\data.js') 
 
 # Ботаника — живёт в Пульте (botany\): data.js собирает botany\build_data.py из кода BlueMoon-Station
 $dst = Join-Path $apps 'botany'; Reset-Dir $dst
-Copy-Item (Join-Path $root 'botany\index.html'), (Join-Path $root 'botany\data.js') $dst
+Copy-Item (Join-Path $root 'botany\index.html'), (Join-Path $root 'botany\data.js'), (Join-Path $root 'botany\farm.js'), (Join-Path $root 'botany\farm-sprites.js') $dst
 # R&D — живёт в Пульте (rnd\): дерево исследований и порядок изучения; data.js собирает rnd\build_data.py из техвеба игры
 $dst = Join-Path $apps 'rnd'; Reset-Dir $dst
 Copy-Item (Join-Path $root 'rnd\index.html'), (Join-Path $root 'rnd\data.js'), (Join-Path $root 'rnd\hints.js') $dst

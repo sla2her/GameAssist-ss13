@@ -1,13 +1,14 @@
 ﻿# Сборка Пульт.exe (WebView2) встроенным в Windows компилятором C#.
 # Сначала забирает свежие сборки Алхимика, Терминала Брига и Папируса (sync-apps.ps1),
 # затем вшивает в exe всю папку web\ и библиотеки WebView2 (native\lib).
-# Запуск: powershell -ExecutionPolicy Bypass -File native\build.ps1
+# Запуск: powershell -ExecutionPolicy Bypass -File native\build.ps1 [-Name Пульт-beta.exe]
+param([string]$Name = 'Пульт.exe')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $native = $PSScriptRoot
 $lib = Join-Path $native 'lib'
 $web = Join-Path $root 'web'
-$out = Join-Path $root 'Пульт.exe'
+$out = Join-Path $root $Name
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 
 & (Join-Path $root 'sync-apps.ps1')

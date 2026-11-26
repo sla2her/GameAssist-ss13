@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Медбей</title>
+<style>
+/* Медбей: тренажёр «Пациент на столе» и шпаргалка по лечению. Цифры — из кода BlueMoon-Station:
+   medicine_reagents.dm (лечение и передозировки), stacks/medical.dm (наборы и мази), спрайты — sprites.js. */
+:root{
+  --bg:#e9ebee; --panel:#ffffff; --panel2:#f3f4f7; --fg:#171a21; --muted:#5a6273; --faint:#8b92a1; --line:#d4d8df; --line2:#bcc2cc;
+  --accent:#2f8fc4; --accent-fg:#ffffff; --navy:#1d3766;
+  --ok:#2e8a4b; --warn:#b07a0e; --bad:#c0262d; --scr:#0d1a14; --scrfg:#7ff0a8;
+  --font-b:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --font-m:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#58b4e6; --accent-fg:#06202e; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --fg:#e4e7ed; --muted:#9ba3b3; --faint:#6e7687; --line:#2b3039; --line2:#3c434f;
+  --accent:#58b4e6; --accent-fg:#06202e; --navy:#8eafee;
+  --ok:#52c47a; --warn:#e6b54a; --bad:#ef5560; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font-b);padding:0 16px 48px}
+.wrap{max-width:1280px;margin:0 auto}
+button{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:16px 20px;flex-wrap:wrap;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-weight:700;font-size:11.5px}
+.brand h1{font-size:19px;line-height:1;margin:0;font-weight:700}
+.brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+nav{display:flex;gap:4px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:none;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+nav button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+main{padding-top:14px}
+.px{image-rendering:pixelated}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card h3{margin:0 0 8px;font-size:15px}
+.muted{color:var(--muted);font-size:13px}
+/* выбор пациента */
+.pts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.pt{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px;cursor:pointer}
+.pt:hover{border-color:var(--accent)}
+.pt img{width:64px;height:64px}
+.pt b{display:block}.pt small{color:var(--muted);display:block;line-height:1.3}
+.pt .done{color:var(--ok);font-size:12px}
+/* операционная */
+.or{display:grid;grid-template-columns:minmax(300px,1.1fr) minmax(280px,1fr);gap:12px;align-items:start}
+@media (max-width:900px){.or{grid-template-columns:1fr}}
+.hud{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.hud>span{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:13px;font-variant-numeric:tabular-nums}
+.hud .st{font-weight:700}.hud .st.crit{color:var(--bad)}.hud .st.ok{color:var(--ok)}
+.hud button{margin-left:auto}
+.table{position:relative;height:270px;background:repeating-linear-gradient(45deg,var(--panel2) 0 12px,var(--panel) 12px 24px);border:1px solid var(--line);border-radius:12px;height:250px;overflow:hidden}
+.table .optable{position:absolute;left:50%;top:50%;width:224px;height:224px;transform:translate(-50%,-50%)}
+.table .bodyw{position:absolute;left:50%;top:50%;width:224px;height:224px;transform:translate(-50%,calc(-50% - 28px)) rotate(90deg)}
+.table .bodyw img{position:absolute;inset:0;width:224px;height:224px}
+.table .ekg{position:absolute;right:10px;top:8px;width:96px;height:96px}
+.table .bubble{position:absolute;left:10px;bottom:10px;max-width:45%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.dollrow{display:flex;gap:14px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.doll{position:relative;width:128px;height:128px;flex:none}
+.doll img{position:absolute;inset:0;width:128px;height:128px}
+.doll button{position:absolute;background:transparent;border:2px solid transparent;border-radius:6px;cursor:pointer;padding:0}
+.doll button:hover{border-color:color-mix(in srgb,var(--accent) 60%,transparent)}
+.doll button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent)}
+.zone{font-size:13px}.zone b{font-size:15px}
+.zbtns{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.zbtns button{border:1px solid var(--line);background:var(--panel2);border-radius:7px;padding:2px 8px;cursor:pointer;font-size:12.5px}
+.zbtns button.on{border-color:var(--accent);background:var(--accent);color:var(--accent-fg)}
+.zbtns button.bl{box-shadow:inset 0 -3px 0 var(--bad)}
+/* анализатор */
+.scanner{background:var(--scr);color:var(--scrfg);border-radius:12px;padding:12px 14px;font:13px/1.45 var(--font-m);min-height:250px;border:3px solid #2b3a33;position:relative}
+.scanner .hd{display:flex;gap:10px;align-items:center;margin-bottom:6px}
+.scanner .hd img{width:48px;height:48px}
+.scanner .r{color:#ff6b6b}.scanner .o{color:#6fb6ff}.scanner .g{color:#7ff07f}.scanner .y{color:#ffd166}.scanner .w{color:#e8e8e8}
+.scanner table{border-collapse:collapse;width:100%;margin:4px 0}
+.scanner td{padding:1px 6px 1px 0}
+.scanner .stale{position:absolute;right:10px;top:10px;font-size:11px;color:#ffd166}
+/* инструменты */
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.tools button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:5px 3px;cursor:pointer;font-size:11.5px;line-height:1.15;text-align:center}
+.tools button:hover:not(:disabled){border-color:var(--accent)}
+.tools button:disabled{opacity:.45;cursor:default}
+.tools button img{width:48px;height:48px}
+.tools button small{color:var(--faint);font-size:10.5px}
+.dose{display:flex;gap:6px;align-items:center;margin:8px 0}
+.dose button{border:1px solid var(--line);background:var(--panel2);border-radius:7px;padding:2px 10px;cursor:pointer}
+.dose button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.prog{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .1s linear}
+.log{font-size:13px;display:grid;gap:3px;max-height:150px;overflow:auto}.log .ok{color:var(--ok)}.log .bad{color:var(--bad)}
+.grid2{display:grid;gap:12px;margin-top:12px}
+.end{text-align:center;display:grid;gap:8px;justify-items:center;padding:18px}
+.end .big{font-size:40px}
+.stars{font-size:28px;letter-spacing:4px}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:9px;padding:6px 14px;cursor:pointer;font-weight:600}
+.btn.main{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+table.ref{border-collapse:collapse;width:100%;font-size:14px}
+table.ref td,table.ref th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.ref th{color:var(--muted);font-size:12px;font-weight:600}
+table.ref img{width:32px;height:32px;vertical-align:middle}
+.foot{color:var(--faint);font-size:12px;margin-top:24px}
+.pult-compact body{padding:0 10px 40px}
+.pult-compact .table{height:210px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><div class="badge">МЕД</div><div><h1>Медбей</h1><small>Пациент на столе · Шпаргалка</small></div></div>
+  <nav role="tablist">
+    <button role="tab" id="tab-game" data-tab="game" aria-selected="true">🎮 Пациент на столе</button>
+    <button role="tab" id="tab-ref" data-tab="ref" aria-selected="false">Шпаргалка</button>
+  </nav>
+</header>
+<main>
+<section id="v-game"><div id="game"></div></section>
+<section id="v-ref" hidden><div id="ref"></div></section>
+<p class="foot">Неофициальный тренажёр по коду BlueMoon-Station: лечение и передозировки — <code>medicine_reagents.dm</code>, наборы и мази — <code>stacks/medical.dm</code>,
+спрайты — <code>human_parts_greyscale.dmi</code>, <code>dam_mob.dmi</code>, <code>screen_gen.dmi</code> и др. Время ускорено вдвое (секунда здесь — тик организма), кровь и крит упрощены.</p>
+</main>
+</div>
+<script src="sprites.js"></script>
+<script>
+'use strict';
+const SP = window.MED_SPRITES;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const award = id => { try { const g = window.parent !== window && parent.PultGame; g && g.award(id); } catch (e) { /* без Пульта */ } };
+const r1 = n => Math.round(n * 10) / 10;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+const PARTS = ['head', 'chest', 'l_arm', 'r_arm', 'l_leg', 'r_leg'];
+const PNAME = { head: 'Голова', chest: 'Торс', l_arm: 'Левая рука', r_arm: 'Правая рука', l_leg: 'Левая нога', r_leg: 'Правая нога' };
+const PMAX = { head: 200, chest: 200, l_arm: 50, r_arm: 50, l_leg: 50, r_leg: 50 };
+// Реагенты: лечение за тик (REM = 0.5), расход 0.4u/тик (REAGENTS_METABOLISM), передозировка — из medicine_reagents.dm
+const CHEM = {
+  bic: { n: 'Бикаридин', en: 'Bicaridine', pill: 'pill_bic', met: 0.4, od: 30, d: 'Травмы −1/тик', fx: (P) => heal(P, 'brute', 1), odfx: (P) => hurtSpread(P, 'brute', 1) },
+  kel: { n: 'Келотан', en: 'Kelotane', pill: 'pill_kel', met: 0.4, od: 30, d: 'Ожоги −1/тик', fx: (P) => heal(P, 'burn', 1), odfx: (P) => hurtSpread(P, 'burn', 1) },
+  atx: { n: 'Анти-токсин', en: 'Anti-Toxin', pill: 'pill_tox', met: 0.4, od: 30, d: 'Токсины −1/тик', fx: (P) => { P.tox = Math.max(0, P.tox - 1); }, odfx: (P) => { P.tox += 1; } },
+  dex: { n: 'Дексалин', en: 'Dexalin', pill: 'pill_dex', met: 0.4, od: 30, d: 'Удушье −1/тик', fx: (P) => { P.oxy = Math.max(0, P.oxy - 1); }, odfx: (P) => { P.oxy += 1; } },
+  tri: { n: 'Трикордразин', en: 'Tricordrazine', pill: 'pill_tri', met: 0.4, od: 30, d: 'Всё понемногу −0.5/тик', fx: (P) => { heal(P, 'brute', 0.5); heal(P, 'burn', 0.5); P.tox = Math.max(0, P.tox - 0.5); P.oxy = Math.max(0, P.oxy - 0.5); }, odfx: (P) => { hurtSpread(P, 'brute', 1); hurtSpread(P, 'burn', 1); P.tox += 1; P.oxy += 1; } },
+  epi: { n: 'Эпинефрин', en: 'Epinephrine', pill: 'pill_epi', met: 0.1, od: 30, d: 'В крите держит удушье ≤35 и лечит −0.25/тик', fx: (P) => { if (health(P) < 0) { heal(P, 'brute', 0.25); heal(P, 'burn', 0.25); P.tox = Math.max(0, P.tox - 0.25); if (P.oxy > 35) P.oxy = 35; } }, odfx: (P) => { P.tox += 0.5; } },
+  chr: { n: 'Активированный уголь', en: 'Charcoal', pill: 'pill_tox', met: 0.2, od: 0, d: 'Токсины −1/тик и вымывает по 1u других реагентов', fx: (P) => { P.tox = Math.max(0, P.tox - 1); for (const k in P.chem) if (k !== 'chr') { P.chem[k] -= 1; if (P.chem[k] <= 0.05) delete P.chem[k]; } } },
+  plasma: { n: 'Плазма', en: 'Plasma', hidden: true, met: 0.4, od: 0, d: 'Токсин: +1.5 токсинов/тик', fx: (P) => { P.tox += 1.5; } },
+};
+const health = P => 100 - P.oxy - P.tox - PARTS.reduce((a, p) => a + P.b[p] + P.u[p], 0);
+const totBrute = P => PARTS.reduce((a, p) => a + P.b[p], 0);
+const totBurn = P => PARTS.reduce((a, p) => a + P.u[p], 0);
+function heal(P, kind, amt) { // лечение распределяется по повреждённым частям, как heal_overall_damage
+  const k = kind === 'brute' ? 'b' : 'u'; let left = amt;
+  const dmg = PARTS.filter(p => P[k][p] > 0); if (!dmg.length) return;
+  const each = amt / dmg.length;
+  for (const p of dmg) { const h = Math.min(P[k][p], each); P[k][p] -= h; left -= h; }
+}
+function hurtSpread(P, kind, amt) { const k = kind === 'brute' ? 'b' : 'u'; const p = PARTS[Math.floor(Math.random() * PARTS.length)]; P[k][p] = Math.min(PMAX[p], P[k][p] + amt); }
+
+// Пациенты
+const CASES = [
+  { id: 'miner', ic: '⛏️', n: 'Шахтёр после голиафа', s: 'Щупальца голиафа достали его на Лаваленде. Рука кровит.', skin: 'tan',
+    b: { chest: 30, l_arm: 35, r_leg: 30 }, bleed: { l_arm: 3 } },
+  { id: 'fire', ic: '🔥', n: 'Атмос-техник после пожара', s: 'Плазменный пожар в атмосе. Сильные ожоги, надышался дымом.', skin: 'light',
+    u: { chest: 50, head: 20, l_arm: 30, r_arm: 30 }, oxy: 25 },
+  { id: 'tox', ic: '🧪', n: 'Учёный с отравлением', s: 'Пил «что-то фиолетовое» в токсинах. В крови плазма, токсины растут.', skin: 'light',
+    tox: 35, u: { r_arm: 15 }, chem: { plasma: 20 } },
+  { id: 'space', ic: '💨', n: 'Ассистент после разгерметизации', s: 'Вылетел в космос без скафандра. Не дышал почти минуту, обморожения.', skin: 'dark',
+    oxy: 55, b: { chest: 15 }, u: { l_leg: 10, r_leg: 10 } },
+  { id: 'sec', ic: '🛡️', n: 'Офицер СБ после перестрелки', s: 'Принесли в критическом состоянии: огнестрел, кровь хлещет из ноги и руки.', skin: 'tan',
+    b: { chest: 70, l_leg: 40, r_arm: 35 }, bleed: { l_leg: 4, r_arm: 3 } },
+  { id: 'clown', ic: '🤡', n: 'Клоун, которого «случайно» избили', s: 'Хонкнул не тому офицеру. Синяки везде, нога кровит.', skin: 'light',
+    b: { head: 20, chest: 25, l_arm: 15, r_arm: 15, l_leg: 15 }, bleed: { l_leg: 2 } },
+  { id: 'bomb', ic: '💣', n: 'Жертва взрыва', s: 'Рядом рванул максимальный бомбокап. Травмы, ожоги, кровотечение — и уже в крите.', skin: 'dark',
+    b: { chest: 40, l_arm: 30 }, u: { chest: 30, r_leg: 25 }, oxy: 15, bleed: { l_arm: 3 } },
+];
+const DONE_KEY = 'medbay.done';
+let done = {}; try { done = JSON.parse(localStorage.getItem(DONE_KEY) || '{}') || {}; } catch (e) { /* */ }
+
+let G = null, timer = null;
+function start(c) {
+  const P = { b: {}, u: {}, bleed: Object.assign({}, c.bleed || {}), oxy: c.oxy || 0, tox: c.tox || 0, chem: Object.assign({}, c.chem || {}), blood: 560 };
+  PARTS.forEach(p => { P.b[p] = (c.b || {})[p] || 0; P.u[p] = (c.u || {})[p] || 0; });
+  G = { c, P, t: 0, stock: { brute: 2, oint: 2, gauze: 2 }, zone: 'chest', dose: 10, scan: null, scanAt: -1, busy: null, log: [], over: null, wasCrit: health(P) <= 0, od: false };
+  log(`${c.ic} На столе: ${c.n}. ${c.s}`);
+  clearInterval(timer); timer = setInterval(tick, 100);
+  render();
+}
+const log = (t, c = '') => { G.log.unshift([c, t]); G.log.length = Math.min(G.log.length, 40); };
+let sub = 0;
+function tick() {
+  if (!G || G.over) return;
+  if (G.busy) { G.busy.left -= 0.1; if (G.busy.left <= 0) { const b = G.busy; G.busy = null; b.fn(); render(); } else { const p = $('.prog i'); if (p) p.style.width = (100 - b100(G.busy)) + '%'; } }
+  if (++sub < 10) return; sub = 0;
+  if (!$('#game') || !$('#game').offsetParent) return; // вкладка скрыта — пауза
+  G.t++;
+  const P = G.P;
+  // реагенты
+  for (const k of Object.keys(P.chem)) {
+    const C = CHEM[k]; if (!C) continue;
+    if (C.od && P.chem[k] > C.od) { C.odfx(P); if (!G.odWarned) { log(`⚠️ Передозировка: ${C.n} больше ${C.od}u!`, 'bad'); G.odWarned = true; G.od = true; } }
+    else C.fx(P);
+    if (P.chem[k] !== undefined) { P.chem[k] -= C.met; if (P.chem[k] <= 0.05) delete P.chem[k]; }
+  }
+  // кровотечение и кровь
+  let bl = 0; for (const p in P.bleed) bl += P.bleed[p];
+  P.blood = clamp(P.blood - bl + (bl ? 0 : 0.1), 0, 560);
+  if (P.blood < 224) P.oxy += 3; else if (P.blood < 336) P.oxy += 1.5; else if (P.blood < 475) P.oxy += 0.5;
+  // крит: задыхается, если нет эпинефрина
+  const h = health(P);
+  if (h <= 0 && !P.chem.epi) P.oxy += 1;
+  if (h <= 0) G.wasCrit = true;
+  P.oxy = clamp(P.oxy, 0, 200); P.tox = clamp(P.tox, 0, 200);
+  const h2 = health(P);
+  if (h2 <= -100 || P.blood <= 0) { finish(false); return; }
+  if (h2 >= 75 && !bl && !P.chem.plasma) { finish(true); return; }
+  render();
+}
+const b100 = b => b.left / b.total * 100;
+function finish(ok) {
+  G.over = ok ? 'ok' : 'dead';
+  clearInterval(timer);
+  if (ok) {
+    const stars = G.t <= 45 ? 3 : G.t <= 90 ? 2 : 1;
+    G.stars = stars;
+    done[G.c.id] = Math.max(done[G.c.id] || 0, stars);
+    try { localStorage.setItem(DONE_KEY, JSON.stringify(done)); } catch (e) { /* */ }
+    award('med.first');
+    if (G.wasCrit) award('med.crit');
+    if (G.t <= 60) award('med.fast');
+    if (CASES.every(c => done[c.id])) award('med.all');
+    log(`✅ Пациент стабилен и выписан за ${G.t} с.`, 'ok');
+  } else log('💀 Пациент умер на столе.', 'bad');
+  render();
+}
+
+// ---------- действия ----------
+const TOOLS = {
+  scan: { n: 'Анализатор', s: 'analyzer', d: 'Снять показания', delay: 0.5 },
+  brute: { n: 'Набор от ушибов', s: 'brute', d: 'Травмы −40 на выбранной части', delay: 2 },
+  oint: { n: 'Мазь', s: 'ointment', d: 'Ожоги −10 на выбранной части', delay: 2 },
+  gauze: { n: 'Марля', s: 'gauze', d: 'Остановить кровотечение на части', delay: 2 },
+};
+function doTool(k) {
+  if (!G || G.over || G.busy) return;
+  const T = TOOLS[k], P = G.P, z = G.zone;
+  if (G.stock[k] === 0) { log(`${T.n}: закончились — дальше лекарствами.`, 'bad'); return render(); }
+  const run = fn => { if (G.stock[k] !== undefined) G.stock[k]--; G.busy = { left: T.delay, total: T.delay, fn, what: T.n }; render(); };
+  if (k === 'scan') return run(() => { G.scan = snapshot(P); G.scanAt = G.t; });
+  if (k === 'brute') { if (!P.b[z]) return log(`${PNAME[z]}: травм нет, набор не нужен.`); return run(() => { const h = Math.min(40, P.b[z]); P.b[z] -= h; log(`🩹 ${PNAME[z]}: набор от ушибов, −${r1(h)} травм.`, 'ok'); }); }
+  if (k === 'oint') { if (!P.u[z]) return log(`${PNAME[z]}: ожогов нет, мазь не нужна.`); return run(() => { const h = Math.min(10, P.u[z]); P.u[z] -= h; log(`🧴 ${PNAME[z]}: мазь, −${r1(h)} ожогов.`, 'ok'); }); }
+  if (k === 'gauze') { if (!P.bleed[z]) return log(`${PNAME[z]}: не кровит.`); return run(() => { delete P.bleed[z]; log(`🩹 ${PNAME[z]}: перевязано, кровотечение остановлено.`, 'ok'); }); }
+}
+function inject(k) {
+  if (!G || G.over || G.busy) return;
+  const C = CHEM[k], amt = G.dose;
+  G.busy = { left: 1, total: 1, what: 'Шприц', fn: () => { G.P.chem[k] = (G.P.chem[k] || 0) + amt; log(`💉 Введено ${amt}u: ${C.n}.`); } };
+  render();
+}
+function snapshot(P) {
+  return { h: health(P), oxy: P.oxy, tox: P.tox, br: totBrute(P), bu: totBurn(P), b: Object.assign({}, P.b), u: Object.assign({}, P.u), blood: P.blood, bleed: Object.keys(P.bleed), chem: Object.assign({}, P.chem) };
+}
+
+// ---------- отрисовка ----------
+const im = (u, cls = 'px') => u ? `<img class="${cls}" src="${u}" alt="">` : '';
+const bstate = (d, max) => d <= 0 ? 0 : clamp(Math.ceil(d / max * 3), 1, 3);
+function bodyLayers(P) {
+  let h = im(SP.body[G.c.skin]);
+  for (const p of PARTS) {
+    const b = bstate(P.b[p], PMAX[p]), u = bstate(P.u[p], PMAX[p]);
+    if (b) h += im(SP.dam[`${p}_${b}0`]);
+    if (u) h += im(SP.dam[`${p}_0${u}`]);
+  }
+  return h;
+}
+function dollLayers(P, dead) {
+  if (dead) return im(SP.doll.dead);
+  let h = '';
+  for (const p of PARTS) { const r = (P.b[p] + P.u[p]) / PMAX[p]; h += im(SP.doll[p + clamp(1 + Math.floor(r * 5), 1, 5)]); }
+  return im(SP.doll.overlay) + h;
+}
+const ekgIdx = (h, dead) => dead ? 7 : h <= 0 ? 6 : h >= 100 ? 0 : clamp(Math.ceil((100 - h) / 20), 1, 5);
+// зоны на кукле 32×32 (×4)
+const ZONES = { head: [48, 4, 32, 30], chest: [44, 34, 40, 34], l_arm: [84, 36, 22, 40], r_arm: [22, 36, 22, 40], l_leg: [64, 70, 22, 50], r_leg: [42, 70, 22, 50] };
+function scanHtml() {
+  const s = G.scan;
+  if (!s) return `<div class="scanner"><div class="hd">${im(SP.ui.analyzer)}<b>Анализатор здоровья</b></div><div>Нет данных. Проведи анализатором по пациенту.</div></div>`;
+  const cls = v => v > 0 ? 'r' : 'g';
+  return `<div class="scanner">${G.t - G.scanAt > 5 ? `<span class="stale">данные ${G.t - G.scanAt} с назад</span>` : ''}
+    <div class="hd">${im(SP.ui.analyzer)}<div><b class="w">Результаты анализа: ${esc(G.c.n.split(' ')[0])}</b><br>Общее состояние: <span class="${s.h > 50 ? 'g' : s.h > 0 ? 'y' : 'r'}">${s.h <= 0 ? 'КРИТИЧЕСКОЕ ' : ''}${Math.round(s.h)}% здоров</span></div></div>
+    <div>Типы повреждений: <span class="o">Удушье ${r1(s.oxy)}</span> / <span class="g">Токсины ${r1(s.tox)}</span> / <span class="y">Ожоги ${r1(s.bu)}</span> / <span class="r">Травмы ${r1(s.br)}</span></div>
+    <table>${PARTS.filter(p => s.b[p] || s.u[p]).map(p => `<tr><td class="w">${PNAME[p]}</td><td class="r">${r1(s.b[p])}</td><td class="y">${r1(s.u[p])}</td></tr>`).join('') || '<tr><td class="g">Конечности целы</td></tr>'}</table>
+    <div>Кровь: <span class="${s.blood < 336 ? 'r' : s.blood < 475 ? 'y' : 'g'}">${Math.round(s.blood / 5.6)}% (${Math.round(s.blood)} cl)</span>${s.bleed.length ? ` · <span class="r">Кровотечение: ${s.bleed.map(p => PNAME[p].toLowerCase()).join(', ')}</span>` : ''}</div>
+    <div>Реагенты: ${Object.keys(s.chem).length ? Object.entries(s.chem).map(([k, v]) => `<span class="${CHEM[k].od && v > CHEM[k].od ? 'r' : 'w'}">${CHEM[k].n} ${r1(v)}u${CHEM[k].od && v > CHEM[k].od ? ' — ПЕРЕДОЗИРОВКА' : ''}</span>`).join(', ') : '<span class="g">нет</span>'}</div>
+  </div>`;
+}
+function renderGame() {
+  const el = $('#game');
+  if (!G) {
+    el.innerHTML = `<div class="card" style="margin-bottom:12px"><h3>🎮 Пациент на столе</h3>
+      <p class="muted" style="margin:0">Выбери пациента. Анализатор покажет, что с ним, кукла здоровья подсказывает, где болит. Выбирай часть тела на кукле, применяй наборы, мазь и марлю,
+      колоти лекарства шприцем. Дозы и эффекты — из кода BlueMoon: больше 30u одного лекарства — передозировка. Задача — стабилизировать (75% здоровья, без кровотечения и яда в крови).
+      В аптечке по 2 набора, мази и марли — остальное лечи лекарствами. Быстрее 45 секунд — три звезды.</p></div>
+      <div class="pts">${CASES.map(c => `<button class="pt" data-case="${c.id}">${im(SP.body[c.skin])}<span><b>${c.ic} ${esc(c.n)}</b><small>${esc(c.s)}</small>${done[c.id] ? `<span class="done">${'★'.repeat(done[c.id])} вылечен</span>` : ''}</span></button>`).join('')}</div>`;
+    return;
+  }
+  const P = G.P, h = health(P), dead = G.over === 'dead';
+  if (G.over) {
+    el.innerHTML = `<div class="card end"><div class="big">${dead ? '💀' : '✅'}</div><h3>${dead ? 'Пациент умер на столе' : `Пациент стабилен — выписан за ${G.t} с`}</h3>
+      ${dead ? '<div class="muted">Смотри, что погубило: крит без эпинефрина душит, кровь утекает через раны, плазму вымывает уголь.</div>' : `<div class="stars">${'★'.repeat(G.stars)}${'☆'.repeat(3 - G.stars)}</div>${G.od ? '<div class="muted">Была передозировка — в игре за такое врача могут и отчитать.</div>' : ''}`}
+      <div style="display:flex;gap:8px"><button class="btn main" data-again="1">Ещё раз</button><button class="btn" data-back="1">Другие пациенты</button></div></div>
+      <div class="card" style="margin-top:12px"><h3>📜 Журнал</h3><div class="log">${G.log.map(([c, t]) => `<div class="${c}">${t}</div>`).join('')}</div></div>`;
+    return;
+  }
+  const crit = h <= 0;
+  el.innerHTML = `
+    <div class="hud"><span>${G.c.ic} ${esc(G.c.n)}</span><span>⏱ ${G.t} с</span><span class="st ${crit ? 'crit' : h >= 75 ? 'ok' : ''}">${crit ? 'КРИТ' : 'В сознании'}</span><button class="btn" data-back="1">← К пациентам</button></div>
+    <div class="muted" style="margin:-4px 0 10px">${esc(G.c.s)}</div>
+    <div class="or">
+      <div>
+        <div class="table">${im(SP.ui.optable, 'px optable')}<div class="bodyw">${bodyLayers(P)}</div>${im(SP.ekg[ekgIdx(h, false)], 'px ekg')}
+</div>
+        <div class="dollrow">
+          <div class="doll">${dollLayers(P)}${PARTS.map(p => { const [x, y, w, hh] = ZONES[p]; return `<button data-zone="${p}" class="${G.zone === p ? 'on' : ''}" title="${PNAME[p]}" style="left:${x}px;top:${y}px;width:${w}px;height:${hh}px"></button>`; }).join('')}</div>
+          <div class="zone"><div class="muted">Выбрана часть тела</div><b>${PNAME[G.zone]}</b>${P.bleed[G.zone] ? ' <span style="color:var(--bad)">· кровит</span>' : ''}
+            <div class="zbtns">${PARTS.map(p => `<button data-zone="${p}" class="${G.zone === p ? 'on' : ''}${P.bleed[p] ? ' bl' : ''}">${PNAME[p]}</button>`).join('')}</div>
+            <div class="muted" style="margin-top:6px">Кукла как в игре: зелёный — цело, красный — сильно ранено. Красная черта на кнопке — кровотечение.</div></div>
+        </div>
+      </div>
+      <div>${scanHtml()}</div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>🧰 Инструменты</h3>
+        <div class="tools">${Object.entries(TOOLS).map(([k, T]) => `<button data-tool="${k}" ${G.busy || G.stock[k] === 0 ? 'disabled' : ''} title="${esc(T.d)}">${im(SP.ui[T.s])}<span>${esc(T.n)}${G.stock[k] !== undefined ? ` ×${G.stock[k]}` : ''}</span><small>${esc(T.d)}</small></button>`).join('')}</div>
+        <h3 style="margin-top:12px">💉 Шприц</h3>
+        <div class="dose"><span class="muted">Доза:</span>${[5, 10, 15].map(d => `<button data-dose="${d}" class="${G.dose === d ? 'on' : ''}">${d}u</button>`).join('')}</div>
+        <div class="tools">${Object.entries(CHEM).filter(([, C]) => !C.hidden).map(([k, C]) => `<button data-chem="${k}" ${G.busy ? 'disabled' : ''} title="${esc(C.en)}: ${esc(C.d)}${C.od ? ', передоз >' + C.od + 'u' : ''}">${im(SP.ui[C.pill])}<span>${esc(C.n)}</span><small>${esc(C.d)}</small></button>`).join('')}</div>
+        ${G.busy ? `<div class="muted" style="margin-top:8px">${esc(G.busy.what)}…</div><div class="prog"><i style="width:${100 - b100(G.busy)}%"></i></div>` : ''}
+      </div>
+      <div class="card"><h3>📜 Журнал</h3><div class="log">${G.log.map(([c, t]) => `<div class="${c}">${t}</div>`).join('')}</div></div>
+    </div>`;
+}
+function renderRef() {
+  $('#ref').innerHTML = `<div class="card"><h3>Лекарства (medicine_reagents.dm)</h3><table class="ref"><tr><th></th><th>Лекарство</th><th>Действие за тик</th><th>Расход</th><th>Передозировка</th></tr>
+    ${Object.entries(CHEM).filter(([, C]) => !C.hidden).map(([k, C]) => `<tr><td>${im(SP.ui[C.pill])}</td><td><b>${esc(C.n)}</b><br><span class="muted">${esc(C.en)}</span></td><td>${esc(C.d)}</td><td>${C.met}u/тик</td><td>${C.od ? `больше ${C.od}u — урон вместо лечения` : '—'}</td></tr>`).join('')}</table></div>
+    <div class="card" style="margin-top:12px"><h3>Наборы (stacks/medical.dm)</h3><table class="ref">
+      <tr><td>${im(SP.ui.brute)}</td><td><b>Набор от ушибов</b> (bruise pack)</td><td>−40 травм на часть тела, 2 с на другого</td></tr>
+      <tr><td>${im(SP.ui.ointment)}</td><td><b>Мазь</b> (ointment)</td><td>−10 ожогов на часть тела, 2 с на другого</td></tr>
+      <tr><td>${im(SP.ui.gauze)}</td><td><b>Марля</b> (gauze)</td><td>Останавливает кровотечение, фиксирует переломы</td></tr></table>
+      <p class="muted">Крит наступает при здоровье 0 и ниже: пациент задыхается. Эпинефрин в крите держит удушье на 35 и потихоньку лечит. Смерть — при −100.</p></div>`;
+}
+function go(t) { ['game', 'ref'].forEach(x => { $('#v-' + x).hidden = x !== t; $('#tab-' + x).setAttribute('aria-selected', x === t); }); if (t === 'ref') renderRef(); else renderGame(); }
+const render = renderGame;
+document.querySelector('nav').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) go(b.dataset.tab); });
+document.addEventListener('click', e => {
+  let b;
+  if ((b = e.target.closest('[data-case]'))) start(CASES.find(c => c.id === b.dataset.case));
+  else if ((b = e.target.closest('[data-back]'))) { clearInterval(timer); G = null; render(); }
+  else if ((b = e.target.closest('[data-again]'))) start(G.c);
+  else if ((b = e.target.closest('[data-zone]'))) { G.zone = b.dataset.zone; render(); }
+  else if ((b = e.target.closest('[data-tool]'))) doTool(b.dataset.tool);
+  else if ((b = e.target.closest('[data-chem]'))) inject(b.dataset.chem);
+  else if ((b = e.target.closest('[data-dose]'))) { G.dose = +b.dataset.dose; render(); }
+});
+go('game');
+</script>
+</body>
+</html>

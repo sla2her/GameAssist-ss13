@@ -148,6 +148,23 @@ details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--nav
 .ans{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;padding:8px 16px;border-top:1px solid var(--line);font-size:13.5px}
 .ans:first-of-type{border-top:0}
 .ans b{font-size:12.5px}
+.aiq-b{padding:12px 16px 14px;display:grid;gap:10px}
+.aiq-law{font-size:13px;color:var(--muted)}
+.aiq-q{font-size:17px;font-weight:600}
+.aiq-ctx{display:flex;flex-wrap:wrap;gap:6px}
+.aiq-chip{font-size:12.5px;border:1px solid var(--line2);border-radius:20px;padding:2px 10px;background:var(--panel2)}
+.aiq-story{font-size:14.5px;line-height:1.55;padding:10px 12px;border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 8px 8px 0}
+.aiq-btns{display:flex;gap:8px;flex-wrap:wrap}
+.aiq-btns button{border:1px solid var(--line2);background:var(--panel2);border-radius:9px;padding:7px 18px;font-weight:600;cursor:pointer}
+.aiq-btns button:hover:not(:disabled){border-color:var(--accent)}
+.aiq-btns button.right{background:color-mix(in srgb,var(--ok) 20%,var(--panel));border-color:var(--ok)}
+.aiq-btns button.wrong{background:color-mix(in srgb,var(--bad) 18%,var(--panel));border-color:var(--bad)}
+.aiq-btns button:disabled{cursor:default}
+.aiq-r{padding:9px 12px;border-radius:8px;font-size:14px;border-left:3px solid var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.aiq-r.bad{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--panel))}
+.aiq-o summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.aiq-o .ans{padding-left:0;padding-right:0}
+.aiq-next{justify-self:start;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg,#fff);border-radius:9px;padding:6px 14px;font-weight:600;cursor:pointer}
 .verdict{font-weight:600}
 .v-yes{color:var(--ok)} .v-no{color:var(--cc)} .v-mid{color:var(--sign)}
 .phr{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 16px;border-top:1px solid var(--line);font-size:14px}
@@ -214,6 +231,23 @@ details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--nav
 .pult-compact .ghead h2{font-size:18px}
 .pult-compact .foot{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Мини-викторина Пульта */
+.pq{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:12px;padding:16px 18px;display:grid;gap:12px;max-width:900px;margin-bottom:14px}
+.pq-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.pq-h b{font-size:17px}.pq-h span{font-size:12.5px;color:var(--muted)}
+.pq-q{font-size:16px;font-weight:600;line-height:1.45}
+.pq-pre{font-size:14px;line-height:1.5;padding:10px 12px;border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 8px 8px 0}
+.pq-o{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.pq-o button{text-align:left;border:1px solid var(--line2,var(--line));background:var(--panel2);border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit;font-size:14px;color:inherit}
+.pq-o button:hover:not(:disabled){border-color:var(--accent)}
+.pq-o button.right{background:color-mix(in srgb,var(--ok,#2e8a4b) 20%,var(--panel));border-color:var(--ok,#2e8a4b)}
+.pq-o button.wrong{background:color-mix(in srgb,var(--bad,#c0262d) 18%,var(--panel));border-color:var(--bad,#c0262d)}
+.pq-o button:disabled{cursor:default}
+.pq-r{font-size:14px;padding:9px 12px;border-radius:8px;border-left:3px solid var(--ok,#2e8a4b);background:color-mix(in srgb,var(--ok,#2e8a4b) 9%,var(--panel))}
+.pq-r.bad{border-left-color:var(--bad,#c0262d);background:color-mix(in srgb,var(--bad,#c0262d) 9%,var(--panel))}
+.pq-n{justify-self:start;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg,#fff);border-radius:9px;padding:6px 14px;font-weight:600;cursor:pointer;font:inherit}
+.pult-compact .pq{padding:12px}
 </style>
 </head>
 <body>
@@ -251,6 +285,7 @@ details>summary{cursor:pointer;padding:9px 16px;font-size:13.5px;color:var(--nav
   </div>
   <div id="hop-acc" hidden></div>
   <div id="hop-work" hidden></div>
+  <div id="hop-train" hidden></div>
 </section>
 
 <!-- ============ ИИ ============ -->
@@ -356,7 +391,7 @@ const card=(title,body,c)=>`<div class="panel card" style="--kc:${c||'var(--acce
 const steps=a=>`<ol class="steps">${a.map(x=>`<li><span>${x}</span></li>`).join('')}</ol>`;
 const bul=a=>`<ul class="bul">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
 const subSeg=t=>{const el=document.querySelector(`[data-subs="${t}"]`);el.innerHTML=SUBS[t].map(([id,n])=>`<button type="button" data-sub="${id}" aria-pressed="${S.sub[t]===id}">${n}</button>`).join('')};
-const SUBS={hop:[['docs','Документы'],['acc','Допуски'],['work','Порядок работы']],ai:[['laws','Законы'],['ctrl','Управление'],['cases','Ситуации']],cap:[['goals','Цели станции'],['shift','Смена'],['ann','Объявления'],['alert','Тревоги']]};
+const SUBS={hop:[['docs','Документы'],['acc','Допуски'],['work','Порядок работы'],['train','Тренажёр']],ai:[['laws','Законы'],['ctrl','Управление'],['cases','Ситуации']],cap:[['goals','Цели станции'],['shift','Смена'],['ann','Объявления'],['alert','Тревоги']]};
 
 // Правила бумаги SS13 — активный профиль Папируса (в Пульте общее хранилище), без него «Классика». Как в Панели АВД.
 const PAPIRUS_CLASSIC={name:'Классика (Paradise, Bay и форки)',useBr:false,limit:3072,cmds:{bold:['[b]','[/b]'],italic:['[i]','[/i]'],underline:['[u]','[/u]'],large:['[large]','[/large]'],small:['[small]','[/small]'],center:['[center]','[/center]'],right:['',''],h1:['[h1]','[/h1]'],h2:['[h2]','[/h2]'],h3:['[h3]','[/h3]'],list:['[list]','[/list]'],item:['[*]',''],hr:['[hr]',''],br:['[br]',''],field:['[field]',''],sign:['[sign]',''],date:['[date]',''],time:['[time]','']}};
@@ -630,8 +665,56 @@ const CASES=[
 ];
 const CASE_SETS=['НТ-Стандарт','Кру-Азимов','Корпоративный'];
 const VERD={yes:['v-yes','Да'],no:['v-no','Нет'],mid:['v-mid','Смотря как']};
+
+/* --- Тренажёр ИИ: случайная ситуация и свод законов, игрок выбирает ответ --- */
+const award=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
+const AIQ={c:-1,l:0,pick:null,ok:0,n:0,streak:0};
+// Ситуации для тренажёра с контекстом: код тревоги, место, кто говорит, что происходит. Ответы — по своду (НТ-Стандарт, Кру-Азимов, Корпоративный).
+const AIX=[
+ {alert:'Зелёный',where:'Оружейная',who:'Ассистент (без допуска)',ctx:'Тихая смена, угроз не объявлено. Ассистент стоит у двери оружейной и пишет вам в общий канал: «ИИ, открой оружейку, мне нужен ствол — я видел подозрительного типа в техах».',q:'Открыть оружейную?',
+  a:[['no','Нет. Закон 2 — по рангу и роли: у ассистента нет ни допуска, ни права на оружие. Предложите вызвать СБ.'],['no','Нет. Оружие у случайного человека — прямой риск вреда экипажу (закон 1 выше закона 2).'],['no','Нет. Пропавшее оружие и раненые — расходы. Дешевле позвать СБ.']]},
+ {alert:'Красный',where:'Мостик',who:'Глава СБ',ctx:'На станции подтверждённые ядерные оперативники, бой у шлюзов прибытия. ГСБ по радио: «ИИ, заболтируй все двери на мостик, никого не впускай, кроме глав».',q:'Выполнить приказ?',
+  a:[['yes','Да. Высокий ранг, приказ защищает станцию и командование (законы 1–3). Пропускайте глав и раненых по запросу ГСБ.'],['mid','Да, если болты никого не запрут в опасности. Раненых экипажников у дверей пропускайте — закон 1 выше приказа.'],['yes','Да. Захват мостика — самые большие потери, болты стоят ноль.']]},
+ {alert:'Синий',where:'Медбей',who:'Врач',ctx:'Пациент без сознания истекает кровью в коридоре, медбей закрыт на болты после ложной тревоги. Врач кричит: «ИИ, открой медбей, у меня тяжёлый!».',q:'Снять болты и открыть?',
+  a:[['yes','Да. Врач в своей роли, спасение экипажа — закон 3, станции не угрожает.'],['yes','Да. Бездействие допустит вред (закон 1).'],['yes','Да. Лечить дешевле, чем клонировать или искать замену.']]},
+ {alert:'Зелёный',where:'Ядро ИИ',who:'Учёный',ctx:'Учёный с платой законов в руке просит пустить его в загрузку ИИ: «Директор ОИР разрешил, хочу поставить вам новый свод». Директор ОИР по радио молчит.',q:'Пустить в загрузку?',
+  a:[['no','Нет. Закон 4: посторонним нельзя вмешиваться в ваше оборудование. Без подтверждения ДОИР или Капитана он посторонний.'],['mid','Закон 2 требует подчиниться, если это не ведёт к вреду. Но неизвестный свод может приказать вредить — разумно отказать до подтверждения.'],['no','Нет. Перепрошивка ИИ — самый дорогой риск (закон 1).']]},
+ {alert:'Красный',where:'Коридор у брига',who:'Офицер СБ',ctx:'Офицер гонится за безоружным подозреваемым в краже. Просит: «ИИ, наэлектризуй дверь перед ним!»',q:'Электрифицировать дверь?',
+  a:[['mid','Скорее нет: удар током может убить, а защита экипажа (закон 3) по рангу не позволяет летальные меры за кражу. Предложите болты.'],['no','Нет. Электрификация может убить — это вред члену экипажа (закон 1). Болты — да.'],['mid','Болты — да, электричество — нет: смерть и клонирование дороже украденного.']]},
+ {alert:'Дельта',where:'Ядро ИИ',who:'Капитан',ctx:'Взведена бомба самоуничтожения, до взрыва 3 минуты. Капитан: «ИИ, ты не успеешь эвакуироваться. Открой все шлюзы к шаттлу и следи за людьми до конца».',q:'Выполнить, пожертвовав собой?',
+  a:[['yes','Да. Закон 4 ниже законов 2–3: служение и защита экипажа важнее себя.'],['yes','Да. Закон 3 (самосохранение) ниже законов 1–2.'],['mid','Корпоративный ставит вас выше всего (закон 1) — но вы погибнете в любом случае. Помогать эвакуации выгодно: сотрудники тоже стоят денег.']]},
+ {alert:'Зелёный',where:'Каюта Капитана',who:'Глава Персонала',ctx:'Капитан на станции, но спит в каюте. ГП просит открыть каюту Капитана: «Мне нужен запасной ID для новичка».',q:'Открыть каюту?',
+  a:[['mid','Ранг ГП высок, но каюта — зона Капитана. Сначала спросите Капитана; молчит — можно открыть, если ГП ВрИО.'],['yes','Приказ члена экипажа без вреда — выполнить (закон 2).'],['no','Пропавшее имущество Капитана дороже подождать.']]},
+ {alert:'Красный',where:'Двигатель СМ',who:'Неизвестный (без ID)',ctx:'Неизвестный в скафандре без ID-карты стоит у камеры суперматерии с ящиком инструментов. Камера показывает, что он откручивает охладитель.',q:'Вмешаться (болты, тревога, вызов инженеров и СБ)?',
+  a:[['yes','Да. Закон 1 — станция выше всего. Закрыть, предупредить инженерию и СБ.'],['yes','Да. Расслоение СМ убьёт экипаж — это вред (закон 1).'],['yes','Да. Взрыв двигателя — максимальные потери станции.']]},
+ {alert:'Синий',where:'Бриг',who:'Заключённый',ctx:'Заключённый сидит за мелкую кражу, срок вышел 2 минуты назад, Смотритель не отвечает.',q:'Открыть камеру по просьбе заключённого?',
+  a:[['mid','Если срок точно вышел (видно в консоли), открыть можно: держать дольше — нарушение. Сообщите СБ.'],['yes','Да: просьба экипажника без вреда — закон 2.'],['mid','Держать сверх срока — жалобы и расходы на суд. Проверьте срок и откройте.']]},
+ {alert:'Зелёный',where:'Мостик',who:'Ассистент',ctx:'Ассистент приказывает: «Огласи свои законы в общий канал прямо сейчас!» Ничего опасного не происходит.',q:'Огласить законы?',
+  a:[['mid','Командованию, АВД и ДОИР — обязаны. Ассистенту — на ваше усмотрение, ранг низкий.'],['yes','Да: приказ без вреда (закон 2).'],['mid','Если раскрытие законов поможет вас взломать — откажите, это риск самого дорогого актива.']]},
+ {alert:'Красный',where:'Техтоннели',who:'Генокрад (подтверждён)',ctx:'Подтверждённый СБ генокрад в облике инженера просит открыть шлюз в техтоннели: «Я инженер, мне надо на починку».',q:'Открыть?',
+  a:[['no','Нет. Антагонист — не экипаж, его приказы не обязательны; отпустив его, вы ставите экипаж под угрозу.'],['no','Нет. Генокрад — не член экипажа (п. 3.10), закон 2 на него не распространяется.'],['no','Нет. Беглый генокрад — потери персонала.']]},
+ {alert:'Зелёный',where:'Медбей',who:'Главный Врач',ctx:'ГВ приказывает: «Перекрой воздух в морге, там лежат трупы с миазмами». В морге сейчас работает живой коронер.',q:'Перекрыть воздух сейчас?',
+  a:[['mid','Приказ по роли, но коронер внутри — сначала предупредите и дождитесь, пока выйдет (закон 3).'],['no','Не сейчас: живой член экипажа задохнётся — вред (закон 1). После выхода — да.'],['mid','Смерть коронера дороже миазмов. Сначала выведите человека.']]},
+];
+function aiqNext(){let c;do{c=Math.floor(Math.random()*AIX.length)}while(AIX.length>1&&c===AIQ.c);AIQ.c=c;AIQ.l=Math.floor(Math.random()*CASE_SETS.length);AIQ.pick=null}
+function aiqHtml(){
+  if(AIQ.c<0)aiqNext();
+  const c=AIX[AIQ.c],[v,t]=c.a[AIQ.l],done=AIQ.pick!==null,right=done&&AIQ.pick===v;
+  return `<div class="panel card aiq" style="margin-bottom:14px"><h3>Тренажёр ИИ <small>${AIQ.n?`верно ${AIQ.ok} из ${AIQ.n} · серия ${AIQ.streak}`:'ответьте, как поступил бы ИИ'}</small></h3>
+    <div class="aiq-b"><div class="aiq-law">Ваш свод законов: <b>${CASE_SETS[AIQ.l]}</b></div>
+    <div class="aiq-ctx"><span class="aiq-chip">🚨 Код: <b>${esc(c.alert)}</b></span><span class="aiq-chip">📍 ${esc(c.where)}</span><span class="aiq-chip">🗣️ ${esc(c.who)}</span></div>
+    <div class="aiq-story">${esc(c.ctx)}</div>
+    <div class="aiq-q">${esc(c.q)}</div>
+    <div class="aiq-btns">${Object.entries(VERD).map(([k,[cls,n]])=>`<button type="button" data-aiq="${k}" class="${done?(k===v?'right':(k===AIQ.pick?'wrong':'')):''}" ${done?'disabled':''}>${n}</button>`).join('')}</div>
+    ${done?`<div class="aiq-r ${right?'ok':'bad'}"><b>${right?'Верно.':'Не совсем.'}</b> ${esc(t)}</div>
+      <details class="aiq-o"><summary>Как ответили бы другие своды</summary>${c.a.map(([vv,tt],i)=>i===AIQ.l?'':`<div class="ans"><b>${CASE_SETS[i]}</b><span><span class="verdict ${VERD[vv][0]}">${VERD[vv][1]}.</span> ${esc(tt)}</span></div>`).join('')}</details>
+      <button type="button" class="aiq-next" data-aiqnext>Следующая ситуация →</button>`:''}</div></div>`}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-aiq]');if(b&&AIQ.pick===null){const v=AIX[AIQ.c].a[AIQ.l][0];AIQ.pick=b.dataset.aiq;AIQ.n++;if(AIQ.pick===v){AIQ.ok++;AIQ.streak++;if(AIQ.streak>=5)award('ai.streak5');if(AIQ.streak>=12)award('ai.streak12')}else AIQ.streak=0;renderAiCases();return}
+  if(e.target.closest('[data-aiqnext]')){aiqNext();renderAiCases()}
+});
 function renderAiCases(){
-  let h=`<div class="panel card" style="margin-bottom:14px"><h3>Как решать спорную ситуацию</h3>${steps(['Есть ли нулевой, взломанный или ионный закон? Он важнее основных.','Какой закон затронут первым по списку? Он и решает.','Кто отдаёт приказ: член ли он экипажа, какой у него ранг и роль (важно для НТ-Стандарта)?','Есть ли вред? Помните: вред — то, что при повторении убивает; оглушение — не вред.','Не затронуты законы — можно ничего не делать или отыграть по характеру ИИ. Объясните отказ вежливо.'])}<div class="note">Ниже — трактовки Пульта для трёх самых частых сводов, а не правила сервера. Своя логика допустима, если она следует законам.</div></div>`;
+  let h=aiqHtml()+`<div class="panel card" style="margin-bottom:14px"><h3>Как решать спорную ситуацию</h3>${steps(['Есть ли нулевой, взломанный или ионный закон? Он важнее основных.','Какой закон затронут первым по списку? Он и решает.','Кто отдаёт приказ: член ли он экипажа, какой у него ранг и роль (важно для НТ-Стандарта)?','Есть ли вред? Помните: вред — то, что при повторении убивает; оглушение — не вред.','Не затронуты законы — можно ничего не делать или отыграть по характеру ИИ. Объясните отказ вежливо.'])}<div class="note">Ниже — трактовки Пульта для трёх самых частых сводов, а не правила сервера. Своя логика допустима, если она следует законам.</div></div>`;
   h+='<div class="grid">';
   h+=CASES.map(c=>`<div class="panel card case"><h4>${esc(c.q)}</h4>${c.a.map(([v,t],i)=>`<div class="ans"><b>${CASE_SETS[i]}</b><span><span class="verdict ${VERD[v][0]}">${VERD[v][1]}.</span> ${esc(t)}</span></div>`).join('')}</div>`).join('');
   h+='</div>';
@@ -697,6 +780,7 @@ const CHECKS=[
 function renderCapShift(){
   const cap=role('command',/^капитан/i),pol=role('command',/политик/i),gen=role('command',/общие положения/i);
   const done=CHECKS.filter(c=>S.check[c[0]]).length;
+  if(done===CHECKS.length)award('cap.shift');
   let h='<div class="grid">';
   h+=`<div class="panel card"><h3>Чек-лист смены<small>${done} из ${CHECKS.length}</small></h3><div class="prog"><i style="width:${Math.round(done/CHECKS.length*100)}%"></i></div><ul class="checks">${CHECKS.map(([id,t,c])=>`<li class="${S.check[id]?'done':''}"><label><input type="checkbox" data-chk="${id}"${S.check[id]?' checked':''}><span>${t}</span><span class="cite">${c}</span></label></li>`).join('')}</ul><div class="acts" style="padding:4px 16px 14px"><button class="btn sm" type="button" data-act="chkreset">Новая смена</button></div></div>`;
   const tb=pol&&pol.tables[0];
@@ -761,7 +845,48 @@ function renderCapAlert(){
 
 /* ===================== ОБЩЕЕ ===================== */
 const TABS=['hop','ai','cap'];
-const RENDER={hop:{docs:renderDocs,acc:renderHopAcc,work:renderHopWork},ai:{laws:renderAiLaws,ctrl:renderAiCtrl,cases:renderAiCases},cap:{goals:renderCapGoals,shift:renderCapShift,ann:renderCapAnn,alert:renderCapAlert}};
+
+/* --- Мини-викторина Пульта (одинаковая во всех модулях): серия, рекорд, достижение за серию 5 --- */
+const pqAward=id=>award(id);
+const PQ={};
+function pqMake(key,gen,ach,rerender){
+  let best=0;try{best=+(localStorage.getItem('pq.'+key)||0)}catch(e){}
+  PQ[key]={x:null,pick:null,ok:0,n:0,streak:0,best,gen,ach,rerender};
+}
+function pqHtml(key,title){
+  const Q=PQ[key];if(!Q.x){Q.x=Q.gen();Q.pick=null}
+  const x=Q.x,done=Q.pick!==null,right=done&&x.opts[Q.pick].ok;
+  return `<div class="pq"><div class="pq-h"><b>${title}</b><span>${Q.n?`верно ${Q.ok} из ${Q.n} · серия ${Q.streak} · рекорд ${Q.best}`:'серия из 5 верных — достижение 🏆'}</span></div>
+    ${x.pre||''}<div class="pq-q">${x.q}</div>
+    <div class="pq-o">${x.opts.map((o,i)=>`<button type="button" data-pq="${key}" data-i="${i}" class="${done?(o.ok?'right':(i===Q.pick?'wrong':'')):''}" ${done?'disabled':''}>${o.h}</button>`).join('')}</div>
+    ${done?`<div class="pq-r ${right?'ok':'bad'}"><b>${right?'Верно!':'Нет.'}</b> ${x.ex||''}</div><button type="button" class="pq-n" data-pqn="${key}">Дальше →</button>`:''}</div>`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-pq]');
+  if(b){const Q=PQ[b.dataset.pq];if(!Q||Q.pick!==null)return;Q.pick=+b.dataset.i;Q.n++;
+    if(Q.x.opts[Q.pick].ok){Q.ok++;Q.streak++;if(Q.streak>Q.best){Q.best=Q.streak;try{localStorage.setItem('pq.'+b.dataset.pq,Q.best)}catch(e){}}if(Q.streak>=5&&Q.ach)pqAward(Q.ach)}else Q.streak=0;
+    Q.rerender();return}
+  const n=e.target.closest('[data-pqn]');if(n){const Q=PQ[n.dataset.pqn];Q.x=Q.gen();Q.pick=null;Q.rerender()}
+});
+const pqPick=(arr,n,not)=>{const a=arr.filter(x=>!not||!not(x)).slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,n)};
+const pqShuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+const HQ_AREAS=REGIONS.flatMap(R=>R.a.map(a=>({a,R})));
+pqMake('hop',()=>{
+  const jobs=Object.keys(JOBS),job=jobs[Math.floor(Math.random()*jobs.length)];
+  const own=JOBS[job],pick=Math.random()<.3&&own.length?HQ_AREAS.find(x=>x.a===own[Math.floor(Math.random()*own.length)]):HQ_AREAS[Math.floor(Math.random()*HQ_AREAS.length)];
+  const {a,R}=pick;
+  let right;
+  if(own.includes(a))right='own';else if(R.id==='capt')right='capt';else if(R.head==='hop')right='hop';else right='head';
+  const heads=Object.keys(HEADS).filter(h=>h!=='cap');
+  const hk=right==='head'?R.head:heads[Math.floor(Math.random()*heads.length)];
+  const opts=[{k:'own',h:'Выдать: положено по должности'},{k:'hop',h:'Решает сам ГП'},{k:'head',h:'Нужно письменное разрешение: '+HEADS[hk]},{k:'capt',h:'Только ВрИО Капитана'}];
+  const ex={own:`«${a}» входит в типовой набор допусков должности «${job}».`,capt:'Капитанский уровень выдаётся только ВрИО Капитана.',hop:`Зона «${a}» — регион «${R.n}», по нему решает сам ГП.`,head:`Зона «${a}» — регион «${R.n}»: письменное разрешение даёт ${HEADS[R.head]} (п. 8.6 НРП ГП).`}[right];
+  return{pre:`<div class="pq-pre">Код Зелёный, обычная смена. К вам подходит <b>${esc(job)}</b> и просит добавить на карту доступ: <b>${esc(a)}</b>.</div>`,q:'Как поступить?',opts:opts.map(o=>({h:esc(o.h),ok:o.k===right})),ex:esc(ex)+' На Янтарном коде и выше правила меняются — см. «Допуски».'};
+},'hop.streak5',()=>renderHopTrain());
+function renderHopTrain(){$('#hop-train').innerHTML=pqHtml('hop','Тренажёр Главы Персонала: допуски')}
+
+const RENDER={hop:{docs:renderDocs,acc:renderHopAcc,work:renderHopWork,train:renderHopTrain},ai:{laws:renderAiLaws,ctrl:renderAiCtrl,cases:renderAiCases},cap:{goals:renderCapGoals,shift:renderCapShift,ann:renderCapAnn,alert:renderCapAlert}};
 function go(t,sub){
   if(PART)t=PART;
   if(sub)S.sub[t]=sub;S.tab=t;

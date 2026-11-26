@@ -60,7 +60,7 @@ const APPS = [
   { id: 'engineer', name: 'Инженер', sub: 'Пошаговые инструкции', desc: 'Двигатель, стройка, цели станции — шаг за шагом',
     src: 'apps/engineer/index.html?only=guides', color: '#e2b33a', icon: 'wrench', hscroll: '.nav', css: false },
   { id: 'kitchen', name: 'Кухня и бар', short: 'Кухня', sub: 'Повар и бармен', desc: 'Рецепты блюд и коктейлей, «Мой бар»',
-    src: 'apps/kitchen/index.html', color: '#e07a3f', icon: 'pot', hscroll: '.tabs, .subtabs, .controls .chips' },
+    src: 'apps/kitchen/index.html', color: '#e07a3f', icon: 'pot', hscroll: '.tabs, .subtabs, .controls .chips', script: true },
   { id: 'himzavod', name: 'Химзавод', sub: 'Плюмбинг и химия', desc: 'Трубы, машины и реакции завода',
     src: 'apps/himzavod/index.html', color: '#9a6ad6', icon: 'factory', hscroll: 'header' },
   { id: 'character', name: 'Персонаж', sub: 'Редактор персонажа', desc: 'Окно настройки персонажа, превью и 60 слотов',
@@ -92,6 +92,9 @@ const APPS = [
   // Вирусология — второе приложение медотдела после Алхимика и Химзавода; своей клавиши нет
   { id: 'viro', name: 'Вирусология', sub: 'Вирусы и эпидемии', desc: 'Статы, полезные вирусы, лечение, разумный вирус',
     src: 'apps/viro/index.html', color: '#4aa8d8', icon: 'virus', hscroll: 'nav, .subnav, .chips', css: false },
+  // Медбей — тренажёр «Пациент на столе» по коду лечения BlueMoon; своей клавиши нет
+  { id: 'medbay', name: 'Медбей', sub: 'Пациент на столе', desc: 'Анализатор, кукла здоровья, наборы и лекарства на время',
+    src: 'apps/medbay/index.html', color: '#2f8fc4', icon: 'cross', hscroll: 'nav, .tools, .zbtns', css: false },
   // Робототехник — второе приложение науки; пошаговая сборка с оверлеем поверх игры (F10), своей клавиши нет
   { id: 'robo', name: 'Робототехник', short: 'Робо', sub: 'Киборги, мехи, МОДы', desc: 'Пошаговая сборка, МОД-стенд, оверлей F10, НРП',
     src: 'apps/robo/index.html', color: '#8c6ad8', icon: 'robot', hscroll: 'nav, .subnav, .mpre', css: false },
@@ -132,7 +135,7 @@ const DEPTS = [
   { id: 'cmd', name: 'Командование', sub: 'ГП, ИИ, Капитан', color: '#5b7be0', icon: 'crown', apps: ['hop', 'ai', 'captain'] },
   { id: 'eng', name: 'Инженерия', sub: 'Инструкции и атмос', color: '#e2b33a', icon: 'wrench', apps: ['engineer', 'air'] },
   { id: 'sci', name: 'Наука', sub: 'R&D, генетика, наниты, слаймы', color: '#2fb5a5', icon: 'atom', apps: ['circuits', 'robo', 'rnd', 'genetics', 'nanites', 'xeno'] },
-  { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro'] },
+  { id: 'med', name: 'Медицина', sub: 'Химия, завод, вирусы, медбей', color: '#4aa8d8', icon: 'cross', apps: ['alchimik', 'himzavod', 'viro', 'medbay'] },
   { id: 'srv', name: 'Сервис', sub: 'Кухня, бар, ботаника', color: '#e07a3f', icon: 'cloche', apps: ['kitchen', 'botany'] },
   { id: 'sup', name: 'Карго', sub: 'Майнеры, шахта, шаттл, битран', color: '#c08a3e', icon: 'crate', apps: ['miners', 'mine', 'cargoev', 'bitrun'] },
 ];
@@ -366,6 +369,7 @@ function open(id) {
   document.title = app.name + ' — Пульт';
   send('title:' + document.title);
   store.set('last', id);
+  if (window.PultGame) window.PultGame.visit(id);
   if (android) android.setEngineerOpen(id === 'engineer');
   home.classList.add('closed');
   focusApp();

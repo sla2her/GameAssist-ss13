@@ -185,6 +185,22 @@ tr:first-child td{font-weight:600;background:var(--panel2)}
 .pult-compact .it .no{display:none}
 .pult-compact .foot{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* тренажёр */
+.qz{padding:18px;display:grid;gap:12px;max-width:860px;border-top:4px solid var(--kc)}
+.qz-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.qz-h b{font-size:17px}.qz-h span{font-size:12.5px;color:var(--muted)}
+.qz-k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--kc)}
+.qz-t{margin:0;padding:12px 14px;border-left:3px solid var(--kc);background:var(--panel2);border-radius:0 8px 8px 0;font-size:15px;line-height:1.5}
+.qz-o{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.qz-o button{text-align:left;border:1px solid var(--line2);border-left:4px solid var(--gc);background:var(--panel);border-radius:9px;padding:8px 12px;cursor:pointer;display:grid;gap:2px}
+.qz-o button:hover:not(:disabled){border-color:var(--fg)}
+.qz-o button small{color:var(--muted);font-size:12px}
+.qz-o button.right{background:color-mix(in srgb,var(--right) 18%,var(--panel))}
+.qz-o button.wrong{background:color-mix(in srgb,var(--ban) 16%,var(--panel))}
+.qz-o button:disabled{cursor:default}
+.qz-r{font-size:14px}
+.qz-r.ok b{color:var(--right)}.qz-r.bad b{color:var(--ban)}
 </style>
 </head>
 <body>
@@ -195,6 +211,7 @@ tr:first-child td{font-weight:600;background:var(--panel2)}
     <button role="tab" id="tab-viol" data-tab="viol" aria-selected="true">Нарушения</button>
     <button role="tab" id="tab-docs" data-tab="docs" aria-selected="false">Рапорт<span class="n" id="navn" hidden></span></button>
     <button role="tab" id="tab-auth" data-tab="auth" aria-selected="false">Полномочия</button>
+    <button role="tab" id="tab-quiz" data-tab="quiz" aria-selected="false">Тренажёр</button>
   </nav>
 </header>
 
@@ -234,6 +251,10 @@ tr:first-child td{font-weight:600;background:var(--panel2)}
 <!-- ============ ПОЛНОМОЧИЯ ============ -->
 <section id="v-auth" hidden>
   <div class="auth" id="auth"></div>
+</section>
+
+<section id="v-quiz" hidden>
+  <div id="quiz"></div>
 </section>
 
 <p class="foot">Неофициальный помощник по документу «Нормы рабочих процедур». Номер пункта — порядковый номер внутри раздела отдела (должность.пункт), в самом документе пункты не пронумерованы. Решение о мере всегда за уполномоченным лицом.</p>
@@ -522,11 +543,45 @@ function renderAuth(){
       if(want.length)h+=`<div class="panel card"><h3>Увольнение, понижение, отстранение</h3>${want.map(g=>`<div class="grp rule"><h4>${esc(g.t)}</h4>${g.items.map(it=>`<div class="it"><span class="tx">${esc(it.t)}</span></div>`).join('')}</div>`).join('')}</div>`}}
   $('#auth').innerHTML=h}
 
+
+/* ===================== ТРЕНАЖЁР НРП ===================== */
+// Случайный пункт НРП — угадать, чья это норма. Только обязанности, запреты и права конкретных должностей.
+const QPOOL=ITEMS.filter(x=>!['alert','law'].includes(x.d.id)&&['duty','ban','right'].includes(x.g.k)&&!/общ|положени|политик/i.test(x.r.t)&&x.it.t.length>=40&&x.it.t.length<=360);
+const award=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
+const QZ={x:null,opts:[],pick:null,ok:0,n:0,streak:0,best:0};
+try{const b=+localStorage.getItem('avd.quiz.best');if(b)QZ.best=b}catch(e){}
+function qzNext(){
+  if(!QPOOL.length)return;
+  const x=QPOOL[Math.floor(Math.random()*QPOOL.length)];
+  const roleKey=y=>y.d.id+'/'+y.ri,seen=new Set([roleKey(x)]),opts=[x];
+  const others=QPOOL.filter(y=>!seen.has(roleKey(y)));
+  for(let i=0;i<200&&opts.length<4;i++){const y=others[Math.floor(Math.random()*others.length)];if(!seen.has(roleKey(y))&&y.r.t!==x.r.t){seen.add(roleKey(y));opts.push(y)}}
+  for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}
+  QZ.x=x;QZ.opts=opts;QZ.pick=null}
+function renderQuiz(){
+  if(!QZ.x)qzNext();
+  const el=$('#quiz');if(!QZ.x){el.innerHTML='<div class="panel empty"><b>Нет данных НРП</b></div>';return}
+  const x=QZ.x,done=QZ.pick!==null,right=done&&QZ.opts[QZ.pick]===x;
+  el.innerHTML=`<div class="panel qz" style="--kc:${LOOK[x.d.id].c}">
+    <div class="qz-h"><b>Чья это норма?</b><span>${QZ.n?`верно ${QZ.ok} из ${QZ.n} · серия ${QZ.streak} · рекорд ${QZ.best}`:`${QPOOL.length} пунктов в колоде`}</span></div>
+    <div class="qz-k">${KIND[x.g.k].l}</div>
+    <blockquote class="qz-t">${esc(x.it.t)}</blockquote>
+    <div class="qz-o">${QZ.opts.map((y,i)=>`<button type="button" data-qz="${i}" style="--gc:${LOOK[y.d.id].c}" class="${done?(y===x?'right':(i===QZ.pick?'wrong':'')):''}" ${done?'disabled':''}><b>${esc(y.r.t)}</b><small>${esc(y.d.s||y.d.t)}</small></button>`).join('')}</div>
+    ${done?`<div class="qz-r ${right?'ok':'bad'}"><b>${right?'Верно!':'Нет.'}</b> Это ${src(x)}.</div>
+      <div class="acts"><button type="button" class="btn pri" data-qznext>Следующий пункт →</button><button type="button" class="btn" data-qzopen>Открыть в справочнике</button></div>`:''}
+  </div>`}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-qz]');if(b&&QZ.pick===null){QZ.pick=+b.dataset.qz;QZ.n++;if(QZ.opts[QZ.pick]===QZ.x){QZ.ok++;QZ.streak++;if(QZ.streak>=5)award('avd.streak5');if(QZ.streak>=15)award('avd.streak15');if(QZ.streak>QZ.best){QZ.best=QZ.streak;try{localStorage.setItem('avd.quiz.best',QZ.best)}catch(e){}}}else QZ.streak=0;renderQuiz();return}
+  if(e.target.closest('[data-qznext]')){qzNext();renderQuiz();return}
+  if(e.target.closest('[data-qzopen]')){S.dept=QZ.x.d.id;S.role=QZ.x.ri;save();go('viol')}
+});
+
 /* ===================== ОБЩЕЕ ===================== */
-const TABS=['viol','docs','auth'];
+const TABS=['viol','docs','auth','quiz'];
 function go(t){TABS.forEach(x=>{$('#v-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t)});
   if(t==='docs'){renderTpls();renderForm();syncFmt();renderPaper()}
   if(t==='auth')renderAuth();
+  if(t==='quiz')renderQuiz();
   if(t==='viol'){renderDepts();renderList();renderRp()}
   setHash(t==='viol'?S.dept:t);window.scrollTo(0,0)}
 function setHash(h){try{history.replaceState(null,'','#'+h)}catch(e){}}

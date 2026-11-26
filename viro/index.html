@@ -100,6 +100,32 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
 .pult-compact .note{margin-left:10px;margin-right:10px}
 .pult-compact .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 .pult-compact .foot{display:none}
+
+/* Конструктор штамма */
+.grid.lab{grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))}
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 16px 0}
+.slot{border:1px dashed var(--line2);border-radius:10px;min-height:62px;padding:6px 10px;font-size:12px;color:var(--faint);display:flex;flex-direction:column;justify-content:center;text-align:left;background:none}
+.slot.risky{border-color:color-mix(in srgb,var(--warn) 50%,var(--line2))}
+.slot.on{border:1px solid var(--line2);background:var(--panel2);color:var(--fg);cursor:pointer;font-size:13px}
+.slot.on:hover{border-color:var(--bad)}
+.slot b{font-size:13px}.slot i{font-style:normal;color:var(--muted);font-size:11.5px}
+.labf{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px 4px}
+.labf input{flex:1;min-width:160px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);padding:5px 10px}
+.symlist{display:grid;gap:4px;padding:8px 16px 14px;max-height:560px;overflow:auto}
+.symb{display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:5px 10px;cursor:pointer;font-size:13px}
+.symb:hover:not(:disabled){border-color:var(--accent)}
+.symb.on{background:color-mix(in srgb,var(--ok) 14%,var(--panel));border-color:var(--ok)}
+.symb:disabled{opacity:.45;cursor:not-allowed}
+.symb .st{font:12px var(--font-m);white-space:nowrap}
+tr.thr-ok td:first-child{color:var(--ok)} tr.thr-no{opacity:.65}
+.simbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px 8px}
+.simbar button{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:5px 12px;cursor:pointer}
+.simbar button.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+.simbar button:disabled{opacity:.5;cursor:not-allowed}
+.simbar label{display:flex;gap:6px;align-items:center;font-size:13px}
+#simcv{display:block;width:min(760px,calc(100% - 32px));margin:0 16px;border:1px solid var(--line);border-radius:10px;aspect-ratio:760/300;height:auto}
+.pult-compact .slots{grid-template-columns:repeat(2,minmax(0,1fr));padding-left:10px;padding-right:10px}
+.pult-compact #simcv{width:calc(100% - 20px);margin:0 10px}
 </style>
 </head>
 <body>
@@ -126,6 +152,7 @@ code{font:12.5px var(--font-m);background:var(--panel2);border-radius:4px;paddin
   <div class="seg subnav" data-subs="build"></div>
   <div id="build-how"></div>
   <div id="build-recipes" hidden></div>
+  <div id="build-lab" hidden></div>
 </section>
 
 <section id="v-cure" hidden>
@@ -279,7 +306,7 @@ function renderStats(){
 }
 
 /* ===================== ОСНОВЫ: СИМПТОМЫ ===================== */
-const S0={tab:'basics',sub:{basics:'gear',build:'how',cure:'proto',antag:'how'},symf:'good'};
+const S0={tab:'basics',sub:{basics:'gear',build:'lab',cure:'proto',antag:'how'},symf:'good'};
 function renderSymptoms(){
   const f=S.symf;
   const list=SYM.filter(s=>f==='all'||(f==='good'?s[7]===0:(f==='bad'?s[7]>=3:s[7]>0&&s[7]<3)));
@@ -411,6 +438,140 @@ function renderRecipes(){
     'Держите <b>четыре</b> симптома: пятый и шестой могут выбить случайный симптом при смешивании.']),C.rec,'wide');
   $('#build-recipes').innerHTML=h;
 }
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+/* ===================== КОНСТРУКТОР ШТАММА И СИМУЛЯЦИЯ ВСПЫШКИ ===================== */
+const award=id=>{try{const g=window.parent!==window&&parent.PultGame;g&&g.award(id)}catch(e){}};
+const STATN=['Скрытность','Устойчивость','Скорость','Передача'];
+const LAB={sel:[],q:'',lvl:0};
+try{const s=JSON.parse(localStorage.getItem('viro.lab')||'null');if(s&&Array.isArray(s.sel))LAB.sel=s.sel.filter(n=>SYM.some(x=>x[0]===n)).slice(0,6)}catch(e){}
+const labSave=()=>{try{localStorage.setItem('viro.lab',JSON.stringify({sel:LAB.sel}))}catch(e){}};
+const symBy=n=>SYM.find(x=>x[0]===n);
+function labCalc(){
+  const sym=LAB.sel.map(symBy),t=stat(sym),n=sym.length;
+  const cl=n?Math.max(1,Math.min(11,Math.floor(t[1]-n/2))):0;
+  const sev=n?Math.max(...sym.map(s=>s[7])):0;
+  const spread=n?spreadOf(t,n):'—';
+  const thr=[];
+  sym.forEach(s=>{if(s[9])s[9].split(' · ').forEach(p=>{const m=p.match(/^(\S+) (\d+) — (.*)$/);if(!m)return;const i=STATN.indexOf(m[1]);if(i<0)return;thr.push({s:s[1],st:m[1],need:+m[2],have:t[i],ok:t[i]>=+m[2],txt:m[3]})})});
+  return{sym,t,n,cl,sev,spread,thr,cure:15-Math.max(-5,Math.min(5,t[1])),stage:Math.max(t[2],2),perm:Math.max(1,Math.ceil(.4*t[3]))};
+}
+function renderLab(){
+  const R=labCalc();
+  if(R.n>=3&&R.sev===0&&R.spread==='Кровь')award('viro.safe');
+  const q=LAB.q.trim().toLowerCase();
+  const list=SYM.filter(s=>(!LAB.lvl||s[6]===LAB.lvl)&&(!q||(s[0]+' '+s[1]).toLowerCase().includes(q)));
+  const lvls=[...new Set(SYM.map(s=>s[6]))].sort((a,b)=>a-b);
+  let h='<div class="grid lab">';
+  h+=card(`Пробирка <small>${R.n} из 6 симптомов · щёлкните симптом справа, чтобы добавить, здесь — чтобы убрать</small>`,
+    `<div class="slots">${[0,1,2,3,4,5].map(i=>{const s=R.sym[i];return s?`<button type="button" class="slot on" data-unsym="${esc(s[0])}" title="Убрать"><b>${s[1]}</b><span>${sg(s[2])} ${sg(s[3])} ${sg(s[4])} ${sg(s[5])}</span><i>ур. ${s[6]}</i></button>`:`<div class="slot${i>=4?' risky':''}">${i>=4?'5–6: может выпасть при смешивании':'пусто'}</div>`}).join('')}</div>
+    <div class="kpis">
+      <div class="kpi ${R.t[0]>=2?'warn':''}"><b>${R.t[0]>0?'+':''}${R.t[0]}</b><span>Скрытность${R.t[0]>=2?' · не видна анализатору':''}</span></div>
+      <div class="kpi"><b>${R.t[1]>0?'+':''}${R.t[1]}</b><span>Устойчивость</span></div>
+      <div class="kpi"><b>${R.t[2]>0?'+':''}${R.t[2]}</b><span>Скорость стадий</span></div>
+      <div class="kpi"><b>${R.t[3]>0?'+':''}${R.t[3]}</b><span>Передача</span></div>
+      <div class="kpi ${R.spread==='Воздух'?'bad':(R.spread==='Кровь'?'ok':'warn')}"><b>${R.spread}</b><span>Способ передачи</span></div>
+      <div class="kpi ${R.cl>=8?'bad':''}"><b>${R.n?R.cl:'—'}</b><span>Уровень лекарства</span></div>
+      <div class="kpi"><b>${R.n?R.cure+' %':'—'}</b><span>Шанс лечения за тик</span></div>
+      <div class="kpi"><b>${R.n?R.stage+' %':'—'}</b><span>Шанс стадии за тик</span></div>
+      <div class="kpi ${R.sev>=4?'bad':(R.sev>=2?'warn':'ok')}"><b>${R.n?SEV[R.sev].split(' — ')[0]:'—'}</b><span>Опасность (максимум)</span></div>
+    </div>
+    ${R.thr.length?`<div class="tbl"><table><thead><tr><th>Порог</th><th class="n">Нужно</th><th class="n">Есть</th><th>Эффект</th></tr></thead><tbody>${R.thr.map(x=>`<tr class="${x.ok?'thr-ok':'thr-no'}"><td>${x.ok?'✔':'✘'} <b>${x.st}</b> <span class="muted">· ${x.s}</span></td><td class="n">${x.need}</td><td class="n">${x.have}</td><td>${x.txt}</td></tr>`).join('')}</tbody></table></div>`:(R.n?note('У выбранных симптомов нет порогов — работают только их базовые эффекты.'):'')}
+    ${R.n?note(labAdvice(R),R.spread==='Воздух'||R.sev>=4?'bad':'ok'):note('Соберите штамм: до шести симптомов. Статы, пороги и способ передачи пересчитываются сразу, как в ПАНДЕМИКЕ.')}
+    <div class="chips" style="margin:0 16px 14px"><span class="muted" style="align-self:center;font-size:13px">Загрузить рецепт:</span>${REC.map((r,i)=>`<button type="button" data-rec="${i}">${r.n}</button>`).join('')}<button type="button" data-rec="clear">Очистить</button></div>`,C.rec);
+  h+=card(`Симптомы <small>${list.length} · скр / уст / скор / пер</small>`,
+    `<div class="labf"><input type="search" id="labq" placeholder="Поиск симптома…" value="${esc(LAB.q)}"><div class="seg">${[0,...lvls].map(l=>`<button type="button" data-lvl="${l}" aria-pressed="${LAB.lvl===l}">${l?l:'Все'}</button>`).join('')}</div></div>
+    <div class="symlist">${list.map(s=>{const on=LAB.sel.includes(s[0]);return `<button type="button" class="symb${on?' on':''}" data-addsym="${esc(s[0])}" ${!on&&LAB.sel.length>=6?'disabled':''} title="${esc(s[8])}"><span><b>${s[1]}</b> <span class="danger d${s[7]>=4?3:(s[7]>=2?2:(s[7]>0?1:0))}">ур. ${s[6]}</span></span><span class="st">${sg(s[2])} ${sg(s[3])} ${sg(s[4])} ${sg(s[5])}</span></button>`}).join('')}</div>`,C.sym);
+  h+=card('Симуляция вспышки <small>что будет, если выпустить этот штамм на 40 человек</small>',
+    `<div class="simbar"><button type="button" id="simgo" class="pri">${SIM.run?'Пауза':'▶ Запустить'}</button><button type="button" id="simreset">Заново</button><button type="button" id="simcure" ${R.n&&!SIM.cured?'':'disabled'}>💊 Раздать лекарство</button><label class="muted">Скорость <input type="range" id="simspd" min="1" max="8" value="${SIM.spd}"></label></div>
+    <canvas id="simcv" width="760" height="300"></canvas>
+    <div class="kpis" id="simk"></div>
+    ${note('Точки — экипаж. Серый — здоров, жёлтый→красный — стадии 1–5, зелёный кружок — вылечен и с иммунитетом, крест — погиб. Тик = 2 секунды игры. Модель упрощена: контакт и воздух считаются по расстоянию, кровь передаётся только при «уколе» (редко). Это тренажёр, а не точная копия кода.')}`,C.anta,'wide');
+  h+='</div>';
+  $('#build-lab').innerHTML=h;
+  simInit(false);
+}
+function labAdvice(R){
+  const a=[];
+  if(R.n>4)a.push('Больше четырёх симптомов: при смешивании культур пятый и шестой могут выбить случайный симптом.');
+  if(R.spread==='Воздух')a.push('<b>Воздушный штамм.</b> Выпуск без разрешения ГВ — нарушение. Снизьте передачу или добавьте симптомы.');
+  else if(R.spread==='Кровь')a.push('Передача только через кровь — безопасно для полезного вируса.');
+  else a.push(`Передаётся через «${R.spread}» — заразит окружающих. Для полезного вируса лучше «Кровь» (передача − число симптомов ≤ 2).`);
+  if(R.sev>=4)a.push('Есть опасный симптом: для медиков это БИОУГРОЗА.');
+  else if(R.sev===0)a.push('Опасность Positive — штамм безобиден для хоста.');
+  if(R.t[0]>=2)a.push('Скрытность ≥ 2: анализатор здоровья болезнь не покажет.');
+  if(R.cl>=8)a.push(`Лекарство ${R.cl}-го уровня — его трудно сварить.`);
+  const miss=R.thr.filter(x=>!x.ok);if(miss.length)a.push(`Не сработало порогов: ${miss.length}. Добавьте симптомы с плюсом к нужному стату (самоадаптация: +3 скр / +5 уст, ускорение: +5 скор).`);
+  return a.join('<br>');
+}
+/* --- симуляция вспышки --- */
+const SIM={run:false,spd:3,t:0,ppl:[],cured:false,timer:0};
+function simInit(force){
+  const cv=$('#simcv');if(!cv)return;
+  if(force||!SIM.ppl.length){
+    SIM.t=0;SIM.cured=false;SIM.ppl=Array.from({length:40},(_,i)=>({x:20+Math.random()*720,y:20+Math.random()*260,vx:0,vy:0,st:0,imm:false,dead:false,hp:100}));
+    SIM.ppl[0].st=1;
+  }
+  simDraw();
+}
+function simStep(){
+  const R=labCalc();if(!R.n){SIM.run=false;return}
+  const sp=R.spread,rad=sp==='Воздух'?70:(sp==='Контакт'?26:(sp==='Жидкости'?18:0));
+  const pInf=Math.min(.6,R.perm*.04);
+  SIM.t++;
+  SIM.ppl.forEach(p=>{if(p.dead)return;
+    p.vx=(p.vx+(Math.random()-.5)*1.2)*.9;p.vy=(p.vy+(Math.random()-.5)*1.2)*.9;
+    p.x=Math.max(8,Math.min(752,p.x+p.vx*3));p.y=Math.max(8,Math.min(292,p.y+p.vy*3));});
+  const inf=SIM.ppl.filter(p=>p.st>0&&!p.dead);
+  SIM.ppl.forEach(p=>{if(p.dead||p.st||p.imm)return;
+    for(const q of inf){const d=Math.hypot(p.x-q.x,p.y-q.y);
+      if(rad&&d<rad&&Math.random()<pInf*(sp==='Воздух'?.25:1)){p.st=1;break}
+      if(!rad&&d<14&&Math.random()<.004){p.st=1;break}}});
+  inf.forEach(p=>{
+    if(p.st<5&&Math.random()*100<R.stage)p.st++;
+    if(R.sev>=4&&p.st>=4){p.hp-=R.sev*(p.st-3)*.35;if(p.hp<=0){p.dead=true}}
+    if(SIM.cured&&Math.random()*100<R.cure){p.st=0;p.imm=true}});
+  if(!SIM.ppl.some(p=>p.st>0&&!p.dead)){SIM.run=false;award('viro.outbreak');if(SIM.cured&&!SIM.ppl.some(p=>p.dead)&&SIM.ppl.some(p=>p.imm))award('viro.cure')}
+}
+function simDraw(){
+  const cv=$('#simcv');if(!cv)return;const x=cv.getContext('2d'),cs=getComputedStyle(document.documentElement);
+  x.clearRect(0,0,cv.width,cv.height);x.fillStyle=cs.getPropertyValue('--panel2');x.fillRect(0,0,cv.width,cv.height);
+  x.strokeStyle=cs.getPropertyValue('--line');x.lineWidth=1;for(let i=1;i<4;i++){x.beginPath();x.moveTo(i*190,0);x.lineTo(i*190,cv.height);x.stroke()}
+  const R=labCalc(),hide=R.t[0]>=2;
+  const COL=['#9aa3b2','#e8c64a','#e8a23a','#e07a3a','#d9503a','#c0262d'];
+  SIM.ppl.forEach(p=>{
+    if(p.dead){x.strokeStyle='#666';x.lineWidth=2;x.beginPath();x.moveTo(p.x-5,p.y-5);x.lineTo(p.x+5,p.y+5);x.moveTo(p.x+5,p.y-5);x.lineTo(p.x-5,p.y+5);x.stroke();return}
+    const shown=p.st&&!(hide&&p.st<3);
+    x.fillStyle=shown?COL[p.st]:COL[0];x.beginPath();x.arc(p.x,p.y,6,0,7);x.fill();
+    if(p.imm){x.strokeStyle='#2e8a4b';x.lineWidth=2;x.beginPath();x.arc(p.x,p.y,9,0,7);x.stroke()}
+    if(p.st&&hide&&p.st<3){x.strokeStyle=COL[p.st];x.setLineDash([2,2]);x.lineWidth=1;x.beginPath();x.arc(p.x,p.y,8,0,7);x.stroke();x.setLineDash([])}
+  });
+  const c=k=>SIM.ppl.filter(k).length;
+  const k=$('#simk');if(k)k.innerHTML=`<div class="kpi"><b>${Math.round(SIM.t*2/60*10)/10} мин</b><span>Время (тик = 2 с)</span></div>
+    <div class="kpi warn"><b>${c(p=>p.st&&!p.dead)}</b><span>Заражено сейчас</span></div>
+    <div class="kpi bad"><b>${c(p=>p.st>=5&&!p.dead)}</b><span>На 5-й стадии</span></div>
+    <div class="kpi ok"><b>${c(p=>p.imm)}</b><span>Вылечено</span></div>
+    <div class="kpi"><b>${c(p=>p.dead)}</b><span>Погибло</span></div>`;
+  const g=$('#simgo');if(g)g.textContent=SIM.run?'Пауза':'▶ Запустить';
+}
+function simLoop(){
+  if(!SIM.run||!$('#simcv')||$('#build-lab').hidden){SIM.run=false;simDraw();return}
+  for(let i=0;i<SIM.spd;i++)simStep();
+  simDraw();SIM.timer=setTimeout(simLoop,120);
+}
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-addsym]');if(a){const n=a.dataset.addsym;if(LAB.sel.includes(n))LAB.sel=LAB.sel.filter(x=>x!==n);else if(LAB.sel.length<6)LAB.sel.push(n);labSave();renderLab();return}
+  const u=e.target.closest('[data-unsym]');if(u){LAB.sel=LAB.sel.filter(x=>x!==u.dataset.unsym);labSave();renderLab();return}
+  const r=e.target.closest('[data-rec]');if(r){LAB.sel=r.dataset.rec==='clear'?[]:REC[+r.dataset.rec].sym.map(s=>s[0]).filter(symBy);labSave();simInit(true);renderLab();return}
+  const l=e.target.closest('[data-lvl]');if(l){LAB.lvl=+l.dataset.lvl;renderLab();return}
+  if(e.target.closest('#simgo')){SIM.run=!SIM.run;clearTimeout(SIM.timer);if(SIM.run)simLoop();else simDraw();return}
+  if(e.target.closest('#simreset')){SIM.run=false;clearTimeout(SIM.timer);simInit(true);return}
+  if(e.target.closest('#simcure')){SIM.cured=true;e.target.closest('#simcure').disabled=true;return}
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='labq'){LAB.q=e.target.value;const pos=e.target.selectionStart;renderLab();const i=$('#labq');i.focus();i.setSelectionRange(pos,pos)}
+  if(e.target.id==='simspd')SIM.spd=+e.target.value;
+});
 
 /* ===================== ЛЕЧЕНИЕ: ПРОТОКОЛ ===================== */
 function renderProto(){
@@ -591,13 +752,13 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const TABS=['basics','build','cure','antag'];
 const SUBS={
   basics:[['gear','Оборудование'],['stats','Статы и пороги'],['symptoms','Симптомы']],
-  build:[['how','Как собрать'],['recipes','Рецепты']],
+  build:[['lab','Конструктор'],['how','Как собрать'],['recipes','Рецепты']],
   cure:[['proto','Протокол'],['list','Болезни и лекарства'],['organ','Небиологические']],
   antag:[['how','Как он работает'],['counter','Сопротивление']],
 };
 const RENDER={
   basics:{gear:renderGear,stats:renderStats,symptoms:renderSymptoms},
-  build:{how:renderHow,recipes:renderRecipes},
+  build:{how:renderHow,recipes:renderRecipes,lab:renderLab},
   cure:{proto:renderProto,list:renderList,organ:renderOrgan},
   antag:{how:renderAntagHow,counter:renderCounter},
 };
